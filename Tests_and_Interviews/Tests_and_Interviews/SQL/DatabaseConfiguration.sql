@@ -1,4 +1,8 @@
-﻿DROP TABLE IF EXISTS Answers;
+﻿Create database TestsAndInterviews
+
+use TestsAndInterviews
+
+DROP TABLE IF EXISTS Answers;
 DROP TABLE IF EXISTS Slots;
 DROP TABLE IF EXISTS LeaderboardEntries;
 DROP TABLE IF EXISTS InterviewSessions;
