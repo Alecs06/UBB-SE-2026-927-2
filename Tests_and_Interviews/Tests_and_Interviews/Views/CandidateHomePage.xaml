@@ -11,17 +11,25 @@
 
 
     <Grid x:Name="RootGrid" Padding="20" Background="#F8F7FF">
-
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*" />
             <ColumnDefinition Width="3*" />
         </Grid.ColumnDefinitions>
 
-        
-        
-    
-        <StackPanel Spacing="16">
+        <Button Grid.Row="0" Grid.ColumnSpan="2"
+                Content="← Back to Menu"
+                Click="BackButton_Click"
+                Background="Transparent"
+                Foreground="Black"
+                BorderThickness="0"
+                FontSize="16"
+                Margin="0,0,0,16" />
 
+        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="16">
             <TextBlock Text="Welcome back!" FontSize="28" FontWeight="Bold"/>
 
             <TextBlock Text="Companies matched with you"
@@ -31,14 +39,12 @@
             <ListView ItemsSource="{Binding MatchedCompanies}">
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                       
                         <Border CornerRadius="12"
                                 Padding="16"
                                 Margin="0,8"
                                 Background="#FFDBFD">
 
                             <StackPanel Spacing="8">
-
                                 <TextBlock Text="{Binding CompanyName}"
                                            FontSize="18"
                                            FontWeight="Bold"/>
@@ -61,10 +67,9 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-
         </StackPanel>
 
-        <StackPanel Grid.Column="1"
+        <StackPanel Grid.Row="1" Grid.Column="1"
                     Padding="20"
                     Spacing="12"
                     Visibility="{Binding IsBookingVisible, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -91,7 +96,6 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            
                             <Button Margin="5"
                                     Padding="10"
                                     MinWidth="80"
@@ -116,7 +120,6 @@
 
             </StackPanel>
 
-         
             <TextBlock Text="Available Hours" FontSize="16"/>
 
             <ItemsControl ItemsSource="{Binding AvailableSlots}">
@@ -128,7 +131,6 @@
 
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        
                         <Button Margin="5"
                                 Padding="10"
                                 MinWidth="120"
@@ -156,7 +158,7 @@
 
         </StackPanel>
 
-        <StackPanel Grid.Column="0"
+        <StackPanel Grid.Row="1" Grid.Column="0"
                     Width="500"
                     VerticalAlignment="Bottom"
                     HorizontalAlignment="Center"

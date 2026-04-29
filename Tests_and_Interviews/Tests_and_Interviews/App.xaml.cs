@@ -10,6 +10,8 @@ namespace Tests_and_Interviews
 {
     public partial class App : Application
     {
+        public static MainWindow MainWindow { get; private set; }
+
         private Window? _window;
 
         public static int CurrentUserId { get; private set; } = 0;
@@ -39,6 +41,11 @@ namespace Tests_and_Interviews
 
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
+            MainWindow = new MainWindow();
+            MainWindow.Activate();
+
+            /*
+
             // Main test window
             _window = new MainWindow();
             _window.Activate();
@@ -57,7 +64,7 @@ namespace Tests_and_Interviews
             candidateFrame.Navigate(typeof(CandidateHomePage));
             candidateWindow.Content = candidateFrame;
             candidateWindow.Title = "Candidate Home";
-            candidateWindow.Activate();
+            candidateWindow.Activate();*/
         }
     }
 }

@@ -37,7 +37,7 @@
             };
 
         private static User MakeUser() =>
-            new User { Id = 5 };
+            new User(5, string.Empty, string.Empty);
 
         private static Test MakeRecentTest() =>
             new Test { Id = 10, CreatedAt = DateTime.UtcNow };

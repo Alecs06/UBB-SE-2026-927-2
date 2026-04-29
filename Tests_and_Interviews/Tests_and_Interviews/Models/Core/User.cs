@@ -1,22 +1,23 @@
 ﻿namespace Tests_and_Interviews.Models.Core
 {
-    /// <summary>
-    /// User class represents an individual user in the system, containing properties 
-    /// for the user's unique identifier, name, and email address.
-    /// </summary>
+    using System;
+
     public class User
     {
-        /// <summary>
-        /// Gets or sets the unique identifier for the entity.
-        /// </summary>
         public int Id { get; set; }
-        /// <summary>
-        /// Gets or sets the name associated with this entity.
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
-        /// <summary>
-        /// Gets or sets the email address associated with this entity.
-        /// </summary>
-        public string Email { get; set; } = string.Empty;
+
+        public string Name { get; set; }
+
+        public string Email { get; set; }
+
+        public string? CvXml { get; set; }
+
+        public User(int id, string name, string email, string? cvXml = null)
+        {
+            this.Id = id;
+            this.Name = name;
+            this.Email = email;
+            this.CvXml = cvXml;
+        }
     }
 }

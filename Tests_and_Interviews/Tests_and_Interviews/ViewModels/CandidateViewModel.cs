@@ -38,8 +38,8 @@ namespace Tests_and_Interviews.ViewModels
 
         private List<Slot> availableSlots;
         private List<Slot> availableDays;
-        private ObservableCollection<Company> matchedCompanies;
-        private Company? selectedCompany;
+        private ObservableCollection<CompanyPosting> matchedCompanies;
+        private CompanyPosting? selectedCompany;
         private Slot? selectedSlot;
         private DateTime selectedDay;
         private int dayStartIndex = 0;
@@ -67,7 +67,7 @@ namespace Tests_and_Interviews.ViewModels
             this.availableSlots = new List<Slot>();
             this.availableDays = new List<Slot>();
             this.interviewSessions = new ObservableCollection<InterviewSession>();
-            this.matchedCompanies = new ObservableCollection<Company>();
+            this.matchedCompanies = new ObservableCollection<CompanyPosting>();
 
             this.LoadAvailableSlotsCommand = new RelayCommand(execute: this.LoadAvailableSlotsCommandExecute);
             this.ScheduleInterviewCommand = new RelayCommand(execute: this.ScheduleInterviewCommandExecute);
@@ -196,7 +196,7 @@ namespace Tests_and_Interviews.ViewModels
         /// <summary>
         /// Gets or sets the collection of companies that match the candidate's profile or search criteria.
         /// </summary>
-        public ObservableCollection<Company> MatchedCompanies
+        public ObservableCollection<CompanyPosting> MatchedCompanies
         {
             get => this.matchedCompanies;
             set
@@ -212,7 +212,7 @@ namespace Tests_and_Interviews.ViewModels
         /// <summary>
         /// Gets or sets the company currently selected by the user.
         /// </summary>
-        public Company? SelectedCompany
+        public CompanyPosting? SelectedCompany
         {
             get => this.selectedCompany;
             set
@@ -327,12 +327,12 @@ namespace Tests_and_Interviews.ViewModels
             // this doesnt actually like... do anything? from what i can see?
             this.MatchedCompanies =
             [
-                new Company { CompanyName = "Google", JobTitle = "Frontend Dev", RecruiterId = 1 },
-                new Company { CompanyName = "Amazon", JobTitle = "Backend Dev", RecruiterId = 2 }
+                new CompanyPosting { CompanyName = "Google", JobTitle = "Frontend Dev", RecruiterId = 1 },
+                new CompanyPosting { CompanyName = "Amazon", JobTitle = "Backend Dev", RecruiterId = 2 }
             ];
         }
 
-        private void ScheduleInterview(Company company)
+        private void ScheduleInterview(CompanyPosting company)
         {
             this.IsBookingVisible = true;
             this.SelectedCompany = company;
@@ -446,7 +446,7 @@ namespace Tests_and_Interviews.ViewModels
 
         private void ScheduleInterviewCommandExecute(object? obj)
         {
-            if (obj is not Company company)
+            if (obj is not CompanyPosting company)
             {
                 return;
             }
@@ -500,13 +500,13 @@ namespace Tests_and_Interviews.ViewModels
             }
         }
 
-        private ObservableCollection<Company> GetMatchedCompanies()
+        private ObservableCollection<CompanyPosting> GetMatchedCompanies()
         {
             // This is just a placeholder, this data will come from another team
-            return new ObservableCollection<Company>
+            return new ObservableCollection<CompanyPosting>
             {
-                new Company { CompanyName = "Google", JobTitle = "Frontend Dev", RecruiterId = 1 },
-                new Company { CompanyName = "Amazon", JobTitle = "Backend Dev", RecruiterId = 2 },
+                new CompanyPosting { CompanyName = "Google", JobTitle = "Frontend Dev", RecruiterId = 1 },
+                new CompanyPosting { CompanyName = "Amazon", JobTitle = "Backend Dev", RecruiterId = 2 },
             };
         }
     }

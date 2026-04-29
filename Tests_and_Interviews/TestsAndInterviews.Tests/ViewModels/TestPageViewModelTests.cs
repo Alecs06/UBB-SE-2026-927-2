@@ -82,7 +82,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public async Task LoadAsync_WhenUserIdIsZero_LooksUpUserByName()
         {
-            var users = new List<User> { new User { Id = 5, Name = "Alice Johnson" } };
+            var users = new List<User> { new User(5, "Alice Johnson", string.Empty) };
             this.mockUserRepository
                 .Setup(userRepository => userRepository.GetAllAsync())
                 .ReturnsAsync(users);

@@ -27,5 +27,10 @@ namespace Tests_and_Interviews.Views
         /// Gets the view model containing candidate data and logic for the associated view.
         /// </summary>
         public CandidateViewModel ViewModel { get; }
+
+        private void BackButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            App.MainWindow.ReturnToMainMenu();
+        }
     }
 }
