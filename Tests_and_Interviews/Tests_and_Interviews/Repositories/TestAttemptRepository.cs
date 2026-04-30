@@ -226,7 +226,7 @@ namespace Tests_and_Interviews.Repositories
                     ta.id AS ta_id, ta.test_id, ta.external_user_id, ta.score, ta.status, 
                     ta.started_at, ta.completed_at, ta.answers_file_path, ta.is_validated, 
                     ta.percentage_score, ta.rejection_reason, ta.rejected_at,
-                    u.id AS u_id, u.name, u.email
+                    u.id AS u_id, u.name, u.email, u.cv_xml
                 FROM TestAttempts ta
                 INNER JOIN Users u ON ta.external_user_id = u.id
                 WHERE ta.test_id = @test_id 
@@ -261,12 +261,12 @@ namespace Tests_and_Interviews.Repositories
                             RejectionReason = reader.IsDBNull(reader.GetOrdinal("rejection_reason")) ? null : reader.GetString(reader.GetOrdinal("rejection_reason")),
                             RejectedAt = reader.IsDBNull(reader.GetOrdinal("rejected_at")) ? null : reader.GetDateTime(reader.GetOrdinal("rejected_at")),
 
-                            User = new User
-                            {
-                                Id = reader.GetInt32(reader.GetOrdinal("u_id")),
-                                Name = reader.IsDBNull(reader.GetOrdinal("name")) ? null : reader.GetString(reader.GetOrdinal("name")),
-                                Email = reader.IsDBNull(reader.GetOrdinal("email")) ? null : reader.GetString(reader.GetOrdinal("email")),
-                            },
+                            User = new User(
+                                reader.GetInt32(reader.GetOrdinal("u_id")),
+                                reader.IsDBNull(reader.GetOrdinal("name")) ? string.Empty : reader.GetString(reader.GetOrdinal("name")),
+                                reader.IsDBNull(reader.GetOrdinal("email")) ? string.Empty : reader.GetString(reader.GetOrdinal("email")),
+                                reader.IsDBNull(reader.GetOrdinal("cv_xml")) ? null : reader.GetString(reader.GetOrdinal("cv_xml"))
+                            ),
                         };
 
                         attempts.Add(attempt);

@@ -101,5 +101,10 @@ namespace Tests_and_Interviews.Views
                 }
             }
         }
+
+        private void BackButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.MainWindow.ReturnToMainMenu();
+        }
     }
 }

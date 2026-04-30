@@ -75,7 +75,8 @@ namespace Tests_and_Interviews.Views
                         Title = "Test unavailable",
                         Content = "You have already attempted this test. Each test can only be taken once.",
                         CloseButtonText = "Back to Tests",
-                        XamlRoot = this.XamlRoot,
+
+                        XamlRoot = App.MainWindow.Content.XamlRoot,
                     };
                     await dialog.ShowAsync();
                     this.Frame.Navigate(typeof(MainTestPage));

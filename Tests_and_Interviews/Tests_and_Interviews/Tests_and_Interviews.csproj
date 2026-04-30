@@ -22,14 +22,27 @@
 		<CodeAnalysisRuleSet>SE.ruleset</CodeAnalysisRuleSet>
 	</PropertyGroup>
 	<ItemGroup>
+		<None Remove="Assets\AvatarFemale.png" />
+		<None Remove="Assets\AvatarMale.png" />
 		<None Remove="MainWindow.xaml" />
+		<None Remove="Views\CollaboratorsPage.xaml" />
+		<None Remove="Views\CreateEventPage.xaml" />
+		<None Remove="Views\CreateJobPage.xaml" />
+		<None Remove="Views\EditEventPage.xaml" />
+		<None Remove="Views\EditProfilePage.xaml" />
 		<None Remove="Views\InterviewCandidatePage.xaml" />
+		<None Remove="Views\JobApplicantsPage.xaml" />
 		<None Remove="Views\LeaderboardPage.xaml" />
 		<None Remove="Views\MainTestPage.xaml" />
+		<None Remove="Views\OurEventsPage.xaml" />
+		<None Remove="Views\OurJobsPage.xaml" />
+		<None Remove="Views\PastEventsPage.xaml" />
+		<None Remove="Views\PaymentWindow.xaml" />
 		<None Remove="Views\RecruiterLeaderboardPage.xaml" />
 		<None Remove="Views\RecruiterTestsPage.xaml" />
 		<None Remove="Views\TestPage.xaml" />
     <None Remove="Views\InterviewInterviewerPage.xaml" />
+    <None Remove="Views\ViewProfilePage.xaml" />
 	</ItemGroup>
 	<ItemGroup>
 		<Content Include="Assets\SplashScreen.scale-200.png" />
@@ -47,6 +60,7 @@
 		<ProjectCapability Include="Msix" />
 	</ItemGroup>
 	<ItemGroup>
+       <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
        <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.0" />
        <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260209005" />
@@ -61,7 +75,37 @@
 		<Page Include="MainWindow.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
+		<Page Include="Views\CollaboratorsPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Include="Views\CreateEventPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Include="Views\CreateJobPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Include="Views\EditEventPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Include="Views\EditProfilePage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Include="Views\JobApplicantsPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
 		<Page Include="Views\LeaderboardPage.xaml" />
+		<Page Include="Views\OurEventsPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Include="Views\OurJobsPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Include="Views\PastEventsPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Include="Views\PaymentWindow.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
 		<Page Include="Views\RecruiterLeaderboardPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</Page>
@@ -84,6 +128,9 @@
 		  <Generator>MSBuild:Compile</Generator>
 		</Page>
 		<Page Include="Views\TestPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Include="Views\ViewProfilePage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</Page>
 		<Folder Include="Dialogs\" />

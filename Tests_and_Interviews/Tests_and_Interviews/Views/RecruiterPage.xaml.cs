@@ -179,5 +179,10 @@
 				}
 			}
 		}
-	}
+
+        private void BackButton_Click(object sender, RoutedEventArgs e)
+        {
+            App.MainWindow.ReturnToMainMenu();
+        }
+    }
 }

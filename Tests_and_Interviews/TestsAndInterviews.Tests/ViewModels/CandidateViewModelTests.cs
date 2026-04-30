@@ -46,7 +46,7 @@ namespace TestsAndInterviews.Tests.ViewModels
                 this.mockSlotRepository.Object);
         }
 
-        private CandidateViewModel CreateViewModelWithCompanyAndSlot(Company company, Slot slot)
+        private CandidateViewModel CreateViewModelWithCompanyAndSlot(CompanyPosting company, Slot slot)
         {
             this.mockBookingService
                 .Setup(b => b.GetAvailableSlotsByRecruiterId(company.RecruiterId))
@@ -61,7 +61,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void ScheduleInterviewCommand_SetsIsBookingVisibleAndSelectedCompany()
         {
-            var company = new Company { RecruiterId = 1 };
+            var company = new CompanyPosting { RecruiterId = 1 };
             this.mockBookingService
                 .Setup(bookingService => bookingService.GetAvailableSlotsByRecruiterId(1))
                 .Returns(new List<Slot>());
@@ -96,7 +96,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void SelectSlotCommand_SetsSelectedSlotAndDeselectsOthers()
         {
-            var company = new Company { RecruiterId = 1 };
+            var company = new CompanyPosting { RecruiterId = 1 };
             var slot1 = new Slot { StartTime = DateTime.Today, Status = SlotStatus.Free };
             var slot2 = new Slot { StartTime = DateTime.Today.AddHours(1), Status = SlotStatus.Free };
             this.mockBookingService
@@ -125,7 +125,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void SelectDayCommand_SetsSelectedDayAndClearsSelectedSlot()
         {
-            var company = new Company { RecruiterId = 1 };
+            var company = new CompanyPosting { RecruiterId = 1 };
             var slot = new Slot { StartTime = DateTime.Today.AddDays(1), Status = SlotStatus.Free };
             var viewmodel = this.CreateViewModelWithCompanyAndSlot(company, slot);
 
@@ -148,7 +148,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void LoadNextDaysCommand_AndPreviousDaysCommand_PaginateCorrectly()
         {
-            var company = new Company { RecruiterId = 1 };
+            var company = new CompanyPosting { RecruiterId = 1 };
             var slots = new List<Slot>
             {
                 new Slot { StartTime = DateTime.Today, Status = SlotStatus.Free },
@@ -195,7 +195,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public async Task ConfirmInterviewCommand_WhenSlotAndCompanySelected_ConfirmsAndHidesBooking()
         {
-            var company = new Company { CompanyName = "Google", JobTitle = "Dev", RecruiterId = 1 };
+            var company = new CompanyPosting { CompanyName = "Google", JobTitle = "Dev", RecruiterId = 1 };
             var slot = new Slot { StartTime = DateTime.Today, EndTime = DateTime.Today.AddHours(1), Status = SlotStatus.Free };
             var viewmodel = this.CreateViewModelWithCompanyAndSlot(company, slot);
             viewmodel.MatchedCompanies.Add(company);
@@ -220,7 +220,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public async Task ConfirmInterviewCommand_WhenNotificationFails_StillCompletesBooking()
         {
-            var company = new Company { CompanyName = "Google", JobTitle = "Dev", RecruiterId = 1 };
+            var company = new CompanyPosting { CompanyName = "Google", JobTitle = "Dev", RecruiterId = 1 };
             var slot = new Slot { StartTime = DateTime.Today, EndTime = DateTime.Today.AddHours(1), Status = SlotStatus.Free };
             this.mockNotificationService
                 .Setup(notificationService => notificationService.ShowBookingConfirmed(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))

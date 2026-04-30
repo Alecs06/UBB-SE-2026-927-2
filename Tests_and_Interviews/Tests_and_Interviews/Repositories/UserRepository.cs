@@ -33,7 +33,7 @@
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task<User?> GetByIdAsync(int id)
         {
-            string query = "SELECT id, name, email FROM Users WHERE id = @id";
+            string query = "SELECT id, name, email, cv_xml FROM Users WHERE id = @id";
 
             using (var connection = new SqlConnection(this.connectionString))
             using (var command = new SqlCommand(query, connection))
@@ -61,7 +61,7 @@
         public async Task<List<User>> GetAllAsync()
         {
             var users = new List<User>();
-            string query = "SELECT id, name, email FROM Users";
+            string query = "SELECT id, name, email, cv_xml FROM Users";
 
             using (var connection = new SqlConnection(this.connectionString))
             using (var command = new SqlCommand(query, connection))
@@ -88,15 +88,16 @@
         public async Task AddAsync(User user)
         {
             string query = @"
-                INSERT INTO Users (name, email) 
+                INSERT INTO Users (name, email, cv_xml) 
                 OUTPUT INSERTED.id 
-                VALUES (@name, @email)";
+                VALUES (@name, @email, @cv_xml)";
 
             using (var connection = new SqlConnection(this.connectionString))
             using (var command = new SqlCommand(query, connection))
             {
                 command.Parameters.AddWithValue("@name", user.Name ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@email", user.Email ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@cv_xml", user.CvXml ?? (object)DBNull.Value);
 
                 await connection.OpenAsync();
                 user.Id = (int)await command.ExecuteScalarAsync();
@@ -113,7 +114,7 @@
         {
             string query = @"
                 UPDATE Users 
-                SET name = @name, email = @email 
+                SET name = @name, email = @email, cv_xml = @cv_xml
                 WHERE id = @id";
 
             using (var connection = new SqlConnection(this.connectionString))
@@ -122,6 +123,7 @@
                 command.Parameters.AddWithValue("@id", user.Id);
                 command.Parameters.AddWithValue("@name", user.Name ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@email", user.Email ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@cv_xml", user.CvXml ?? (object)DBNull.Value);
 
                 await connection.OpenAsync();
                 await command.ExecuteNonQueryAsync();
@@ -155,12 +157,12 @@
         /// <returns>A User object populated with the data from the SqlDataReader.</returns>
         private User MapUser(SqlDataReader reader)
         {
-            return new User
-            {
-                Id = reader.GetInt32(reader.GetOrdinal("id")),
-                Name = reader.IsDBNull(reader.GetOrdinal("name")) ? null : reader.GetString(reader.GetOrdinal("name")),
-                Email = reader.IsDBNull(reader.GetOrdinal("email")) ? null : reader.GetString(reader.GetOrdinal("email")),
-            };
+            return new User(
+                reader.GetInt32(reader.GetOrdinal("id")),
+                reader.IsDBNull(reader.GetOrdinal("name")) ? string.Empty : reader.GetString(reader.GetOrdinal("name")),
+                reader.IsDBNull(reader.GetOrdinal("email")) ? string.Empty : reader.GetString(reader.GetOrdinal("email")),
+                reader.IsDBNull(reader.GetOrdinal("cv_xml")) ? null : reader.GetString(reader.GetOrdinal("cv_xml"))
+            );
         }
     }
 }

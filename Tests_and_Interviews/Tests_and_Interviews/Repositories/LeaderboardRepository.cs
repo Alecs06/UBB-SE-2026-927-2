@@ -32,7 +32,7 @@
             string query = @"
                 SELECT 
                     le.id AS le_id, le.test_id, le.user_id, le.rank_position, le.normalized_score,
-                    u.id AS u_id, u.name, u.email,
+                    u.id AS u_id, u.name, u.email, u.cv_xml,
                     t.id AS t_id, t.title, t.category, t.created_at
                 FROM LeaderboardEntries le
                 INNER JOIN Users u ON le.user_id = u.id
@@ -65,7 +65,7 @@
             string query = @"
                 SELECT TOP (@limit)
                     le.id AS le_id, le.test_id, le.user_id, le.rank_position, le.normalized_score,
-                    u.id AS u_id, u.name, u.email,
+                    u.id AS u_id, u.name, u.email, u.cv_xml,
                     t.id AS t_id, t.title, t.category, t.created_at
                 FROM LeaderboardEntries le
                 INNER JOIN Users u ON le.user_id = u.id
@@ -98,7 +98,7 @@
             string query = @"
                 SELECT 
                     le.id AS le_id, le.test_id, le.user_id, le.rank_position, le.normalized_score,
-                    u.id AS u_id, u.name, u.email,
+                    u.id AS u_id, u.name, u.email, u.cv_xml,
                     t.id AS t_id, t.title, t.category, t.created_at
                 FROM LeaderboardEntries le
                 INNER JOIN Users u ON le.user_id = u.id
@@ -205,12 +205,12 @@
                 RankPosition = reader.GetInt32(reader.GetOrdinal("rank_position")),
                 NormalizedScore = reader.GetDecimal(reader.GetOrdinal("normalized_score")),
 
-                User = new User
-                {
-                    Id = reader.GetInt32(reader.GetOrdinal("u_id")),
-                    Name = reader.IsDBNull(reader.GetOrdinal("name")) ? null : reader.GetString(reader.GetOrdinal("name")),
-                    Email = reader.IsDBNull(reader.GetOrdinal("email")) ? null : reader.GetString(reader.GetOrdinal("email")),
-                },
+                User = new User(
+                    reader.GetInt32(reader.GetOrdinal("u_id")),
+                    reader.IsDBNull(reader.GetOrdinal("name")) ? string.Empty : reader.GetString(reader.GetOrdinal("name")),
+                    reader.IsDBNull(reader.GetOrdinal("email")) ? string.Empty : reader.GetString(reader.GetOrdinal("email")),
+                    reader.IsDBNull(reader.GetOrdinal("cv_xml")) ? null : reader.GetString(reader.GetOrdinal("cv_xml"))
+                ),
 
                 Test = new Test
                 {

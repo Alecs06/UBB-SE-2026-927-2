@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace Tests_and_Interviews.Models
+﻿namespace Tests_and_Interviews.Models
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
     public class Recruiter
     {
         public int CompanyId { get; set; }

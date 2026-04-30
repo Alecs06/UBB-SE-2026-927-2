@@ -13,13 +13,26 @@
 		<converters:DateTimeToStringConverter x:Key="DateTimeToStringConverter"/>
 	</Page.Resources>
 
-	<Grid Padding="60">
+    <Grid Padding="60">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="400"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Column="0" Spacing="20">
+        <Button Grid.Row="0" Grid.ColumnSpan="2"
+                Content="← Back to Menu"
+                Click="BackButton_Click"
+                Background="Transparent"
+                Foreground="Black"
+                BorderThickness="0"
+                FontSize="16"
+                Margin="0,0,0,20" />
+
+        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="20">
             <TextBlock Text="Calendar Recrutor"
                        FontSize="35"
                        FontWeight="Bold"
@@ -68,7 +81,7 @@
             </Border>
         </StackPanel>
 
-        <Grid Grid.Column="1" Margin="80,0,0,0">
+        <Grid Grid.Row="1" Grid.Column="1" Margin="80,0,0,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>

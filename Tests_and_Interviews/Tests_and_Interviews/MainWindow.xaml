@@ -10,10 +10,18 @@
     Title="Tests_and_Interviews">
 
     <Window.SystemBackdrop>
-        <MicaBackdrop />
+        <MicaBackdrop Kind="BaseAlt" />
     </Window.SystemBackdrop>
 
     <Grid>
-        <Frame x:Name="RootFrame" />
+        <StackPanel x:Name="MainMenuContainer" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
+            <TextBlock Text="Main Menu" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+            <Button Content="Company Profile" Click="NavigateToViewProfile_Click" Width="250" Height="40" HorizontalAlignment="Center"/>
+            <Button Content="Main Test Window" Click="NavigateToMainTest_Click" Width="250" Height="40" HorizontalAlignment="Center"/>
+            <Button Content="Recruiter Window" Click="NavigateToRecruiter_Click" Width="250" Height="40" HorizontalAlignment="Center"/>
+            <Button Content="Candidate Home" Click="NavigateToCandidateHome_Click" Width="250" Height="40" HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <Frame x:Name="rootFrame" />
     </Grid>
 </Window>
