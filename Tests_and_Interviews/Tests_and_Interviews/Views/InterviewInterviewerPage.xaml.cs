@@ -2,8 +2,6 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-using Tests_and_Interviews.Services.Interfaces;
-
 namespace Tests_and_Interviews.Views
 {
     using System;
@@ -13,6 +11,7 @@ namespace Tests_and_Interviews.Views
     using Microsoft.UI.Xaml.Navigation;
     using Tests_and_Interviews.Repositories;
     using Tests_and_Interviews.Services;
+    using Tests_and_Interviews.Services.Interfaces;
     using Tests_and_Interviews.ViewModels;
     using Windows.Globalization.NumberFormatting;
     using Windows.Media.Core;
@@ -30,7 +29,9 @@ namespace Tests_and_Interviews.Views
         public InterviewInterviewerPage()
         {
             this.InitializeComponent();
-            this.ViewModel = new InterviewInterviewerViewModel(new InterviewSessionRepository(), new NotificationService(new WindowsToastNotifier()));
+            var sessionService = new InterviewSessionService(new InterviewSessionRepository(), new QuestionRepository());
+            var notificationService = new NotificationService(new WindowsToastNotifier());
+            this.ViewModel = new InterviewInterviewerViewModel(sessionService, notificationService);
             this.SetNumberBoxNumberFormatter();
             this.DataContext = this.ViewModel;
         }
