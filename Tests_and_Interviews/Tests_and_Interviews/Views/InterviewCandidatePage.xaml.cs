@@ -26,7 +26,7 @@ namespace Tests_and_Interviews.Views
 
         private bool isRecording = false;
 
-        private StorageFile recordingFile;
+        private StorageFile? recordingFile;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InterviewCandidatePage"/> class.

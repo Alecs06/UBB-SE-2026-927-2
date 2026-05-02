@@ -26,7 +26,7 @@ namespace Tests_and_Interviews.ViewModels
         private string questionText;
         private List<Question> questions = new List<Question>();
         private int currentQuestionIndex = 0;
-        private InterviewSession session;
+        private InterviewSession? session;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InterviewCandidateViewModel"/> class, configuring the repositories and
@@ -77,7 +77,7 @@ namespace Tests_and_Interviews.ViewModels
         /// </summary>
         /// <remarks>The file path must be a valid path on the file system. If the path is invalid or
         /// inaccessible, an exception may be thrown when attempting to save the recording.</remarks>
-        public string RecordingFilePath { get; set; }
+        public string? RecordingFilePath { get; set; }
 
         /// <summary>
         /// Gets or sets the text of the interview question.
@@ -209,7 +209,7 @@ namespace Tests_and_Interviews.ViewModels
 
             try
             {
-                await this.sessionService.SubmitRecordingAsync(this.session, this.RecordingFilePath);
+                await this.sessionService.SubmitRecordingAsync(this.session, this.RecordingFilePath ?? string.Empty);
                 try
                 {
                     this.notificationService.ShowSimpleNotification("Video uploaded", "Your interview video was uploaded successfully.");
