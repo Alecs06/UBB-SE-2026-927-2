@@ -10,9 +10,6 @@ namespace Tests_and_Interviews.ViewModels
     using System.Runtime.CompilerServices;
     using System.Windows.Input;
     using Tests_and_Interviews.Helpers;
-    using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
@@ -21,9 +18,9 @@ namespace Tests_and_Interviews.ViewModels
     public partial class InterviewInterviewerViewModel : INotifyPropertyChanged
     {
         /// <summary>
-        /// Represents the repository used to manage interview session data.
+        /// Represents the service used to manage interview session data.
         /// </summary>
-        private readonly IInterviewSessionRepository sessionRepo;
+        private readonly IInterviewSessionService sessionService;
 
         /// <summary>
         /// Represents the service used to send notifications.
@@ -53,17 +50,17 @@ namespace Tests_and_Interviews.ViewModels
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InterviewInterviewerViewModel"/> class.
-        /// InterviewInterviewerViewModel initializes the InterviewSessionRepository and sets default values for RecordingUri and Score.
+        /// InterviewInterviewerViewModel initializes the InterviewSessionService and sets default values for RecordingUri and Score.
         /// </summary>
-        /// <param name="interviewSessionRepository">The repository used to manage interview session data.</param>
+        /// <param name="sessionService">The service used to manage interview session data.</param>
         /// <param name="notificationService">The service used to send notifications.</param>
         /// <param name="overrideLocalPath">Optional parameter to override the default local folder path.</param>
         public InterviewInterviewerViewModel(
-            IInterviewSessionRepository interviewSessionRepository,
+            IInterviewSessionService sessionService,
             INotificationService notificationService,
             string? overrideLocalPath = null)
         {
-            this.sessionRepo = interviewSessionRepository;
+            this.sessionService = sessionService;
             this.notificationService = notificationService;
             this.SubmitScoreCommand = new RelayCommand(_ => this.SubmitScore());
             this.localFolderPath = overrideLocalPath ?? Windows.Storage.ApplicationData.Current.LocalFolder.Path;
@@ -95,11 +92,7 @@ namespace Tests_and_Interviews.ViewModels
         /// recording is stored or accessed.</remarks>
         public Uri RecordingUri
         {
-            get
-            {
-                return this.recordingUri;
-            }
-
+            get => this.recordingUri;
             set
             {
                 if (this.recordingUri != value)
@@ -118,11 +111,7 @@ namespace Tests_and_Interviews.ViewModels
         /// unnecessarily.</remarks>
         public float Score
         {
-            get
-            {
-                return this.score;
-            }
-
+            get => this.score;
             set
             {
                 if (this.score != value)
@@ -147,7 +136,7 @@ namespace Tests_and_Interviews.ViewModels
             this.sessionId = interviewSessionId;
             try
             {
-                var session = await this.sessionRepo.GetInterviewSessionByIdAsync(interviewSessionId);
+                var session = await this.sessionService.GetSessionAsync(interviewSessionId);
                 string videoPath = session?.Video ?? string.Empty;
 
                 if (string.IsNullOrWhiteSpace(videoPath))
@@ -198,18 +187,10 @@ namespace Tests_and_Interviews.ViewModels
         {
             try
             {
-                var session = await this.sessionRepo.GetInterviewSessionByIdAsync(this.sessionId);
-                if (session != null)
-                {
-                    session.Score = (decimal)this.Score;
-                    session.Status = InterviewStatus.Completed.ToString();
-                    await this.sessionRepo.UpdateInterviewSessionAsync(session);
-                }
-
+                await this.sessionService.SubmitScoreAsync(this.sessionId, this.Score);
                 try
                 {
-                    var notif = this.notificationService;
-                    notif.ShowSimpleNotification("Score submitted", "The interview score was submitted successfully.");
+                    this.notificationService.ShowSimpleNotification("Score submitted", "The interview score was submitted successfully.");
                 }
                 catch
                 {
