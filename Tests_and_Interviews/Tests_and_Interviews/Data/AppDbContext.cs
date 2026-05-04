@@ -43,6 +43,11 @@
         public DbSet<User> Users { get; set; }
 
         /// <summary>
+        /// Gets or sets leaderboard entries.
+        /// </summary>
+        public DbSet<LeaderboardEntry> LeaderboardEntries { get; set; }
+
+        /// <summary>
         /// Configures the database connection and provider for the context.
         /// </summary>
         /// <param name="optionsBuilder">A builder used to create or modify options for this context.</param>
