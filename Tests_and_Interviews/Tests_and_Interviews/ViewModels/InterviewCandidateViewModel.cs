@@ -13,9 +13,6 @@ namespace Tests_and_Interviews.ViewModels
     using System.Windows.Input;
     using Tests_and_Interviews.Helpers;
     using Tests_and_Interviews.Models.Core;
-    using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
@@ -23,15 +20,13 @@ namespace Tests_and_Interviews.ViewModels
     /// </summary>
     public partial class InterviewCandidateViewModel : INotifyPropertyChanged
     {
-        private readonly IInterviewSessionRepository sessionRepo;
-        private readonly IQuestionRepository questionRepo;
+        private readonly IInterviewSessionService sessionService;
         private readonly INotificationService notificationService;
 
         private string questionText;
-        private string recordingFilePath;
         private List<Question> questions = new List<Question>();
         private int currentQuestionIndex = 0;
-        private InterviewSession session;
+        private InterviewSession? session;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InterviewCandidateViewModel"/> class, configuring the repositories and
@@ -39,16 +34,13 @@ namespace Tests_and_Interviews.ViewModels
         /// </summary>
         /// <remarks>This constructor sets up the commands for navigating interview questions and
         /// submitting recordings. After construction, call InitializeAsync to prepare the view model for use.</remarks>
-        /// <param name="interviewSessionRepository">The repository used to access and manage interview session data.</param>
-        /// <param name="questionRepository">The repository that provides interview questions for the candidate.</param>
+        /// <param name="sessionService">The interview session service used to manage session data and business logic.</param>
         /// <param name="notificationService">The service used to send notifications to the candidate regarding interview updates.</param>
         public InterviewCandidateViewModel(
-            IInterviewSessionRepository interviewSessionRepository,
-            IQuestionRepository questionRepository,
+            IInterviewSessionService sessionService,
             INotificationService notificationService)
         {
-            this.sessionRepo = interviewSessionRepository;
-            this.questionRepo = questionRepository;
+            this.sessionService = sessionService;
             this.notificationService = notificationService;
             this.questionText = "Questions will start after starting recording";
             this.NextQuestionCommand = new RelayCommand(this.NextQuestion);
@@ -85,7 +77,7 @@ namespace Tests_and_Interviews.ViewModels
         /// </summary>
         /// <remarks>The file path must be a valid path on the file system. If the path is invalid or
         /// inaccessible, an exception may be thrown when attempting to save the recording.</remarks>
-        public string RecordingFilePath { get; set; }
+        public string? RecordingFilePath { get; set; }
 
         /// <summary>
         /// Gets or sets the text of the interview question.
@@ -94,11 +86,7 @@ namespace Tests_and_Interviews.ViewModels
         /// binding scenarios in UI frameworks such as WPF or Xamarin.Forms.</remarks>
         public string QuestionText
         {
-            get
-            {
-                return this.questionText;
-            }
-
+            get => this.questionText;
             set
             {
                 if (this.questionText != value)
@@ -120,15 +108,6 @@ namespace Tests_and_Interviews.ViewModels
         {
             await this.InitializeAsync(interviewSessionId);
         }
-
-        /// <summary>
-        /// Raises the PropertyChanged event for the specified property, notifying subscribers that the property's value
-        /// has changed.
-        /// </summary>
-        /// <remarks>This method is typically called within property setters to inform data binding
-        /// clients that a property value has changed, allowing them to update the UI accordingly.</remarks>
-        /// <param name="propertyName">The name of the property that has changed. This parameter is automatically populated with the name of the
-        /// calling member if not provided.</param>
 
         /// <summary>
         /// Begins the process of presenting questions to the user by retrieving and displaying the next available
@@ -174,15 +153,10 @@ namespace Tests_and_Interviews.ViewModels
         {
             try
             {
-                this.session = await this.sessionRepo.GetInterviewSessionByIdAsync(interviewSessionId);
-                if (this.session != null)
-                {
-                    this.session.DateStart = DateTime.UtcNow;
-                    await this.sessionRepo.UpdateInterviewSessionAsync(this.session);
-
-                    this.questions = await this.questionRepo.GetInterviewQuestionsByPositionAsync(this.session.PositionId);
-                    this.currentQuestionIndex = 0;
-                }
+                var result = await this.sessionService.StartSessionAsync(interviewSessionId);
+                this.session = result.Session;
+                this.questions = result.Questions;
+                this.currentQuestionIndex = 0;
             }
             catch (Exception ex)
             {
@@ -235,9 +209,7 @@ namespace Tests_and_Interviews.ViewModels
 
             try
             {
-                this.session.Video = this.RecordingFilePath;
-                this.session.Status = InterviewStatus.InProgress.ToString();
-                await this.sessionRepo.UpdateInterviewSessionAsync(this.session);
+                await this.sessionService.SubmitRecordingAsync(this.session, this.RecordingFilePath ?? string.Empty);
                 try
                 {
                     this.notificationService.ShowSimpleNotification("Video uploaded", "Your interview video was uploaded successfully.");

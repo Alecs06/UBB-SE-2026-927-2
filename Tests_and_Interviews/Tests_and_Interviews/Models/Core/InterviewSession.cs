@@ -11,14 +11,15 @@ namespace Tests_and_Interviews.Models.Core
     /// <summary>
     /// Represents an interview session between for a given position.
     /// </summary>
-    [Table("interview_sessions")]
+    [Table("InterviewSessions")]
     public class InterviewSession
     {
         /// <summary>
         /// Gets or sets the unique identifier for the interview session.
         /// </summary>
         [Key]
-        [Column("session_id")]
+        [Column("id")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         /// <summary>
@@ -27,8 +28,8 @@ namespace Tests_and_Interviews.Models.Core
         [NotMapped]
         public int SessionId
         {
-            get => Id;
-            set => Id = value;
+            get => this.Id;
+            set => this.Id = value;
         }
 
         /// <summary>
@@ -75,5 +76,6 @@ namespace Tests_and_Interviews.Models.Core
         /// </summary>
         [Column("score")]
         public decimal? Score { get; set; }
+
     }
 }
