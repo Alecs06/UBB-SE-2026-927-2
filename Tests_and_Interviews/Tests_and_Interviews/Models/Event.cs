@@ -2,22 +2,48 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using System.Xml.Linq;
 
+    [Table("events")]
     public class Event
     {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        [Column("event_id")]
         public int Id { get; set; }
+
+        [Column("photo", TypeName = "nvarchar(max)")]
         public string Photo { get; set; }
+
+        [Column("title", TypeName = "nvarchar(200)")]
         public string Title { get; set; }
+
+        [Column("description", TypeName = "nvarchar(max)")]
+
         public string Description { get; set; }
+
+        [Column("start_date", TypeName = "date")]
         public DateTime StartDate { get; set; }
+
+        [Column("end_date", TypeName = "date")]
         public DateTime EndDate { get; set; }
+
+        [Column("location", TypeName = "nvarchar(300)")]
         public string Location { get; set; }
-        public int HostID { get; set; }
-        public List<Company> Collaborators { get; set; }
+
+        [Column("host_company_id")]
+        public int HostCompanyId { get; set; }
+        public Company HostCompany { get; set; } = null!;
+
+        [Column("posted_at", TypeName = "datetime")]
+        public DateTime PostedAt { get; set;  }
+        public ICollection<Collaborator> Collaborators { get; set; } = new List<Collaborator>();
+
 
         /// <summary>
         /// Event constructor
@@ -28,9 +54,8 @@
         /// <param name="eventStartDate"> event starting date </param>
         /// <param name="eventEndDate"> event ending date </param>
         /// <param name="eventLocation"> event location </param>
-        /// <param name="eventHostID"> id of the company who created the event </param>
-        /// <param name="eventCollaborators"> list of all the companies invited to collaborate on the event </param>
-        public Event(string eventPhoto, string eventTitle, string eventDescription, DateTime eventStartDate, DateTime eventEndDate, string eventLocation, int eventHostID, List<Company> eventCollaborators)
+        /// <param name="eventHostID"> id of the company who created the event</param>
+        public Event(string eventPhoto, string eventTitle, string eventDescription, DateTime eventStartDate, DateTime eventEndDate, string eventLocation, int eventHostID)
         {
             this.Photo = eventPhoto;
             this.Title = eventTitle;
@@ -38,14 +63,18 @@
             this.StartDate = eventStartDate;
             this.EndDate = eventEndDate;
             this.Location = eventLocation;
-            this.HostID = eventHostID;
-            this.Collaborators = eventCollaborators;
+            this.HostCompanyId = eventHostID;
+           
+        }
+
+        public Event()
+        {
         }
 
         public override string ToString()
         {
             return "Event: " + Photo + " " + Title + " " + Description + " " +
-                StartDate.ToString() + " " + EndDate.ToString() + " " + Location + " " + HostID.ToString() +
+                StartDate.ToString() + " " + EndDate.ToString() + " " + Location + " " + HostCompanyId.ToString() +
                 " " + Collaborators.ToString() + "\n";
         }
     }

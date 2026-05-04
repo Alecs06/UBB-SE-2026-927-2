@@ -22,7 +22,7 @@ namespace Tests_and_Interviews.Dtos
         /// <summary>
         /// Gets or sets the unique identifier of the candidate.
         /// </summary>
-        public int CandidateId { get; set; }
+        public int? CandidateId { get; set; }
 
         /// <summary>
         /// Gets or sets the start time of the slot.

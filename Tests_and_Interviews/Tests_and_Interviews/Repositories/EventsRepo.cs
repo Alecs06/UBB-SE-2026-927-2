@@ -69,7 +69,7 @@
                     insertEventCommand.Parameters.AddWithValue("@StartDate", eventToBeAdded.StartDate);
                     insertEventCommand.Parameters.AddWithValue("@EndDate", eventToBeAdded.EndDate);
                     insertEventCommand.Parameters.AddWithValue("@Location", eventToBeAdded.Location);
-                    insertEventCommand.Parameters.AddWithValue("@Host", eventToBeAdded.HostID);
+                    insertEventCommand.Parameters.AddWithValue("@Host", eventToBeAdded.HostCompanyId);
                     insertEventCommand.Parameters.AddWithValue("@Now", DateTime.Now);
 
                     insertEventCommand.ExecuteNonQuery();
@@ -165,8 +165,7 @@
                             (DateTime)dataReader["start_date"],
                             (DateTime)dataReader["end_date"],
                             dataReader["location"].ToString(),
-                            DefaultHostCompanyId,
-                            new List<Company>())
+                            DefaultHostCompanyId)
                         {
                             Id = (int)dataReader["event_id"]
                         });
@@ -208,8 +207,7 @@
                         (DateTime)dataReader["start_date"],
                         (DateTime)dataReader["end_date"],
                         dataReader["location"].ToString(),
-                        DefaultHostCompanyId,
-                        new List<Company>())
+                        DefaultHostCompanyId)
                     {
                         Id = (int)dataReader["event_id"]
                     });
