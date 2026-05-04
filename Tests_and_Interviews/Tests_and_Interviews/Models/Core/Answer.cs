@@ -11,14 +11,15 @@
     /// in which it was provided. It is typically used in systems that track user progress or results for
     /// assessments.
     /// </remarks>
-    [Table("answers")]
+    [Table("Answers")]
     public class Answer
     {
         /// <summary>
         /// Gets or sets the unique identifier for the answer.
         /// </summary>
         [Key]
-        [Column("answer_id")]
+        [Column("id")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         /// <summary>
@@ -42,11 +43,13 @@
         /// <summary>
         /// Gets or sets the question associated with this instance.
         /// </summary>
+        [ForeignKey("QuestionId")]
         public Question? Question { get; set; }
 
         /// <summary>
         /// Gets or sets the current test attempt associated with this instance.
         /// </summary>
+        [ForeignKey("AttemptId")]
         public TestAttempt? TestAttempt { get; set; }
     }
 }
