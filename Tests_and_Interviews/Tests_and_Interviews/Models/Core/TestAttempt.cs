@@ -53,7 +53,7 @@
         /// <summary>
         /// Gets or sets the score value associated with this entity.
         /// </summary>
-        [Column("score", TypeName = "decimal(18,2)")]
+        [Column("score")]
         public decimal? Score { get; set; }
 
         /// <summary>
@@ -91,7 +91,7 @@
         /// <summary>
         /// Gets or sets the percentage score associated with this entity.
         /// </summary>
-        [Column("percentage_score", TypeName = "decimal(18,2)")]
+        [Column("percentage_score")]
         public decimal? PercentageScore { get; set; }
 
         /// <summary>

@@ -12,7 +12,6 @@ namespace Tests_and_Interviews.Models
     /// Represents a candidate in the recruitment system, including application status, assigned recruiter, matched
     /// company, and available booking slots.
     /// </summary>
-    [NotMapped]
     public class Candidate
     {
         /// <summary>
