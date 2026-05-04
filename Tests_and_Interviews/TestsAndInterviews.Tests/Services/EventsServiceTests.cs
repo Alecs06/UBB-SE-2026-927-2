@@ -70,8 +70,7 @@ namespace TestsAndInterviews.Tests.Services
                 new DateTime(Year, MonthJune, Day1),
                 new DateTime(Year, MonthJune, Day2),
                 LocClujNapoca,
-                DefaultId,
-                new List<Company>());
+                DefaultId);
         }
 
         [TestInitialize]
@@ -136,7 +135,7 @@ namespace TestsAndInterviews.Tests.Services
         {
             eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, ExpectedHostId, new List<Company>());
-            Assert.AreEqual(ExpectedHostId, fakeEventsRepo.AddedEvent?.HostID);
+            Assert.AreEqual(ExpectedHostId, fakeEventsRepo.AddedEvent?.HostCompanyId);
         }
 
         [TestMethod]
@@ -194,7 +193,7 @@ namespace TestsAndInterviews.Tests.Services
         {
             Event result = eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, ExpectedHostId, new List<Company>());
-            Assert.AreEqual(ExpectedHostId, result.HostID);
+            Assert.AreEqual(ExpectedHostId, result.HostCompanyId);
         }
 
         [TestMethod]

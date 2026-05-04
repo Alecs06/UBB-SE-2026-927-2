@@ -42,6 +42,7 @@ namespace Tests_and_Interviews.Models.Core
         /// </summary>
         [Column("external_user_id")]
         public int? ExternalUserId { get; set; }
+        public User? User { get; set; }
 
         /// <summary>
         /// Gets or sets the identifier of the interviewer conducting the session.

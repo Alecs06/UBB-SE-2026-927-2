@@ -38,9 +38,23 @@ namespace Tests_and_Interviews.Services
         /// <param name="collaborators"> a list of all the companies collaborating on the event </param>
         public Event AddEvent(string eventPhoto, string eventTitle, string eventDescription, DateTime eventStartDate, DateTime eventEndDate, string eventLocation, int hostId, List<Company> collaborators)
         {
-            Event eventToBeAdded = new Event(eventPhoto, eventTitle, eventDescription, eventStartDate, eventEndDate, eventLocation, hostId, collaborators ?? new List<Company>());
+            Event eventToBeAdded = new Event(eventPhoto, eventTitle, eventDescription,
+                eventStartDate, eventEndDate, eventLocation, hostId);
+
+            if (collaborators != null)
+            {
+                foreach (var company in collaborators)
+                {
+                    eventToBeAdded.Collaborators.Add(new Collaborator
+                    {
+                        CompanyId = company.CompanyId,
+                        Company = company,
+                        Event = eventToBeAdded
+                    });
+                }
+            }
+
             this.eventsRepository.AddEventToRepo(eventToBeAdded);
-            // this.company.CollaboratorsCount += collaborators.Count;
             return eventToBeAdded;
         }
 

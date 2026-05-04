@@ -60,8 +60,7 @@ namespace TestsAndInterviews.Tests.Services
                 new DateTime(Year, Month, StartDay),
                 new DateTime(Year, Month, EndDay),
                 EventLocation,
-                DefaultId,
-                new List<Company>())
+                DefaultId)
             { Id = DefaultId };
         }
 
