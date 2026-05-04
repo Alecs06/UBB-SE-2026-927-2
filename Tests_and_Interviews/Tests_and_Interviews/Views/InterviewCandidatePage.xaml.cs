@@ -2,8 +2,6 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-using Tests_and_Interviews.Services.Interfaces;
-
 namespace Tests_and_Interviews.Views
 {
     using System;
@@ -12,6 +10,8 @@ namespace Tests_and_Interviews.Views
     using Microsoft.UI.Xaml;
     using Microsoft.UI.Xaml.Controls;
     using Tests_and_Interviews.Models.Core;
+    using Tests_and_Interviews.Repositories;
+    using Tests_and_Interviews.Services.Interfaces;
     using Tests_and_Interviews.ViewModels;
     using Windows.Media.Capture;
     using Windows.Media.MediaProperties;
@@ -26,7 +26,7 @@ namespace Tests_and_Interviews.Views
 
         private bool isRecording = false;
 
-        private StorageFile recordingFile;
+        private StorageFile? recordingFile;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InterviewCandidatePage"/> class.
@@ -34,10 +34,9 @@ namespace Tests_and_Interviews.Views
         public InterviewCandidatePage()
         {
             this.InitializeComponent();
-            var sessionRepo = new Repositories.InterviewSessionRepository();
-            var questionRepo = new Repositories.QuestionRepository();
+            var sessionService = new Services.InterviewSessionService(new InterviewSessionRepository(), new QuestionRepository());
             var notificationService = new Services.NotificationService(new WindowsToastNotifier());
-            this.ViewModel = new InterviewCandidateViewModel(sessionRepo, questionRepo, notificationService);
+            this.ViewModel = new InterviewCandidateViewModel(sessionService, notificationService);
             this.DataContext = this.ViewModel;
             this.StopVideoButton.IsEnabled = false;
             this.SubmitVideoButton.IsEnabled = false;
@@ -53,10 +52,9 @@ namespace Tests_and_Interviews.Views
         public InterviewCandidatePage(InterviewSession session)
         {
             this.InterviewSession = session;
-            var sessionRepo = new Repositories.InterviewSessionRepository();
-            var questionRepo = new Repositories.QuestionRepository();
+            var sessionService = new Services.InterviewSessionService(new InterviewSessionRepository(), new QuestionRepository());
             var notificationService = new Services.NotificationService(new WindowsToastNotifier());
-            this.ViewModel = new InterviewCandidateViewModel(sessionRepo, questionRepo, notificationService);
+            this.ViewModel = new InterviewCandidateViewModel(sessionService, notificationService);
             this.InitializeComponent();
             this.DataContext = this.ViewModel;
             this.StopVideoButton.IsEnabled = false;
