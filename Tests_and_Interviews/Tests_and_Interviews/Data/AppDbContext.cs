@@ -2,6 +2,7 @@
 {
     using Microsoft.EntityFrameworkCore;
     using Tests_and_Interviews.Helpers;
+    using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Models.Core;
 
     /// <summary>
@@ -54,6 +55,56 @@
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer(Env.CONNECTION_STRING);
+        }
+
+        public DbSet<Company> Companies { get; set; }
+        public DbSet<JobPosting> Jobs { get; set; }
+        public DbSet<JobSkill> JobSkills { get; set; }
+        public DbSet<Skill> Skills { get; set; }
+        public DbSet<Applicant> Applicants { get; set; }
+        public DbSet<Event> Events { get; set; }
+        public DbSet<Collaborator> Collaborators { get; set; }
+        public DbSet<Recruiter> Recruiters { get; set; }
+        public DbSet<Slot> Slots { get; set; }
+        public DbSet<InterviewSession> InterviewSessions { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<JobSkill>()
+                .HasKey(js => new { js.SkillId, js.JobId });
+
+            modelBuilder.Entity<Collaborator>()
+                .HasKey(c => new { c.EventId, c.CompanyId });
+
+            modelBuilder.Entity<Applicant>()
+                .HasOne(a => a.RecommendedFromCompany)
+                .WithMany()
+                .HasForeignKey(a => a.RecommendedFromCompanyId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Question>()
+                .HasOne(q => q.Test)
+                .WithMany(t => t.Questions)
+                .HasForeignKey(q => q.TestId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<TestAttempt>()
+                .HasOne(ta => ta.User)
+                .WithMany()
+                .HasForeignKey(ta => ta.ExternalUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<InterviewSession>()
+                .HasOne(i => i.User)
+                .WithMany()
+                .HasForeignKey(i => i.ExternalUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Slot>()
+                .HasOne(s => s.Candidate)
+                .WithMany()
+                .HasForeignKey(s => s.CandidateId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

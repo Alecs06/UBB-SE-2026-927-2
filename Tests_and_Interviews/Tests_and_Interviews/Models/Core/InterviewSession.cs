@@ -43,6 +43,7 @@ namespace Tests_and_Interviews.Models.Core
         /// </summary>
         [Column("external_user_id")]
         public int? ExternalUserId { get; set; }
+        public User? User { get; set; }
 
         /// <summary>
         /// Gets or sets the identifier of the interviewer conducting the session.
@@ -76,10 +77,5 @@ namespace Tests_and_Interviews.Models.Core
         [Column("score")]
         public decimal? Score { get; set; }
 
-        /// <summary>
-        /// Gets or sets the User associated with the InterviewSession.
-        /// </summary>
-        [ForeignKey("ExternalUserId")]
-        public User? User { get; set; }
     }
 }

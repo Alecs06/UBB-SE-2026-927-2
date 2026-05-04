@@ -42,7 +42,7 @@ namespace Tests_and_Interviews.Repositories
         {
             var company = new Company(
                 name: dataReader["company_name"]?.ToString() ?? string.Empty,
-                aboutus: dataReader["about_us"] is DBNull ? string.Empty : dataReader["about_us"]?.ToString() ?? string.Empty,
+                aboutUs: dataReader["about_us"] is DBNull ? string.Empty : dataReader["about_us"]?.ToString() ?? string.Empty,
                 pfpUrl: dataReader["profile_picture_url"] is DBNull ? string.Empty : dataReader["profile_picture_url"]?.ToString() ?? string.Empty,
                 logoUrl: dataReader["logo_picture_url"]?.ToString() ?? string.Empty,
                 location: dataReader["location"] is DBNull ? string.Empty : dataReader["location"]?.ToString() ?? string.Empty,
@@ -296,24 +296,24 @@ namespace Tests_and_Interviews.Repositories
             insertCommand.Parameters.AddWithValue("@LogoPictureUrl", company.CompanyLogoPath);
             insertCommand.Parameters.AddWithValue("@Location", GetDatabaseValue(company.Location));
             insertCommand.Parameters.AddWithValue("@Email", GetDatabaseValue(company.Email));
-            insertCommand.Parameters.AddWithValue("@BuddyName", GetDatabaseValue(company.Game.Buddy.Name));
-            insertCommand.Parameters.AddWithValue("@BuddyDescription", GetDatabaseValue(company.Game.Buddy.Introduction));
-            insertCommand.Parameters.AddWithValue("@AvatarId", GetDatabaseValue(company.Game.Buddy.Id));
-            insertCommand.Parameters.AddWithValue("@FinalQuote", GetDatabaseValue(company.Game.Conclusion));
-            insertCommand.Parameters.AddWithValue("@Scenario1Text", GetDatabaseValue(company.Game.GetScenario(0).Description));
-            insertCommand.Parameters.AddWithValue("@Scenario1Answer1", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceTexts()[0]));
-            insertCommand.Parameters.AddWithValue("@Scenario1Answer2", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceTexts()[1]));
-            insertCommand.Parameters.AddWithValue("@Scenario1Answer3", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceTexts()[2]));
-            insertCommand.Parameters.AddWithValue("@Scenario1Reaction1", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceReactions()[0]));
-            insertCommand.Parameters.AddWithValue("@Scenario1Reaction2", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceReactions()[1]));
-            insertCommand.Parameters.AddWithValue("@Scenario1Reaction3", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceReactions()[2]));
-            insertCommand.Parameters.AddWithValue("@Scenario2Text", GetDatabaseValue(company.Game.GetScenario(1).Description));
-            insertCommand.Parameters.AddWithValue("@Scenario2Answer1", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceTexts()[0]));
-            insertCommand.Parameters.AddWithValue("@Scenario2Answer2", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceTexts()[1]));
-            insertCommand.Parameters.AddWithValue("@Scenario2Answer3", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceTexts()[2]));
-            insertCommand.Parameters.AddWithValue("@Scenario2Reaction1", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceReactions()[0]));
-            insertCommand.Parameters.AddWithValue("@Scenario2Reaction2", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceReactions()[1]));
-            insertCommand.Parameters.AddWithValue("@Scenario2Reaction3", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceReactions()[2]));
+            insertCommand.Parameters.AddWithValue("@BuddyName", GetDatabaseValue(company.BuddyName));
+            insertCommand.Parameters.AddWithValue("@BuddyDescription", GetDatabaseValue(company.BuddyDescription));
+            insertCommand.Parameters.AddWithValue("@AvatarId", GetDatabaseValue(company.AvatarId));
+            insertCommand.Parameters.AddWithValue("@FinalQuote", GetDatabaseValue(company.FinalQuote));
+            insertCommand.Parameters.AddWithValue("@Scenario1Text", GetDatabaseValue(company.Scen1Text));
+            insertCommand.Parameters.AddWithValue("@Scenario1Answer1", GetDatabaseValue(company.Scen1Answer1));
+            insertCommand.Parameters.AddWithValue("@Scenario1Answer2", GetDatabaseValue(company.Scen1Answer2));
+            insertCommand.Parameters.AddWithValue("@Scenario1Answer3", GetDatabaseValue(company.Scen1Answer3));
+            insertCommand.Parameters.AddWithValue("@Scenario1Reaction1", GetDatabaseValue(company.Scen1Reaction1));
+            insertCommand.Parameters.AddWithValue("@Scenario1Reaction2", GetDatabaseValue(company.Scen1Reaction2));
+            insertCommand.Parameters.AddWithValue("@Scenario1Reaction3", GetDatabaseValue(company.Scen1Reaction3));
+            insertCommand.Parameters.AddWithValue("@Scenario2Text", GetDatabaseValue(company.Scen2Text));
+            insertCommand.Parameters.AddWithValue("@Scenario2Answer1", GetDatabaseValue(company.Scen2Answer1));
+            insertCommand.Parameters.AddWithValue("@Scenario2Answer2", GetDatabaseValue(company.Scen2Answer2));
+            insertCommand.Parameters.AddWithValue("@Scenario2Answer3", GetDatabaseValue(company.Scen2Answer3));
+            insertCommand.Parameters.AddWithValue("@Scenario2Reaction1", GetDatabaseValue(company.Scen2Reaction1));
+            insertCommand.Parameters.AddWithValue("@Scenario2Reaction2", GetDatabaseValue(company.Scen2Reaction2));
+            insertCommand.Parameters.AddWithValue("@Scenario2Reaction3", GetDatabaseValue(company.Scen2Reaction3));
 
             insertCommand.ExecuteNonQuery();
             company.CompanyId = nextId;
@@ -381,24 +381,24 @@ namespace Tests_and_Interviews.Repositories
             sqlCommand.Parameters.AddWithValue("@LogoPictureUrl", company.CompanyLogoPath);
             sqlCommand.Parameters.AddWithValue("@Location", GetDatabaseValue(company.Location));
             sqlCommand.Parameters.AddWithValue("@Email", GetDatabaseValue(company.Email));
-            sqlCommand.Parameters.AddWithValue("@BuddyName", GetDatabaseValue(company.Game.Buddy.Name));
-            sqlCommand.Parameters.AddWithValue("@BuddyDescription", GetDatabaseValue(company.Game.Buddy.Introduction));
-            sqlCommand.Parameters.AddWithValue("@AvatarId", GetDatabaseValue(company.Game.Buddy.Id));
-            sqlCommand.Parameters.AddWithValue("@FinalQuote", GetDatabaseValue(company.Game.Conclusion));
-            sqlCommand.Parameters.AddWithValue("@Scenario1Text", GetDatabaseValue(company.Game.GetScenario(0).Description));
-            sqlCommand.Parameters.AddWithValue("@Scenario1Answer1", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceTexts()[0]));
-            sqlCommand.Parameters.AddWithValue("@Scenario1Answer2", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceTexts()[1]));
-            sqlCommand.Parameters.AddWithValue("@Scenario1Answer3", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceTexts()[2]));
-            sqlCommand.Parameters.AddWithValue("@Scenario1Reaction1", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceReactions()[0]));
-            sqlCommand.Parameters.AddWithValue("@Scenario1Reaction2", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceReactions()[1]));
-            sqlCommand.Parameters.AddWithValue("@Scenario1Reaction3", GetDatabaseValue(company.Game.GetScenario(0).GetAdviceReactions()[2]));
-            sqlCommand.Parameters.AddWithValue("@Scenario2Text", GetDatabaseValue(company.Game.GetScenario(1).Description));
-            sqlCommand.Parameters.AddWithValue("@Scenario2Answer1", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceTexts()[0]));
-            sqlCommand.Parameters.AddWithValue("@Scenario2Answer2", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceTexts()[1]));
-            sqlCommand.Parameters.AddWithValue("@Scenario2Answer3", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceTexts()[2]));
-            sqlCommand.Parameters.AddWithValue("@Scenario2Reaction1", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceReactions()[0]));
-            sqlCommand.Parameters.AddWithValue("@Scenario2Reaction2", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceReactions()[1]));
-            sqlCommand.Parameters.AddWithValue("@Scenario2Reaction3", GetDatabaseValue(company.Game.GetScenario(1).GetAdviceReactions()[2]));
+            sqlCommand.Parameters.AddWithValue("@BuddyName", GetDatabaseValue(company.BuddyName));
+            sqlCommand.Parameters.AddWithValue("@BuddyDescription", GetDatabaseValue(company.BuddyDescription));
+            sqlCommand.Parameters.AddWithValue("@AvatarId", GetDatabaseValue(company.AvatarId));
+            sqlCommand.Parameters.AddWithValue("@FinalQuote", GetDatabaseValue(company.FinalQuote));
+            sqlCommand.Parameters.AddWithValue("@Scenario1Text", GetDatabaseValue(company.Scen1Text));
+            sqlCommand.Parameters.AddWithValue("@Scenario1Answer1", GetDatabaseValue(company.Scen1Answer1));
+            sqlCommand.Parameters.AddWithValue("@Scenario1Answer2", GetDatabaseValue(company.Scen1Answer2));
+            sqlCommand.Parameters.AddWithValue("@Scenario1Answer3", GetDatabaseValue(company.Scen1Answer3));
+            sqlCommand.Parameters.AddWithValue("@Scenario1Reaction1", GetDatabaseValue(company.Scen1Reaction1));
+            sqlCommand.Parameters.AddWithValue("@Scenario1Reaction2", GetDatabaseValue(company.Scen1Reaction2));
+            sqlCommand.Parameters.AddWithValue("@Scenario1Reaction3", GetDatabaseValue(company.Scen1Reaction3));
+            sqlCommand.Parameters.AddWithValue("@Scenario2Text", GetDatabaseValue(company.Scen2Text));
+            sqlCommand.Parameters.AddWithValue("@Scenario2Answer1", GetDatabaseValue(company.Scen2Answer1));
+            sqlCommand.Parameters.AddWithValue("@Scenario2Answer2", GetDatabaseValue(company.Scen2Answer2));
+            sqlCommand.Parameters.AddWithValue("@Scenario2Answer3", GetDatabaseValue(company.Scen2Answer3));
+            sqlCommand.Parameters.AddWithValue("@Scenario2Reaction1", GetDatabaseValue(company.Scen2Reaction1));
+            sqlCommand.Parameters.AddWithValue("@Scenario2Reaction2", GetDatabaseValue(company.Scen2Reaction2));
+            sqlCommand.Parameters.AddWithValue("@Scenario2Reaction3", GetDatabaseValue(company.Scen2Reaction3));
 
             int affectedRows = sqlCommand.ExecuteNonQuery();
             if (affectedRows == 0)

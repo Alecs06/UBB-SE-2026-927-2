@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Tests_and_Interviews.Data;
 using Tests_and_Interviews.Repositories;
 using Tests_and_Interviews.Views;
 
@@ -23,6 +24,8 @@ namespace Tests_and_Interviews
             InitializeComponent();
 
             var userRepo = new UserRepository();
+            using var context = new AppDbContext();
+            bool canConnect = context.Database.CanConnect();
 
             try
             {

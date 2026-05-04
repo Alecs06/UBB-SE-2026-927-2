@@ -2,12 +2,22 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
     using System.Linq;
 
+    [Table("Recruiters")]
     public class Recruiter
     {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        [Column("company_id")]
         public int CompanyId { get; set; }
+
+        [Column("name", TypeName = "nvarchar(255)")]
         public string CompanyName { get; set; } = string.Empty;
+
+        public Company Company { get; set; } = null!;
         public List<Candidate> AssignedCandidates { get; set; } = [];
         public List<Slot> Slots { get; set; } = [];
         public List<Slot> ViewMonthlyCalendar(DateTime month)

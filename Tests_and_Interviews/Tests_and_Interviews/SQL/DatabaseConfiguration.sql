@@ -201,7 +201,9 @@ CREATE TABLE Slots (
     duration INT NOT NULL DEFAULT 30,
     status INT NOT NULL DEFAULT 0,
     interview_type NVARCHAR(255) NULL,
-    CONSTRAINT FK_Slots_Recruiters FOREIGN KEY (recruiter_id) REFERENCES Recruiters(company_id) ON DELETE CASCADE
+    CONSTRAINT FK_Slots_Recruiters FOREIGN KEY (recruiter_id) REFERENCES Recruiters(company_id) ON DELETE CASCADE,
+    candidate_id INT NULL,
+    CONSTRAINT FK_Slots_Users FOREIGN KEY (candidate_id) REFERENCES Users(id)
 );
 
 CREATE TABLE Answers (

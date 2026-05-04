@@ -43,19 +43,19 @@
         /// <summary>
         /// Gets or sets the user's name.
         /// </summary>
-        [Column("name")]
+        [Column("name",TypeName = "nvarchar(255)")]
         public string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the user's email.
-        /// </summary
-        [Column("email")]
+        /// </summary>
+        [Column("email", TypeName = "nvarchar(255)")]
         public string Email { get; set; }
 
         /// <summary>
         /// Gets or sets the user's cv in xml format.
         /// </summary>
-        [Column("cv_xml")]
+        [Column("cv_xml", TypeName = "nvarchar(max)")]
         public string? CvXml { get; set; }
     }
 }

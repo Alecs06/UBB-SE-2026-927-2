@@ -6,6 +6,7 @@ namespace Tests_and_Interviews.Models
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations.Schema;
 
     /// <summary>
     /// Represents a candidate in the recruitment system, including application status, assigned recruiter, matched
@@ -36,6 +37,7 @@ namespace Tests_and_Interviews.Models
         /// <summary>
         /// Gets or sets the collection of available slots.
         /// </summary>
+        [NotMapped]
         public List<Slot> AvailableSlots { get; set; } = new List<Slot>();
 
         // public List<Slot> BrowseAvailableDates()

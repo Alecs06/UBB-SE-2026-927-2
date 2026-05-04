@@ -133,18 +133,18 @@ public partial class EditCompanyProfileViewModel : ObservableObject
         }
 
         Name = existingCompany.Name;
-        AboutUs = existingCompany.AboutUs;
-        ProfilePicturePath = existingCompany.ProfilePicturePath;
-        CompanyLogoPath = existingCompany.CompanyLogoPath;
-        Location = existingCompany.Location;
-        Email = existingCompany.Email;
+        CompanyLogoPath = existingCompany.CompanyLogoPath ?? string.Empty;
+        AboutUs = existingCompany.AboutUs ?? string.Empty;
+        ProfilePicturePath = existingCompany.ProfilePicturePath ?? string.Empty;
+        Location = existingCompany.Location ?? string.Empty;
+        Email = existingCompany.Email ?? string.Empty;
     }
 
     private Company ToCompany(int postedJobsCount, int collaboratorsCount)
     {
         return new Company(
             name: Name,
-            aboutus: AboutUs,
+            aboutUs: AboutUs,
             pfpUrl: ProfilePicturePath,
             logoUrl: CompanyLogoPath,
             location: Location,
@@ -161,7 +161,7 @@ public partial class EditCompanyProfileViewModel : ObservableObject
         Company? existingCompany = companyService.GetCompanyById(CompanyId);
         int existingPostedJobsCount = existingCompany?.PostedJobsCount ?? DefaultCountValue;
         int existingCollaboratorsCount = existingCompany?.CollaboratorsCount ?? DefaultCountValue;
-        List<string> collaboratorsCopy = existingCompany?.Collaborators ?? new List<string>();
+        ICollection<Collaborator> collaboratorsCopy = existingCompany?.Collaborators ?? new List<Collaborator>();
 
         try
         {
