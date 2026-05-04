@@ -73,7 +73,7 @@ namespace Tests_and_Interviews.Models.Core
         /// <summary>
         /// Gets or sets the score awarded to the candidate following the session. Can be null if not yet evaluated.
         /// </summary>
-        [Column("score")]
+        [Column("score", TypeName = "decimal(18,2)")]
         public decimal? Score { get; set; }
     }
 }
