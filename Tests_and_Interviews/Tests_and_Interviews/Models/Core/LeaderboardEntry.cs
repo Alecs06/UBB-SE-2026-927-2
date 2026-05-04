@@ -33,7 +33,7 @@
         /// <summary>
         /// Gets or sets the normalized score after taking the test.
         /// </summary>
-        [Column("normalized_score")]
+        [Column("normalized_score", TypeName = "decimal(18,2)")]
         public decimal NormalizedScore { get; set; }
 
         /// <summary>

@@ -105,6 +105,35 @@
                 .WithMany()
                 .HasForeignKey(s => s.CandidateId)
                 .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<Recruiter>()
+                .HasOne(r => r.Company)
+                .WithMany()
+                .HasForeignKey(r => r.CompanyId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Answer>()
+                .HasOne(a => a.TestAttempt)
+                .WithMany(ta => ta.Answers)
+                .HasForeignKey(a => a.AttemptId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Collaborator>()
+                .HasOne(c => c.Company)
+                .WithMany()
+                .HasForeignKey(c => c.CompanyId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Collaborator>()
+                .HasKey(c => new { c.EventId, c.CompanyId });
+
+            modelBuilder.Entity<Collaborator>()
+                .HasOne(c => c.Event)
+                .WithMany(e => e.Collaborators)
+                .HasForeignKey(c => c.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Collaborator>()
+                .HasOne(c => c.Company)
+                .WithMany(co => co.Collaborators)
+                .HasForeignKey(c => c.CompanyId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

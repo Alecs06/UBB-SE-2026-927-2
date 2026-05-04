@@ -57,5 +57,6 @@
         /// </summary>
         [Column("cv_xml", TypeName = "nvarchar(max)")]
         public string? CvXml { get; set; }
+
     }
 }
