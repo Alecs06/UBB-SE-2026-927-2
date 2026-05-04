@@ -14,7 +14,7 @@
         /// Gets or sets the entry's unique identifier.
         /// </summary>
         [Key]
-        [Column("leaderboard_id")]
+        [Column("id")]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
@@ -57,11 +57,13 @@
         /// <summary>
         /// Gets or sets the Test object corresponding to the current Leaderboard Entry.
         /// </summary>
+        [ForeignKey("TestId")]
         public Test? Test { get; set; }
 
         /// <summary>
         /// Gets or sets the User object corresponding to the current LeaderboardEntry.
         /// </summary>
+        [ForeignKey("UserId")]
         public User? User { get; set; }
     }
 }

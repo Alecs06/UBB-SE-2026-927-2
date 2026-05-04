@@ -1,142 +1,67 @@
 ﻿namespace Tests_and_Interviews.Repositories
 {
-    using System;
     using System.Collections.Generic;
-    using System.Data;
+    using System.Linq;
     using System.Threading.Tasks;
-    using Microsoft.Data.SqlClient;
-    using Tests_and_Interviews.Helpers;
+    using Microsoft.EntityFrameworkCore;
+    using Tests_and_Interviews.Data;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Repositories.Interfaces;
 
     /// <inheritdoc cref="ILeaderboardRepository"/>
     public class LeaderboardRepository : ILeaderboardRepository
     {
-        /// <summary>
-        /// The connection string used to connect to the SQL server.
-        /// </summary>
-        private readonly string connectionString;
+        private readonly AppDbContext appDbContext;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LeaderboardRepository"/> class.
         /// </summary>
         public LeaderboardRepository()
         {
-            this.connectionString = Env.CONNECTION_STRING;
+            this.appDbContext = new AppDbContext();
         }
 
         /// <inheritdoc />
         public async Task<List<LeaderboardEntry>> FindByTestIdAsync(int testId)
         {
-            var entries = new List<LeaderboardEntry>();
-            string query = @"
-                SELECT 
-                    le.id AS le_id, le.test_id, le.user_id, le.rank_position, le.normalized_score,
-                    u.id AS u_id, u.name, u.email, u.cv_xml,
-                    t.id AS t_id, t.title, t.category, t.created_at
-                FROM LeaderboardEntries le
-                INNER JOIN Users u ON le.user_id = u.id
-                INNER JOIN Tests t ON le.test_id = t.id
-                WHERE le.test_id = @test_id
-                ORDER BY le.rank_position";
-
-            using (var connection = new SqlConnection(this.connectionString))
-            using (var command = new SqlCommand(query, connection))
-            {
-                command.Parameters.AddWithValue("@test_id", testId);
-
-                await connection.OpenAsync();
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        entries.Add(this.MapLeaderboardEntry(reader));
-                    }
-                }
-            }
-
-            return entries;
+            return await this.appDbContext.LeaderboardEntries
+                .Include(le => le.User)
+                .Include(le => le.Test)
+                .Where(le => le.TestId == testId)
+                .OrderBy(le => le.RankPosition)
+                .ToListAsync();
         }
 
         /// <inheritdoc />
         public async Task<List<LeaderboardEntry>> FindTopByTestIdAsync(int testId, int limit)
         {
-            var entries = new List<LeaderboardEntry>();
-            string query = @"
-                SELECT TOP (@limit)
-                    le.id AS le_id, le.test_id, le.user_id, le.rank_position, le.normalized_score,
-                    u.id AS u_id, u.name, u.email, u.cv_xml,
-                    t.id AS t_id, t.title, t.category, t.created_at
-                FROM LeaderboardEntries le
-                INNER JOIN Users u ON le.user_id = u.id
-                INNER JOIN Tests t ON le.test_id = t.id
-                WHERE le.test_id = @test_id
-                ORDER BY le.rank_position";
-
-            using (var connection = new SqlConnection(this.connectionString))
-            using (var command = new SqlCommand(query, connection))
-            {
-                command.Parameters.AddWithValue("@test_id", testId);
-                command.Parameters.AddWithValue("@limit", limit);
-
-                await connection.OpenAsync();
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        entries.Add(this.MapLeaderboardEntry(reader));
-                    }
-                }
-            }
-
-            return entries;
+            return await this.appDbContext.LeaderboardEntries
+                .Include(le => le.User)
+                .Include(le => le.Test)
+                .Where(le => le.TestId == testId)
+                .OrderBy(le => le.RankPosition)
+                .Take(limit)
+                .ToListAsync();
         }
 
         /// <inheritdoc />
         public async Task<LeaderboardEntry?> FindUserEntryAsync(int userId, int testId)
         {
-            string query = @"
-                SELECT 
-                    le.id AS le_id, le.test_id, le.user_id, le.rank_position, le.normalized_score,
-                    u.id AS u_id, u.name, u.email, u.cv_xml,
-                    t.id AS t_id, t.title, t.category, t.created_at
-                FROM LeaderboardEntries le
-                INNER JOIN Users u ON le.user_id = u.id
-                INNER JOIN Tests t ON le.test_id = t.id
-                WHERE le.user_id = @user_id AND le.test_id = @test_id";
-
-            using (var connection = new SqlConnection(this.connectionString))
-            using (var command = new SqlCommand(query, connection))
-            {
-                command.Parameters.AddWithValue("@user_id", userId);
-                command.Parameters.AddWithValue("@test_id", testId);
-
-                await connection.OpenAsync();
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    if (await reader.ReadAsync())
-                    {
-                        return this.MapLeaderboardEntry(reader);
-                    }
-                }
-            }
-
-            return null;
+            return await this.appDbContext.LeaderboardEntries
+                .Include(le => le.User)
+                .Include(le => le.Test)
+                .FirstOrDefaultAsync(le => le.UserId == userId && le.TestId == testId);
         }
 
         /// <inheritdoc />
         public async Task DeleteByTestIdAsync(int testId)
         {
-            string query = "DELETE FROM LeaderboardEntries WHERE test_id = @test_id";
+            var entries = await this.appDbContext.LeaderboardEntries
+                .Where(le => le.TestId == testId)
+                .ToListAsync();
 
-            using (var connection = new SqlConnection(this.connectionString))
-            using (var command = new SqlCommand(query, connection))
-            {
-                command.Parameters.AddWithValue("@test_id", testId);
-
-                await connection.OpenAsync();
-                await command.ExecuteNonQueryAsync();
-            }
+            this.appDbContext.LeaderboardEntries.RemoveRange(entries);
+            await this.appDbContext.SaveChangesAsync();
         }
 
         /// <inheritdoc />
@@ -147,79 +72,8 @@
                 return;
             }
 
-            string query = @"
-                INSERT INTO LeaderboardEntries (test_id, user_id, normalized_score, rank_position, tie_break_priority, last_recalculation_at) 
-                VALUES (@test_id, @user_id, @normalized_score, @rank_position, @tie_break_priority, @last_recalculation_at)";
-
-            using (var connection = new SqlConnection(this.connectionString))
-            {
-                await connection.OpenAsync();
-
-                using (var transaction = connection.BeginTransaction())
-                using (var command = new SqlCommand(query, connection, transaction))
-                {
-                    command.Parameters.Add("@test_id", SqlDbType.Int);
-                    command.Parameters.Add("@user_id", SqlDbType.Int);
-                    command.Parameters.Add("@normalized_score", SqlDbType.Decimal);
-                    command.Parameters.Add("@rank_position", SqlDbType.Int);
-                    command.Parameters.Add("@tie_break_priority", SqlDbType.Int);
-                    command.Parameters.Add("@last_recalculation_at", SqlDbType.DateTime);
-
-                    try
-                    {
-                        foreach (var entry in entries)
-                        {
-                            command.Parameters["@test_id"].Value = entry.TestId;
-                            command.Parameters["@user_id"].Value = entry.UserId;
-                            command.Parameters["@normalized_score"].Value = entry.NormalizedScore;
-                            command.Parameters["@rank_position"].Value = entry.RankPosition;
-                            command.Parameters["@tie_break_priority"].Value = entry.TieBreakPriority;
-                            command.Parameters["@last_recalculation_at"].Value = entry.LastRecalculationAt;
-
-                            await command.ExecuteNonQueryAsync();
-                        }
-
-                        await transaction.CommitAsync();
-                    }
-                    catch
-                    {
-                        await transaction.RollbackAsync();
-                        throw;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Maps a single row from a <see cref="SqlDataReader"/> to a <see cref="LeaderboardEntry"/> object.
-        /// </summary>
-        /// <param name="reader">The active SQL data reader.</param>
-        /// <returns>A populated leaderboard entry with associated User and Test objects.</returns>
-        private LeaderboardEntry MapLeaderboardEntry(SqlDataReader reader)
-        {
-            return new LeaderboardEntry
-            {
-                Id = reader.GetInt32(reader.GetOrdinal("le_id")),
-                TestId = reader.GetInt32(reader.GetOrdinal("test_id")),
-                UserId = reader.GetInt32(reader.GetOrdinal("user_id")),
-                RankPosition = reader.GetInt32(reader.GetOrdinal("rank_position")),
-                NormalizedScore = reader.GetDecimal(reader.GetOrdinal("normalized_score")),
-
-                User = new User(
-                    reader.GetInt32(reader.GetOrdinal("u_id")),
-                    reader.IsDBNull(reader.GetOrdinal("name")) ? string.Empty : reader.GetString(reader.GetOrdinal("name")),
-                    reader.IsDBNull(reader.GetOrdinal("email")) ? string.Empty : reader.GetString(reader.GetOrdinal("email")),
-                    reader.IsDBNull(reader.GetOrdinal("cv_xml")) ? null : reader.GetString(reader.GetOrdinal("cv_xml"))
-                ),
-
-                Test = new Test
-                {
-                    Id = reader.GetInt32(reader.GetOrdinal("t_id")),
-                    Title = reader.IsDBNull(reader.GetOrdinal("title")) ? null : reader.GetString(reader.GetOrdinal("title")),
-                    Category = reader.IsDBNull(reader.GetOrdinal("category")) ? null : reader.GetString(reader.GetOrdinal("category")),
-                    CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
-                },
-            };
+            await this.appDbContext.LeaderboardEntries.AddRangeAsync(entries);
+            await this.appDbContext.SaveChangesAsync();
         }
     }
 }

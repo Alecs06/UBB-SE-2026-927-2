@@ -80,15 +80,17 @@ namespace Tests_and_Interviews.Services
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task SubmitTestAsync(int attemptId)
         {
-            var answers = await this.answerRepository.FindByAttemptAsync(attemptId);
-            var attempt = new TestAttempt { Id = attemptId, Answers = answers };
+            var attempt = await this.attemptRepository.FindByIdAsync(attemptId);
+            if (attempt == null)
+            {
+                throw new InvalidOperationException($"Attempt {attemptId} not found.");
+            }
+
+            var answers = attempt.Answers; // already included
 
             foreach (var answer in answers)
             {
-                if (answer.Question == null)
-                {
-                    continue;
-                }
+                if (answer.Question == null) continue;
 
                 switch (answer.Question.Type)
                 {
@@ -108,11 +110,9 @@ namespace Tests_and_Interviews.Services
             }
 
             this.gradingService.CalculateFinalScore(attempt);
-
             attempt.Submit();
             await this.attemptRepository.UpdateAsync(attempt);
         }
-
         /// <summary>
         /// Asynchronously retrieves the next available test for a given category.
         /// </summary>
