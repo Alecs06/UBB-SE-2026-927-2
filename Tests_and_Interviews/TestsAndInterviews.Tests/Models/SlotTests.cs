@@ -57,7 +57,7 @@ namespace TestsAndInterviews.Tests.Models
 
 			slot.Release();
 
-			Assert.Equal(0, slot.CandidateId);
-		}
+            Assert.Null(slot.CandidateId);
+        }
 	}
 }

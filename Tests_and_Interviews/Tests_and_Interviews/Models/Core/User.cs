@@ -43,7 +43,7 @@
         /// <summary>
         /// Gets or sets the user's name.
         /// </summary>
-        [Column("name", TypeName = "nvarchar(255)")]
+        [Column("name",TypeName = "nvarchar(255)")]
         public string Name { get; set; }
 
         /// <summary>

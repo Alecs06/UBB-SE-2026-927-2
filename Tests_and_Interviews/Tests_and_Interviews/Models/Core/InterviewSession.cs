@@ -76,5 +76,6 @@ namespace Tests_and_Interviews.Models.Core
         /// </summary>
         [Column("score", TypeName = "decimal(18,2)")]
         public decimal? Score { get; set; }
+
     }
 }
