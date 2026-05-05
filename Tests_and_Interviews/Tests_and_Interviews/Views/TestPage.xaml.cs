@@ -31,8 +31,8 @@ namespace Tests_and_Interviews.Views
             var gradingService = new GradingService();
             var timerService = new TimerService(attemptRepository);
             var validationService = new AttemptValidationService(attemptRepository);
-            var testService = new TestService(testRepository, attemptRepository, answerRepository, gradingService, timerService, validationService);
             var dataProcessingService = new DataProcessingService(userRepository, attemptRepository, testRepository);
+            var testService = new TestService(testRepository, attemptRepository, answerRepository, gradingService, timerService, validationService, dataProcessingService);
             var leaderboardService = new LeaderboardService(new TestAttemptRepository(), new LeaderboardRepository());
             this.LeaderboardViewModel = new LeaderboardViewModel(leaderboardService);
             this.ViewModel = new TestPageViewModel(userRepository, testRepository, questionRepository, attemptRepository, answerRepository, testService, dataProcessingService);
