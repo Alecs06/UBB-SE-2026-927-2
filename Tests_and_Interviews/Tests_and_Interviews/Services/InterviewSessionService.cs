@@ -6,11 +6,19 @@ namespace Tests_and_Interviews.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
+    using System.Net.Http;
+    using System.Net.Http.Json;
     using System.Threading.Tasks;
+    using Tests_and_Interviews.Api;
+    using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Mappers;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
     using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
+    using Windows.Storage;
+    using Windows.Storage.Streams;
 
     /// <summary>
     /// Handles all business logic related to interview sessions.
@@ -53,14 +61,34 @@ namespace Tests_and_Interviews.Services
         }
 
         /// <summary>
-        /// Saves the recording path and marks the session as in progress.
+        /// Uploads a video recording file for the specified interview session and updates the session's video and
+        /// status information.
         /// </summary>
-        /// <param name="session">The current interview session.</param>
-        /// <param name="recordingFilePath">The file path of the recorded video.</param>
+        /// <remarks>After a successful upload, the session's video and status are updated to reflect the
+        /// new recording. The method ensures the server response indicates success before updating the session.</remarks>
+        /// <param name="session">The interview session to which the recording will be attached. Must not be null.</param>
+        /// <param name="recordingFilePath">The full file system path to the video recording file to upload. Must refer to an existing file.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task SubmitRecordingAsync(InterviewSession session, string recordingFilePath)
         {
-            session.Video = recordingFilePath;
+            StorageFile file = await StorageFile.GetFileFromPathAsync(recordingFilePath);
+            using IRandomAccessStreamWithContentType randomAccessStream = await file.OpenReadAsync();
+            using Stream stream = randomAccessStream.AsStreamForRead();
+
+            MultipartFormDataContent content = new MultipartFormDataContent();
+            content.Add(new StreamContent(stream), "file", file.Name);
+
+            HttpResponseMessage response = await ApiClient.Http.PostAsync(
+                $"interviewsessions/{session.Id}/video",
+                content);
+
+            response.EnsureSuccessStatusCode();
+
+            InterviewSessionDto? updatedSession = await response.Content.ReadFromJsonAsync<InterviewSessionDto>();
+
+            // TODO next lines currently save changes to db but that's the job of the api (used next lines for testing)
+            // remove next lines when api really saves to db and the rest of the app is connected to the api
+            session.Video = updatedSession?.ToEntity().Video;
             session.Status = InterviewStatus.InProgress.ToString();
             await this.sessionRepo.UpdateInterviewSessionAsync(session);
         }
