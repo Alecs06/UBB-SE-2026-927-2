@@ -2,6 +2,7 @@
 {
     using Tests_and_Interviews_API.Models;
     using Tests_and_Interviews_API.Models.Core;
+    using Tests_and_Interviews_API.Models.Enums;
     using Tests_and_Interviews_API.Repositories.Interfaces;
     using Tests_and_Interviews_API.Services.Interfaces;
 
@@ -159,6 +160,7 @@
             }
 
             session.Video = relativeFilePath;
+            session.Status = InterviewStatus.InProgress.ToString();
             await this._repository.UpdateInterviewSessionAsync(session);
 
             return session;

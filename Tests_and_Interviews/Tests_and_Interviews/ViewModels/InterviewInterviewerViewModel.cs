@@ -28,11 +28,6 @@ namespace Tests_and_Interviews.ViewModels
         private readonly INotificationService notificationService;
 
         /// <summary>
-        /// Represents the local folder path used for storing or accessing files.
-        /// </summary>
-        private readonly string localFolderPath;
-
-        /// <summary>
         /// Represents the ID of the current interview session being managed by this ViewModel.
         /// It is set during session initialization and used for fetching and updating session data.
         /// </summary>
@@ -54,16 +49,13 @@ namespace Tests_and_Interviews.ViewModels
         /// </summary>
         /// <param name="sessionService">The service used to manage interview session data.</param>
         /// <param name="notificationService">The service used to send notifications.</param>
-        /// <param name="overrideLocalPath">Optional parameter to override the default local folder path.</param>
         public InterviewInterviewerViewModel(
             IInterviewSessionService sessionService,
-            INotificationService notificationService,
-            string? overrideLocalPath = null)
+            INotificationService notificationService)
         {
             this.sessionService = sessionService;
             this.notificationService = notificationService;
             this.SubmitScoreCommand = new RelayCommand(_ => this.SubmitScore());
-            this.localFolderPath = overrideLocalPath ?? Windows.Storage.ApplicationData.Current.LocalFolder.Path;
 
             this.recordingUri = new Uri("about:blank");
             this.score = 1.0f;
@@ -124,7 +116,7 @@ namespace Tests_and_Interviews.ViewModels
 
         /// <summary>
         /// Initializes the interview session with the specified session identifier and sets the recording URI based on
-        /// the session's video path.
+        /// the session's video url.
         /// </summary>
         /// <remarks>If the video path associated with the session is null, empty, or invalid, the
         /// recording URI is set to 'about:blank'. This method is asynchronous but does not return a Task; callers
@@ -137,39 +129,16 @@ namespace Tests_and_Interviews.ViewModels
             try
             {
                 var session = await this.sessionService.GetSessionAsync(interviewSessionId);
-                string videoPath = session?.Video ?? string.Empty;
+                string videoUrl = session?.Video ?? string.Empty;
 
-                if (string.IsNullOrWhiteSpace(videoPath))
+                if (string.IsNullOrWhiteSpace(videoUrl))
                 {
                     this.RecordingUri = new Uri("about:blank");
-                }
-                else
-                {
-                    if (videoPath.StartsWith(this.localFolderPath, StringComparison.OrdinalIgnoreCase))
-                    {
-                        string relativePath = videoPath[this.localFolderPath.Length..].Replace('\\', '/');
-                        if (!relativePath.StartsWith("/"))
-                        {
-                            relativePath = "/" + relativePath;
-                        }
 
-                        this.RecordingUri = new Uri($"ms-appdata:///local{relativePath}");
-                    }
-                    else if (!System.IO.Path.IsPathRooted(videoPath))
-                    {
-                        string relativePath = videoPath.Replace('\\', '/');
-                        if (!relativePath.StartsWith("/"))
-                        {
-                            relativePath = "/" + relativePath;
-                        }
-
-                        this.RecordingUri = new Uri($"ms-appdata:///local{relativePath}");
-                    }
-                    else
-                    {
-                        this.RecordingUri = new Uri(videoPath);
-                    }
+                    return;
                 }
+
+                this.RecordingUri = new Uri(videoUrl);
             }
             catch
             {
