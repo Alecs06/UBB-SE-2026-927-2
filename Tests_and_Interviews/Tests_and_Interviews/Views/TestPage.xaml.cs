@@ -1,3 +1,6 @@
+// <copyright file="TestPage.xaml.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 namespace Tests_and_Interviews.Views
 {
     using System;
@@ -31,8 +34,8 @@ namespace Tests_and_Interviews.Views
             var gradingService = new GradingService();
             var timerService = new TimerService(attemptRepository);
             var validationService = new AttemptValidationService(attemptRepository);
-            var testService = new TestService(testRepository, attemptRepository, answerRepository, gradingService, timerService, validationService);
             var dataProcessingService = new DataProcessingService(userRepository, attemptRepository, testRepository);
+            var testService = new TestService(testRepository, attemptRepository, answerRepository, gradingService, timerService, validationService, dataProcessingService);
             var leaderboardService = new LeaderboardService(new TestAttemptRepository(), new LeaderboardRepository());
             this.LeaderboardViewModel = new LeaderboardViewModel(leaderboardService);
             this.ViewModel = new TestPageViewModel(userRepository, testRepository, questionRepository, attemptRepository, answerRepository, testService, dataProcessingService);
@@ -45,7 +48,7 @@ namespace Tests_and_Interviews.Views
         public TestPageViewModel ViewModel { get; }
 
         /// <summary>
-        /// Gets the ViewModel for the LeaderboardView
+        /// Gets the ViewModel for the LeaderboardView.
         /// </summary>
         public LeaderboardViewModel LeaderboardViewModel { get; }
 
@@ -194,9 +197,7 @@ namespace Tests_and_Interviews.Views
                         entry.RankPosition,
                         entry.User?.Name ?? "Unknown user",
                         entry.NormalizedScore,
-                        entry.UserId == App.CurrentUserId
-                    )
-                );
+                        entry.UserId == App.CurrentUserId));
             }
 
             bool currentUserInTopThree = currentUserEntry != null &&

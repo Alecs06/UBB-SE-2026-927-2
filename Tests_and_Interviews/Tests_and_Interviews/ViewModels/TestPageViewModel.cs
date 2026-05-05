@@ -12,11 +12,10 @@ namespace Tests_and_Interviews.ViewModels
     using System.Linq;
     using System.Runtime.CompilerServices;
     using Microsoft.UI.Xaml;
+    using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Helpers;
-    using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
     using Tests_and_Interviews.Repositories.Interfaces;
-    using Tests_and_Interviews.Services;
     using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
@@ -243,21 +242,14 @@ namespace Tests_and_Interviews.ViewModels
         }
 
         /// <summary>
-        /// SubmitAsync processes the user's answers and submits the test attempt. It saves the user's answers to the database, submits the test for grading,
-        /// and processes the finalized attempt to calculate the final score.
+        /// SubmitAsync collects the user's answers and delegates submission and processing to the test service.
         /// </summary>
         /// <returns>A task that represents the asynchronous operation of submitting the test. The task result is the final score of the test attempt.</returns>
         public async System.Threading.Tasks.Task<float> SubmitAsync()
         {
             this.StopTimer();
 
-            var attempt = await this.attemptRepository.FindByUserAndTestAsync(this.UserId, this.TestId);
-            if (attempt == null)
-            {
-                return 0f;
-            }
-
-            this.attemptId = attempt.Id;
+            var answers = new List<AnswerDto>();
 
             foreach (var questionViewModel in this.Questions)
             {
@@ -267,22 +259,14 @@ namespace Tests_and_Interviews.ViewModels
                     continue;
                 }
 
-                var answer = new Answer
+                answers.Add(new AnswerDto
                 {
-                    AttemptId = this.attemptId,
                     QuestionId = questionViewModel.QuestionId,
                     Value = answerValue,
-                };
-
-                await this.answerRepository.SaveAsync(answer);
+                });
             }
 
-            await this.testService.SubmitTestAsync(this.attemptId);
-
-            await this.dataProcessingService.ProcessFinalizedAttemptAsync(this.attemptId);
-
-            var finalAttempt = await this.attemptRepository.FindByUserAndTestAsync(this.UserId, this.TestId);
-            return finalAttempt != null ? (float)(finalAttempt.Score ?? 0m) : 0f;
+            return await this.testService.SubmitAttemptAsync(this.UserId, this.TestId, answers);
         }
 
         /// <summary>

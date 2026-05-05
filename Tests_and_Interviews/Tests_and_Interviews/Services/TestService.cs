@@ -5,7 +5,9 @@
 namespace Tests_and_Interviews.Services
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
     using Tests_and_Interviews.Repositories;
@@ -24,6 +26,7 @@ namespace Tests_and_Interviews.Services
         private readonly IGradingService gradingService;
         private readonly ITimerService timerService;
         private readonly IAttemptValidationService validationService;
+        private readonly IDataProcessingService dataProcessingService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TestService"/> class with the specified dependencies.
@@ -34,13 +37,15 @@ namespace Tests_and_Interviews.Services
         /// <param name="gradingService">The service responsible for grading answers.</param>
         /// <param name="timerService">The service responsible for managing test timers.</param>
         /// <param name="validationService">The service responsible for validating test attempts.</param>
+        /// <param name="dataProcessingService">The service responsible for processing test data.</param>
         public TestService(
             ITestRepository testRepository,
             ITestAttemptRepository attemptRepository,
             IAnswerRepository answerRepository,
             IGradingService gradingService,
             ITimerService timerService,
-            IAttemptValidationService validationService)
+            IAttemptValidationService validationService,
+            IDataProcessingService dataProcessingService)
         {
             this.testRepository = testRepository;
             this.attemptRepository = attemptRepository;
@@ -48,6 +53,7 @@ namespace Tests_and_Interviews.Services
             this.gradingService = gradingService;
             this.timerService = timerService;
             this.validationService = validationService;
+            this.dataProcessingService = dataProcessingService;
         }
 
         /// <summary>
@@ -90,7 +96,10 @@ namespace Tests_and_Interviews.Services
 
             foreach (var answer in answers)
             {
-                if (answer.Question == null) continue;
+                if (answer.Question == null)
+                {
+                    continue;
+                }
 
                 switch (answer.Question.Type)
                 {
@@ -113,6 +122,7 @@ namespace Tests_and_Interviews.Services
             attempt.Submit();
             await this.attemptRepository.UpdateAsync(attempt);
         }
+
         /// <summary>
         /// Asynchronously retrieves the next available test for a given category.
         /// </summary>
@@ -128,6 +138,49 @@ namespace Tests_and_Interviews.Services
             }
 
             return tests[0];
+        }
+
+        /// <summary>
+        /// Submits an attempt for the specified user and test using the provided answers. This method will persist
+        /// the answers, finalize the attempt (grading), process the finalized attempt and return the final score.
+        /// </summary>
+        /// <param name="userId">The ID of the user submitting the attempt.</param>
+        /// <param name="testId">The ID of the test being submitted.</param>
+        /// <param name="answers">The collection of answers provided by the user.</param>
+        /// <returns>The final score as a float.</returns>
+        public async Task<float> SubmitAttemptAsync(int userId, int testId, IEnumerable<AnswerDto> answers)
+        {
+            var attempt = await this.attemptRepository.FindByUserAndTestAsync(userId, testId);
+            if (attempt == null)
+            {
+                return 0f;
+            }
+
+            var attemptId = attempt.Id;
+
+            foreach (var answerDto in answers)
+            {
+                if (string.IsNullOrEmpty(answerDto.Value))
+                {
+                    continue;
+                }
+
+                var answer = new Answer
+                {
+                    AttemptId = attemptId,
+                    QuestionId = answerDto.QuestionId,
+                    Value = answerDto.Value,
+                };
+
+                await this.answerRepository.SaveAsync(answer);
+            }
+
+            await this.SubmitTestAsync(attemptId);
+
+            await this.dataProcessingService.ProcessFinalizedAttemptAsync(attemptId);
+
+            var finalAttempt = await this.attemptRepository.FindByUserAndTestAsync(userId, testId);
+            return finalAttempt != null ? (float)(finalAttempt.Score ?? 0m) : 0f;
         }
     }
 }
