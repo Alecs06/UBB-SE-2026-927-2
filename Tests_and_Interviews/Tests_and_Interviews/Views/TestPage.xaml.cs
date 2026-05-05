@@ -1,3 +1,6 @@
+// <copyright file="TestPage.xaml.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 namespace Tests_and_Interviews.Views
 {
     using System;
@@ -45,7 +48,7 @@ namespace Tests_and_Interviews.Views
         public TestPageViewModel ViewModel { get; }
 
         /// <summary>
-        /// Gets the ViewModel for the LeaderboardView
+        /// Gets the ViewModel for the LeaderboardView.
         /// </summary>
         public LeaderboardViewModel LeaderboardViewModel { get; }
 
@@ -194,9 +197,7 @@ namespace Tests_and_Interviews.Views
                         entry.RankPosition,
                         entry.User?.Name ?? "Unknown user",
                         entry.NormalizedScore,
-                        entry.UserId == App.CurrentUserId
-                    )
-                );
+                        entry.UserId == App.CurrentUserId));
             }
 
             bool currentUserInTopThree = currentUserEntry != null &&

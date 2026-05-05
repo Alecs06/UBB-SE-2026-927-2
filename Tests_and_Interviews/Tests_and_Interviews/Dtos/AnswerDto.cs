@@ -1,20 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// <copyright file="AnswerDto.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Tests_and_Interviews.Dtos
 {
     /// <summary>
-    /// DTO representing an answer to a question in a test attempt. It contains the ID of the question being answered and the value of
-    /// the answer provided by the user. This DTO is used to transfer answer data between the client and server when submitting test
-    /// attempts or retrieving test results.
+    /// Represents an answer to a question in a test attempt.
+    /// Used to transfer answer data between layers when submitting or retrieving test results.
     /// </summary>
     public class AnswerDto
     {
+        /// <summary>
+        /// Gets or sets the unique identifier of the question being answered.
+        /// </summary>
         public int QuestionId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the answer value provided by the user.
+        /// For single/multiple choice questions this is the selected option index or indices;
+        /// for text questions it is the free-text response.
+        /// </summary>
         public string Value { get; set; } = string.Empty;
     }
 }

@@ -2,14 +2,13 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-using System.Collections.Generic;
-
 namespace Tests_and_Interviews.Services
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
     using Tests_and_Interviews.Repositories;
     using Tests_and_Interviews.Repositories.Interfaces;
@@ -38,6 +37,7 @@ namespace Tests_and_Interviews.Services
         /// <param name="gradingService">The service responsible for grading answers.</param>
         /// <param name="timerService">The service responsible for managing test timers.</param>
         /// <param name="validationService">The service responsible for validating test attempts.</param>
+        /// <param name="dataProcessingService">The service responsible for processing test data.</param>
         public TestService(
             ITestRepository testRepository,
             ITestAttemptRepository attemptRepository,
@@ -96,7 +96,10 @@ namespace Tests_and_Interviews.Services
 
             foreach (var answer in answers)
             {
-                if (answer.Question == null) continue;
+                if (answer.Question == null)
+                {
+                    continue;
+                }
 
                 switch (answer.Question.Type)
                 {
@@ -119,6 +122,7 @@ namespace Tests_and_Interviews.Services
             attempt.Submit();
             await this.attemptRepository.UpdateAsync(attempt);
         }
+
         /// <summary>
         /// Asynchronously retrieves the next available test for a given category.
         /// </summary>
