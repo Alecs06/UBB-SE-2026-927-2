@@ -13,7 +13,7 @@
     public class Event
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [Column("event_id")]
         public int Id { get; set; }
 

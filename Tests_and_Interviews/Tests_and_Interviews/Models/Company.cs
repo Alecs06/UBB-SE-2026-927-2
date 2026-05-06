@@ -8,7 +8,7 @@ namespace Tests_and_Interviews.Models
     public class Company
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)] // no IDENTITY in SQL
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [Column("company_id")]
         public int CompanyId { get; set; }
 

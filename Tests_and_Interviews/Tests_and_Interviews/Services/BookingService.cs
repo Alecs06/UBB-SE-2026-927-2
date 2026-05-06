@@ -101,7 +101,6 @@ namespace Tests_and_Interviews.Services
 
             InterviewSession newInterviewSession = new InterviewSession
             {
-                SessionId = slot.Id,
                 PositionId = MINIMUMPOSITIONID,
                 ExternalUserId = candidateId,
                 InterviewerId = slot.RecruiterId,

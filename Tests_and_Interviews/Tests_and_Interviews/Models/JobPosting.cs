@@ -8,8 +8,8 @@ namespace Tests_and_Interviews.Models
     public class JobPosting
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
         [Column("job_id")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int JobId { get; set; }
 
         [Column("company_id")]

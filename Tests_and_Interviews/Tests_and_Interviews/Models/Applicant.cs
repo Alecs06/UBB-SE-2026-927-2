@@ -9,7 +9,7 @@ namespace Tests_and_Interviews.Models
     public class Applicant
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [Column("applicant_id")]
         public int ApplicantId { get; set; }
 
