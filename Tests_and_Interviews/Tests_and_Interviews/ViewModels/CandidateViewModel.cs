@@ -4,7 +4,6 @@
 
 namespace Tests_and_Interviews.ViewModels
 {
-    using Microsoft.UI.Xaml;
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
@@ -14,6 +13,7 @@ namespace Tests_and_Interviews.ViewModels
     using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using System.Windows.Input;
+    using Microsoft.UI.Xaml;
     using Tests_and_Interviews.Helpers;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Models.Core;
