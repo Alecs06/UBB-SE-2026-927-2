@@ -1,196 +1,238 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Globalization;
-using System.Linq;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Tests_and_Interviews.Models;
-using Tests_and_Interviews.Repositories.Interfaces;
-using Tests_and_Interviews.Services;
-using Tests_and_Interviews.Services.Interfaces;
-using Tests_and_Interviews.Validators;
-using Tests_and_Interviews.ViewModels;
-
-namespace Tests_and_Interviews.ViewModels;
-
-public partial class SkillPickItem : ObservableObject
+namespace Tests_and_Interviews.ViewModels
 {
-    public Skill Skill { get; }
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Globalization;
+    using System.Linq;
+    using CommunityToolkit.Mvvm.ComponentModel;
+    using CommunityToolkit.Mvvm.Input;
+    using Tests_and_Interviews.Models;
+    using Tests_and_Interviews.Repositories.Interfaces;
+    using Tests_and_Interviews.Services;
 
-    [ObservableProperty]
-    private bool isSelected;
-
-    [ObservableProperty]
-    private string requiredPercentText = "50";
-
-    public SkillPickItem(Skill skill)
+    public partial class SkillPickItem : ObservableObject
     {
-        Skill = skill;
-    }
-}
+        [ObservableProperty]
+        private bool isSelected;
 
-public partial class CreateJobViewModel : ObservableObject
-{
-    private readonly IJobsRepository jobsRepository;
-    private readonly SessionService sessionService;
+        [ObservableProperty]
+        private string requiredPercentText = "50";
 
-    public ObservableCollection<SkillPickItem> SkillRows { get; } = new ();
-
-    public Action<bool, string>? OnSaveCompleted { get; set; }
-
-    [ObservableProperty] private string jobTitle = string.Empty;
-    [ObservableProperty] private string industryField = string.Empty;
-    [ObservableProperty] private string jobType = string.Empty;
-    [ObservableProperty] private string experienceLevel = string.Empty;
-    [ObservableProperty] private DateTimeOffset? startDate;
-    [ObservableProperty] private DateTimeOffset? endDate;
-    [ObservableProperty] private string jobDescription = string.Empty;
-    [ObservableProperty] private string jobLocation = string.Empty;
-    [ObservableProperty] private double availablePositions = 1;
-    [ObservableProperty] private string photo = string.Empty;
-    [ObservableProperty] private string salaryText = string.Empty;
-    [ObservableProperty] private DateTimeOffset? deadline;
-
-    public CreateJobViewModel(IJobsRepository jobsRepository, SessionService sessionService)
-    {
-        this.jobsRepository = jobsRepository;
-        this.sessionService = sessionService;
-
-        foreach (var skillItem in this.jobsRepository.GetAllSkills())
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkillPickItem"/> class.
+        /// </summary>
+        /// <param name="skill">The skill model.</param>
+        public SkillPickItem(Skill skill)
         {
-            SkillRows.Add(new SkillPickItem(skillItem));
+            this.Skill = skill;
         }
+
+        /// <summary>
+        /// Gets the underlying skill of this item.
+        /// </summary>
+        public Skill Skill { get; }
     }
 
-    [RelayCommand]
-    public void SaveJob()
+    public partial class CreateJobViewModel : ObservableObject
     {
-        if (sessionService?.LoggedInUser == null)
-        {
-            return;
-        }
+        private readonly IJobsRepository jobsRepository;
+        private readonly SessionService sessionService;
 
-        int companyId = sessionService.LoggedInUser.CompanyId;
-
-        int? salary = null;
-        if (!string.IsNullOrWhiteSpace(SalaryText)
-            && int.TryParse(SalaryText.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var parsedSalary))
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CreateJobViewModel"/> class.
+        /// </summary>
+        /// <param name="jobsRepository">The jobs repository.</param>
+        /// <param name="sessionService">The session service.</param>
+        public CreateJobViewModel(IJobsRepository jobsRepository, SessionService sessionService)
         {
-            salary = parsedSalary;
-        }
+            this.jobsRepository = jobsRepository;
+            this.sessionService = sessionService;
 
-        if (string.IsNullOrWhiteSpace(JobTitle))
-        {
-            OnSaveCompleted?.Invoke(false, "Job title is required.");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(IndustryField))
-        {
-            OnSaveCompleted?.Invoke(false, "Industry field is required.");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(JobType))
-        {
-            OnSaveCompleted?.Invoke(false, "Job type is required.");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(ExperienceLevel))
-        {
-            OnSaveCompleted?.Invoke(false, "Experience level is required.");
-            return;
-        }
-
-        if (!StartDate.HasValue || !EndDate.HasValue)
-        {
-            OnSaveCompleted?.Invoke(false, "Start date and end date are required.");
-            return;
-        }
-
-        if (EndDate.Value.Date < StartDate.Value.Date)
-        {
-            OnSaveCompleted?.Invoke(false, "End date must be on or after start date.");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(JobDescription))
-        {
-            OnSaveCompleted?.Invoke(false, "Job description is required.");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(JobLocation))
-        {
-            OnSaveCompleted?.Invoke(false, "Job location is required.");
-            return;
-        }
-
-        if (AvailablePositions < 1)
-        {
-            OnSaveCompleted?.Invoke(false, "Available positions must be at least 1.");
-            return;
-        }
-
-        if (salary.HasValue && salary.Value < 0)
-        {
-            OnSaveCompleted?.Invoke(false, "Salary cannot be negative.");
-            return;
-        }
-
-        var links = new List<(int SkillId, int RequiredPercentage)>();
-        foreach (var row in SkillRows.Where(r => r.IsSelected))
-        {
-            if (!int.TryParse(row.RequiredPercentText, NumberStyles.Integer, CultureInfo.CurrentCulture, out var pct)
-                && !int.TryParse(row.RequiredPercentText, NumberStyles.Integer, CultureInfo.InvariantCulture, out pct))
+            foreach (var skillItem in this.jobsRepository.GetAllSkills())
             {
-                OnSaveCompleted?.Invoke(false, $"Invalid percentage for skill \"{row.Skill.SkillName}\".");
+                this.SkillRows.Add(new SkillPickItem(skillItem));
+            }
+        }
+
+        /// <summary>
+        /// Gets the collection of skill picker items.
+        /// </summary>
+        public ObservableCollection<SkillPickItem> SkillRows { get; } = new();
+
+        /// <summary>
+        /// Gets or sets the action to invoke when the save operation completes.
+        /// </summary>
+        public Action<bool, string>? OnSaveCompleted { get; set; }
+
+        [ObservableProperty]
+        private string jobTitle = string.Empty;
+
+        [ObservableProperty]
+        private string industryField = string.Empty;
+
+        [ObservableProperty]
+        private string jobType = string.Empty;
+
+        [ObservableProperty]
+        private string experienceLevel = string.Empty;
+
+        [ObservableProperty]
+        private DateTimeOffset? startDate;
+
+        [ObservableProperty]
+        private DateTimeOffset? endDate;
+
+        [ObservableProperty]
+        private string jobDescription = string.Empty;
+
+        [ObservableProperty]
+        private string jobLocation = string.Empty;
+
+        [ObservableProperty]
+        private double availablePositions = 1;
+
+        [ObservableProperty]
+        private string photo = string.Empty;
+
+        [ObservableProperty]
+        private string salaryText = string.Empty;
+
+        [ObservableProperty]
+        private DateTimeOffset? deadline;
+
+        /// <summary>
+        /// Saves the job to the database if the inputs are valid.
+        /// </summary>
+        [RelayCommand]
+        public void SaveJob()
+        {
+            if (this.sessionService?.LoggedInUser == null)
+            {
                 return;
             }
 
-            if (pct < 1 || pct > 100)
+            int companyId = this.sessionService.LoggedInUser.CompanyId;
+
+            int? salary = null;
+            if (!string.IsNullOrWhiteSpace(this.SalaryText)
+                && int.TryParse(this.SalaryText.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var parsedSalary))
             {
-                OnSaveCompleted?.Invoke(false, $"Required percentage for \"{row.Skill.SkillName}\" must be between 1 and 100.");
+                salary = parsedSalary;
+            }
+
+            if (string.IsNullOrWhiteSpace(this.JobTitle))
+            {
+                this.OnSaveCompleted?.Invoke(false, "Job title is required.");
                 return;
             }
 
-            links.Add((row.Skill.SkillId, pct));
-        }
+            if (string.IsNullOrWhiteSpace(this.IndustryField))
+            {
+                this.OnSaveCompleted?.Invoke(false, "Industry field is required.");
+                return;
+            }
 
-        if (links.Count == 0)
-        {
-            OnSaveCompleted?.Invoke(false, "Select at least one required skill with a valid percentage (1–100).");
-            return;
-        }
+            if (string.IsNullOrWhiteSpace(this.JobType))
+            {
+                this.OnSaveCompleted?.Invoke(false, "Job type is required.");
+                return;
+            }
 
-        var job = new JobPosting
-        {
-            JobTitle = JobTitle.Trim(),
-            IndustryField = IndustryField.Trim(),
-            JobType = JobType.Trim(),
-            ExperienceLevel = ExperienceLevel.Trim(),
-            StartDate = StartDate?.DateTime.Date,
-            EndDate = EndDate?.DateTime.Date,
-            JobDescription = JobDescription.Trim(),
-            JobLocation = JobLocation.Trim(),
-            AvailablePositions = (int)AvailablePositions,
-            Photo = string.IsNullOrWhiteSpace(Photo) ? null : Photo.Trim(),
-            PostedAt = DateTime.Now,
-            Salary = salary,
-            AmountPayed = 0,
-            Deadline = Deadline?.DateTime.Date
-        };
+            if (string.IsNullOrWhiteSpace(this.ExperienceLevel))
+            {
+                this.OnSaveCompleted?.Invoke(false, "Experience level is required.");
+                return;
+            }
 
-        try
-        {
-            var newId = jobsRepository.AddJob(job, companyId, links);
-            OnSaveCompleted?.Invoke(true, $"Job created with id {newId}.");
-        }
-        catch (Exception ex)
-        {
-            OnSaveCompleted?.Invoke(false, ex.Message);
+            if (!this.StartDate.HasValue || !this.EndDate.HasValue)
+            {
+                this.OnSaveCompleted?.Invoke(false, "Start date and end date are required.");
+                return;
+            }
+
+            if (this.EndDate.Value.Date < this.StartDate.Value.Date)
+            {
+                this.OnSaveCompleted?.Invoke(false, "End date must be on or after start date.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(this.JobDescription))
+            {
+                this.OnSaveCompleted?.Invoke(false, "Job description is required.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(this.JobLocation))
+            {
+                this.OnSaveCompleted?.Invoke(false, "Job location is required.");
+                return;
+            }
+
+            if (this.AvailablePositions < 1)
+            {
+                this.OnSaveCompleted?.Invoke(false, "Available positions must be at least 1.");
+                return;
+            }
+
+            if (salary.HasValue && salary.Value < 0)
+            {
+                this.OnSaveCompleted?.Invoke(false, "Salary cannot be negative.");
+                return;
+            }
+
+            var links = new List<(int SkillId, int RequiredPercentage)>();
+            foreach (var row in this.SkillRows.Where(r => r.IsSelected))
+            {
+                if (!int.TryParse(row.RequiredPercentText, NumberStyles.Integer, CultureInfo.CurrentCulture, out var pct)
+                    && !int.TryParse(row.RequiredPercentText, NumberStyles.Integer, CultureInfo.InvariantCulture, out pct))
+                {
+                    this.OnSaveCompleted?.Invoke(false, $"Invalid percentage for skill \"{row.Skill.SkillName}\".");
+                    return;
+                }
+
+                if (pct < 1 || pct > 100)
+                {
+                    this.OnSaveCompleted?.Invoke(false, $"Required percentage for \"{row.Skill.SkillName}\" must be between 1 and 100.");
+                    return;
+                }
+
+                links.Add((row.Skill.SkillId, pct));
+            }
+
+            if (links.Count == 0)
+            {
+                this.OnSaveCompleted?.Invoke(false, "Select at least one required skill with a valid percentage (1–100).");
+                return;
+            }
+
+            var job = new JobPosting
+            {
+                JobTitle = this.JobTitle.Trim(),
+                IndustryField = this.IndustryField.Trim(),
+                JobType = this.JobType.Trim(),
+                ExperienceLevel = this.ExperienceLevel.Trim(),
+                StartDate = this.StartDate?.DateTime.Date,
+                EndDate = this.EndDate?.DateTime.Date,
+                JobDescription = this.JobDescription.Trim(),
+                JobLocation = this.JobLocation.Trim(),
+                AvailablePositions = (int)this.AvailablePositions,
+                Photo = string.IsNullOrWhiteSpace(this.Photo) ? null : this.Photo.Trim(),
+                PostedAt = DateTime.Now,
+                Salary = salary,
+                AmountPayed = 0,
+                Deadline = this.Deadline?.DateTime.Date,
+            };
+
+            try
+            {
+                var newId = this.jobsRepository.AddJob(job, companyId, links);
+                this.OnSaveCompleted?.Invoke(true, $"Job created with id {newId}.");
+            }
+            catch (Exception ex)
+            {
+                this.OnSaveCompleted?.Invoke(false, ex.Message);
+            }
         }
     }
 }
