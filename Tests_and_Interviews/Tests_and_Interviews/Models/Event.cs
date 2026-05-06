@@ -9,6 +9,10 @@
     using System.Threading.Tasks;
     using System.Xml.Linq;
 
+    /// <summary>
+    /// Event class represents an event organized by a company, containing properties such as photo, title, description, start and end dates, location, host company information, and a list of collaborators.
+    /// It is mapped to the "events" table in the database, with a primary key of Id that is not auto-generated. The Event class provides constructors for initializing event instances and an overridden ToString method for easy representation of event details.
+    /// </summary>
     [Table("events")]
     public class Event
     {
@@ -44,9 +48,8 @@
         public DateTime PostedAt { get; set;  }
         public ICollection<Collaborator> Collaborators { get; set; } = new List<Collaborator>();
 
-
         /// <summary>
-        /// Event constructor
+        /// Initializes a new instance of the <see cref="Event"/> class.
         /// </summary>
         /// <param name="eventPhoto"> event photo generated path </param>
         /// <param name="eventTitle"> event title </param>
@@ -64,18 +67,24 @@
             this.EndDate = eventEndDate;
             this.Location = eventLocation;
             this.HostCompanyId = eventHostID;
-           
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Event"/> class with default values for all properties.
+        /// This constructor allows for creating an empty event instance that can be populated with specific details later on.
+        /// </summary>
         public Event()
         {
         }
-
+        /// <summary>
+        /// Returns a string representation of the event, including its photo, title, description, start and end dates, location, host company ID, and collaborators. This method is overridden to provide a meaningful representation of the event's details when the ToString method is called.
+        /// </summary>
+        /// <returns>A string representation of the event.</returns>
         public override string ToString()
         {
-            return "Event: " + Photo + " " + Title + " " + Description + " " +
-                StartDate.ToString() + " " + EndDate.ToString() + " " + Location + " " + HostCompanyId.ToString() +
-                " " + Collaborators.ToString() + "\n";
+            return "Event: " + this.Photo + " " + this.Title + " " + this.Description + " " +
+                this.StartDate.ToString() + " " + this.EndDate.ToString() + " " + this.Location + " " + this.HostCompanyId.ToString() +
+                " " + this.Collaborators.ToString() + "\n";
         }
     }
 }

@@ -4,10 +4,14 @@
 
 namespace TestsAndInterviews.Tests.ViewModels
 {
-    using Moq;
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using System.Timers;
+
+    using Moq;
+    using Xunit;
+
     using Tests_and_Interviews.Helpers;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Models.Core;
@@ -15,13 +19,15 @@ namespace TestsAndInterviews.Tests.ViewModels
     using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
     using Tests_and_Interviews.ViewModels;
-    using Xunit;
 
     public class CandidateViewModelTests
     {
         private readonly Mock<IBookingService> mockBookingService;
+
         private readonly Mock<IInterviewSessionRepository> mockSessionRepository;
+
         private readonly Mock<INotificationService> mockNotificationService;
+
         private readonly Mock<ISlotRepository> mockSlotRepository;
 
         public CandidateViewModelTests()
@@ -51,41 +57,47 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .Setup(b => b.GetAvailableSlotsByRecruiterId(company.RecruiterId))
                 .Returns(new List<Slot> { slot });
 
-            var viewmodel = this.CreateViewModel();
-            viewmodel.ScheduleInterviewCommand.Execute(company);
-            viewmodel.SelectSlotForInterviewCommand.Execute(slot);
-            return viewmodel;
+            var viewModel = this.CreateViewModel();
+
+            viewModel.ScheduleInterviewCommand.Execute(company);
+            viewModel.SelectSlotForInterviewCommand.Execute(slot);
+
+            return viewModel;
         }
 
         [Fact]
         public void ScheduleInterviewCommand_SetsIsBookingVisibleAndSelectedCompany()
         {
             var company = new CompanyPosting { RecruiterId = 1 };
+
             this.mockBookingService
                 .Setup(bookingService => bookingService.GetAvailableSlotsByRecruiterId(1))
                 .Returns(new List<Slot>());
 
-            var viewmodel = this.CreateViewModel();
-            viewmodel.ScheduleInterviewCommand.Execute(company);
+            var viewModel = this.CreateViewModel();
 
-            Assert.True(viewmodel.IsBookingVisible);
-            Assert.Equal(company, viewmodel.SelectedCompany);
+            viewModel.ScheduleInterviewCommand.Execute(company);
+
+            Assert.True(viewModel.IsBookingVisible);
+            Assert.Equal(company, viewModel.SelectedCompany);
         }
 
         [Fact]
         public void ScheduleInterviewCommand_WhenObjectIsNotCompany_DoesNothing()
         {
-            var viewmode = this.CreateViewModel();
-            viewmode.ScheduleInterviewCommand.Execute("not a company");
+            var viewModel = this.CreateViewModel();
 
-            Assert.False(viewmode.IsBookingVisible);
+            viewModel.ScheduleInterviewCommand.Execute("not a company");
+
+            Assert.False(viewModel.IsBookingVisible);
         }
 
         [Fact]
         public void ScheduleInterviewCommand_WhenSelectedCompanyIsNull_DoesNotLoadSlots()
         {
-            var viewmodel = this.CreateViewModel();
-            viewmodel.SelectedDay = DateTime.Today;
+            var viewModel = this.CreateViewModel();
+
+            viewModel.SelectedDay = DateTime.Today;
 
             this.mockBookingService.Verify(
                 bookingService => bookingService.GetAvailableSlotsByRecruiterId(It.IsAny<int>()),
@@ -96,18 +108,21 @@ namespace TestsAndInterviews.Tests.ViewModels
         public void SelectSlotCommand_SetsSelectedSlotAndDeselectsOthers()
         {
             var company = new CompanyPosting { RecruiterId = 1 };
+
             var slot1 = new Slot { StartTime = DateTime.Today, Status = SlotStatus.Free };
             var slot2 = new Slot { StartTime = DateTime.Today.AddHours(1), Status = SlotStatus.Free };
+
             this.mockBookingService
                 .Setup(bookingService => bookingService.GetAvailableSlotsByRecruiterId(1))
                 .Returns(new List<Slot> { slot1, slot2 });
 
-            var viewmodel = this.CreateViewModel();
-            viewmodel.ScheduleInterviewCommand.Execute(company);
-            viewmodel.SelectSlotForInterviewCommand.Execute(slot1);
-            viewmodel.SelectSlotForInterviewCommand.Execute(slot2);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(slot2, viewmodel.SelectedSlot);
+            viewModel.ScheduleInterviewCommand.Execute(company);
+            viewModel.SelectSlotForInterviewCommand.Execute(slot1);
+            viewModel.SelectSlotForInterviewCommand.Execute(slot2);
+
+            Assert.Equal(slot2, viewModel.SelectedSlot);
             Assert.False(slot1.IsSlotSelected);
             Assert.True(slot2.IsSlotSelected);
         }
@@ -115,39 +130,44 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void SelectSlotCommand_WhenObjectIsNotSlot_DoesNothing()
         {
-            var viewmodel = this.CreateViewModel();
-            viewmodel.SelectSlotForInterviewCommand.Execute("not a slot");
+            var viewModel = this.CreateViewModel();
 
-            Assert.Null(viewmodel.SelectedSlot);
+            viewModel.SelectSlotForInterviewCommand.Execute("not a slot");
+
+            Assert.Null(viewModel.SelectedSlot);
         }
 
         [Fact]
         public void SelectDayCommand_SetsSelectedDayAndClearsSelectedSlot()
         {
             var company = new CompanyPosting { RecruiterId = 1 };
+
             var slot = new Slot { StartTime = DateTime.Today.AddDays(1), Status = SlotStatus.Free };
-            var viewmodel = this.CreateViewModelWithCompanyAndSlot(company, slot);
 
-            viewmodel.SelectDayForInterviewCommand.Execute(slot);
+            var viewModel = this.CreateViewModelWithCompanyAndSlot(company, slot);
 
-            Assert.Equal(slot.StartTime.Date, viewmodel.SelectedDay.Date);
-            Assert.Null(viewmodel.SelectedSlot);
+            viewModel.SelectDayForInterviewCommand.Execute(slot);
+
+            Assert.Equal(slot.StartTime.Date, viewModel.SelectedDay.Date);
+            Assert.Null(viewModel.SelectedSlot);
         }
 
         [Fact]
         public void SelectDayCommand_WhenObjectIsNotSlot_DoesNothing()
         {
-            var viewmodel = this.CreateViewModel();
-            var originalDay = viewmodel.SelectedDay;
-            viewmodel.SelectDayForInterviewCommand.Execute("not a slot");
+            var viewModel = this.CreateViewModel();
+            var originalDay = viewModel.SelectedDay;
 
-            Assert.Equal(originalDay, viewmodel.SelectedDay);
+            viewModel.SelectDayForInterviewCommand.Execute("not a slot");
+
+            Assert.Equal(originalDay, viewModel.SelectedDay);
         }
 
         [Fact]
         public void LoadNextDaysCommand_AndPreviousDaysCommand_PaginateCorrectly()
         {
             var company = new CompanyPosting { RecruiterId = 1 };
+
             var slots = new List<Slot>
             {
                 new Slot { StartTime = DateTime.Today, Status = SlotStatus.Free },
@@ -155,18 +175,24 @@ namespace TestsAndInterviews.Tests.ViewModels
                 new Slot { StartTime = DateTime.Today.AddDays(2), Status = SlotStatus.Free },
                 new Slot { StartTime = DateTime.Today.AddDays(3), Status = SlotStatus.Free },
             };
+
             this.mockBookingService
                 .Setup(bookingService => bookingService.GetAvailableSlotsByRecruiterId(1))
                 .Returns(slots);
 
-            var viewmodel = this.CreateViewModel();
-            viewmodel.ScheduleInterviewCommand.Execute(company);
+            var viewModel = this.CreateViewModel();
 
-            var firstVisible = new List<Slot>(viewmodel.VisibleDays)[0].StartTime;
-            viewmodel.LoadNextDaysCommand.Execute(null);
-            var afterNext = new List<Slot>(viewmodel.VisibleDays)[0].StartTime;
-            viewmodel.LoadPreviousDaysCommand.Execute(null);
-            var afterPrev = new List<Slot>(viewmodel.VisibleDays)[0].StartTime;
+            viewModel.ScheduleInterviewCommand.Execute(company);
+
+            var firstVisible = new List<Slot>(viewModel.VisibleDays)[0].StartTime;
+
+            viewModel.LoadNextDaysCommand.Execute(null);
+
+            var afterNext = new List<Slot>(viewModel.VisibleDays)[0].StartTime;
+
+            viewModel.LoadPreviousDaysCommand.Execute(null);
+
+            var afterPrev = new List<Slot>(viewModel.VisibleDays)[0].StartTime;
 
             Assert.NotEqual(firstVisible, afterNext);
             Assert.Equal(firstVisible, afterPrev);
@@ -175,72 +201,116 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void LoadNextDaysCommand_WhenAtEnd_DoesNotAdvance()
         {
-            var viewmodel = this.CreateViewModel();
-            var visibleBefore = new List<Slot>(viewmodel.VisibleDays).Count;
-            viewmodel.LoadNextDaysCommand.Execute(null);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(visibleBefore, new List<Slot>(viewmodel.VisibleDays).Count);
+            var visibleBefore = new List<Slot>(viewModel.VisibleDays).Count;
+
+            viewModel.LoadNextDaysCommand.Execute(null);
+
+            Assert.Equal(visibleBefore, new List<Slot>(viewModel.VisibleDays).Count);
         }
 
         [Fact]
         public void LoadPreviousDaysCommand_WhenAtStart_DoesNotGoBack()
         {
-            var viewmodel = this.CreateViewModel();
-            viewmodel.LoadPreviousDaysCommand.Execute(null);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Empty(viewmodel.VisibleDays);
+            viewModel.LoadPreviousDaysCommand.Execute(null);
+
+            Assert.Empty(viewModel.VisibleDays);
         }
 
         [Fact]
         public async Task ConfirmInterviewCommand_WhenSlotAndCompanySelected_ConfirmsAndHidesBooking()
         {
-            var company = new CompanyPosting { CompanyName = "Google", JobTitle = "Dev", RecruiterId = 1 };
-            var slot = new Slot { StartTime = DateTime.Today, EndTime = DateTime.Today.AddHours(1), Status = SlotStatus.Free };
-            var viewmodel = this.CreateViewModelWithCompanyAndSlot(company, slot);
-            viewmodel.MatchedCompanies.Add(company);
+            var company = new CompanyPosting
+            {
+                CompanyName = "Google",
+                JobTitle = "Dev",
+                RecruiterId = 1,
+            };
 
-            viewmodel.ConfirmInterviewCommand.Execute(null);
+            var slot = new Slot
+            {
+                StartTime = DateTime.Today,
+                EndTime = DateTime.Today.AddHours(1),
+                Status = SlotStatus.Free,
+            };
+
+            var viewModel = this.CreateViewModelWithCompanyAndSlot(company, slot);
+
+            viewModel.MatchedCompanies.Add(company);
+
+            viewModel.ConfirmInterviewCommand.Execute(null);
+
             await Task.Delay(100);
 
-            this.mockBookingService.Verify(bookingService => bookingService.ConfirmBooking(It.IsAny<int>(), slot), Times.Once);
-            Assert.False(viewmodel.IsBookingVisible);
-            Assert.DoesNotContain(company, viewmodel.MatchedCompanies);
+            this.mockBookingService.Verify(
+                bookingService => bookingService.ConfirmBooking(It.IsAny<int>(), slot),
+                Times.Once);
+
+            Assert.False(viewModel.IsBookingVisible);
+            Assert.DoesNotContain(company, viewModel.MatchedCompanies);
         }
 
         [Fact]
         public void ConfirmInterviewCommand_WhenNoSlotSelected_DoesNotCallConfirmBooking()
         {
-            var viewmodel = this.CreateViewModel();
-            viewmodel.ConfirmInterviewCommand.Execute(null);
+            var viewModel = this.CreateViewModel();
 
-            this.mockBookingService.Verify(bookingService => bookingService.ConfirmBooking(It.IsAny<int>(), It.IsAny<Slot>()), Times.Never);
+            viewModel.ConfirmInterviewCommand.Execute(null);
+
+            this.mockBookingService.Verify(
+                bookingService => bookingService.ConfirmBooking(It.IsAny<int>(), It.IsAny<Slot>()),
+                Times.Never);
         }
 
         [Fact]
         public async Task ConfirmInterviewCommand_WhenNotificationFails_StillCompletesBooking()
         {
-            var company = new CompanyPosting { CompanyName = "Google", JobTitle = "Dev", RecruiterId = 1 };
-            var slot = new Slot { StartTime = DateTime.Today, EndTime = DateTime.Today.AddHours(1), Status = SlotStatus.Free };
+            var company = new CompanyPosting
+            {
+                CompanyName = "Google",
+                JobTitle = "Dev",
+                RecruiterId = 1,
+            };
+
+            var slot = new Slot
+            {
+                StartTime = DateTime.Today,
+                EndTime = DateTime.Today.AddHours(1),
+                Status = SlotStatus.Free,
+            };
+
             this.mockNotificationService
-                .Setup(notificationService => notificationService.ShowBookingConfirmed(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .Setup(notificationService => notificationService.ShowBookingConfirmed(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>()))
                 .Throws(new Exception("Notification failed"));
 
-            var viewmodel = this.CreateViewModelWithCompanyAndSlot(company, slot);
-            viewmodel.MatchedCompanies.Add(company);
-            viewmodel.ConfirmInterviewCommand.Execute(null);
+            var viewModel = this.CreateViewModelWithCompanyAndSlot(company, slot);
+
+            viewModel.MatchedCompanies.Add(company);
+
+            viewModel.ConfirmInterviewCommand.Execute(null);
+
             await Task.Delay(100);
 
-            Assert.False(viewmodel.IsBookingVisible);
+            Assert.False(viewModel.IsBookingVisible);
         }
 
         [Fact]
         public void ConfirmInterviewCommand_WhenNoCompanySelected_DoesNotCallConfirmBooking()
         {
             var slot = new Slot { Status = SlotStatus.Free };
-            var viewmodel = this.CreateViewModel();
-            viewmodel.SelectedSlot = slot;
 
-            viewmodel.ConfirmInterviewCommand.Execute(null);
+            var viewModel = this.CreateViewModel();
+
+            viewModel.SelectedSlot = slot;
+
+            viewModel.ConfirmInterviewCommand.Execute(null);
 
             this.mockBookingService.Verify(
                 bookingService => bookingService.ConfirmBooking(It.IsAny<int>(), It.IsAny<Slot>()),
@@ -250,8 +320,9 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void JoinInterviewCommand_WhenObjectIsNull_DoesNothing()
         {
-            var viewmodel = this.CreateViewModel();
-            var exception = Record.Exception(() => viewmodel.JoinInterviewCommand.Execute(null));
+            var viewModel = this.CreateViewModel();
+
+            var exception = Record.Exception(() => viewModel.JoinInterviewCommand.Execute(null));
 
             Assert.Null(exception);
         }
@@ -260,54 +331,72 @@ namespace TestsAndInterviews.Tests.ViewModels
         public async Task CancelInterviewCommand_WhenSessionExists_DeletesSession()
         {
             var session = new InterviewSession { Id = 1 };
+
             this.mockSessionRepository
                 .Setup(sessionRepository => sessionRepository.GetInterviewSessionByIdAsync(1))
                 .ReturnsAsync(session);
 
-            var viewmodel = this.CreateViewModel();
-            viewmodel.CancelInterviewCommand.Execute(session);
+            var viewModel = this.CreateViewModel();
+
+            viewModel.CancelInterviewCommand.Execute(session);
+
             await Task.Delay(100);
 
-            this.mockSessionRepository.Verify(sessionRepository => sessionRepository.Delete(session), Times.Once);
+            this.mockSessionRepository.Verify(
+                sessionRepository => sessionRepository.Delete(session),
+                Times.Once);
         }
 
         [Fact]
         public async Task CancelInterviewCommand_WhenSessionNotFound_DoesNotDelete()
         {
             var session = new InterviewSession { Id = 99 };
+
             this.mockSessionRepository
                 .Setup(sessionRepository => sessionRepository.GetInterviewSessionByIdAsync(99))
                 .ReturnsAsync((InterviewSession?)null);
 
-            var viewmodel = this.CreateViewModel();
-            viewmodel.CancelInterviewCommand.Execute(session);
+            var viewModel = this.CreateViewModel();
+
+            viewModel.CancelInterviewCommand.Execute(session);
+
             await Task.Delay(100);
 
-            this.mockSessionRepository.Verify(sessionRepository => sessionRepository.Delete(It.IsAny<InterviewSession>()), Times.Never);
+            this.mockSessionRepository.Verify(
+                sessionRepository => sessionRepository.Delete(It.IsAny<InterviewSession>()),
+                Times.Never);
         }
 
         [Fact]
         public void CancelInterviewCommand_WhenObjectIsNotSession_DoesNothing()
         {
-            var viewmodel = this.CreateViewModel();
-            viewmodel.CancelInterviewCommand.Execute("not a session");
+            var viewModel = this.CreateViewModel();
 
-            this.mockSessionRepository.Verify(sessionRepository => sessionRepository.Delete(It.IsAny<InterviewSession>()), Times.Never);
+            viewModel.CancelInterviewCommand.Execute("not a session");
+
+            this.mockSessionRepository.Verify(
+                sessionRepository => sessionRepository.Delete(It.IsAny<InterviewSession>()),
+                Times.Never);
         }
 
         [Fact]
         public async Task CancelInterviewCommand_WhenRepositoryThrows_DoesNotCrash()
         {
             var session = new InterviewSession { Id = 1 };
+
             this.mockSessionRepository
                 .Setup(sessionRepository => sessionRepository.GetInterviewSessionByIdAsync(1))
                 .ThrowsAsync(new Exception("Database error"));
 
-            var viewmodel = this.CreateViewModel();
-            viewmodel.CancelInterviewCommand.Execute(session);
+            var viewModel = this.CreateViewModel();
+
+            viewModel.CancelInterviewCommand.Execute(session);
+
             await Task.Delay(100);
 
-            this.mockSessionRepository.Verify(sessionRepository => sessionRepository.Delete(It.IsAny<InterviewSession>()), Times.Never);
+            this.mockSessionRepository.Verify(
+                sessionRepository => sessionRepository.Delete(It.IsAny<InterviewSession>()),
+                Times.Never);
         }
 
         [Fact]
@@ -317,10 +406,11 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .Setup(sessionRepository => sessionRepository.GetScheduledSessionsAsync())
                 .ReturnsAsync(new List<InterviewSession> { new InterviewSession { Id = 1 } });
 
-            var viewmodel = this.CreateViewModel();
+            var viewModel = this.CreateViewModel();
+
             await Task.Delay(100);
 
-            Assert.Single(viewmodel.InterviewSessions);
+            Assert.Single(viewModel.InterviewSessions);
         }
 
         [Fact]
@@ -330,28 +420,31 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .Setup(sessionRepository => sessionRepository.GetScheduledSessionsAsync())
                 .ThrowsAsync(new Exception("Database error"));
 
-            var viewmodel = this.CreateViewModel();
+            var viewModel = this.CreateViewModel();
+
             await Task.Delay(100);
 
-            Assert.Empty(viewmodel.InterviewSessions);
+            Assert.Empty(viewModel.InterviewSessions);
         }
 
         [Fact]
         public void LoadAvailableSlotsCommand_WhenExecuted_UpdatesMatchedCompanies()
         {
-            var viewmodel = this.CreateViewModel();
-            viewmodel.LoadAvailableSlotsCommand.Execute(null);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(2, viewmodel.MatchedCompanies.Count);
+            viewModel.LoadAvailableSlotsCommand.Execute(null);
+
+            Assert.Equal(2, viewModel.MatchedCompanies.Count);
         }
 
         [Fact]
         public void OnPropertyChanged_WhenNoListenersAttached_DoesNotThrow()
         {
-            var viewmodel = this.CreateViewModel();
-            var exception = Record.Exception(() => viewmodel.SelectedSlot = new Slot());
+            var viewModel = this.CreateViewModel();
+
+            var exception = Record.Exception(() => viewModel.SelectedSlot = new Slot());
 
             Assert.Null(exception);
         }
+
     }
-}

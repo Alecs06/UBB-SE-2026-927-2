@@ -1,4 +1,9 @@
-﻿using Moq;
+﻿using System;
+using System.Threading.Tasks;
+
+using Moq;
+using Xunit;
+
 using Tests_and_Interviews.Models.Core;
 using Tests_and_Interviews.Services.Interfaces;
 using Tests_and_Interviews.ViewModels;
@@ -12,29 +17,51 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             var mockSessionService = new Mock<IInterviewSessionService>();
             var mockNotificationService = new Mock<INotificationService>();
-            
-            var session = new InterviewSession { Id = 1 };
-            mockSessionService.Setup(s => s.GetSessionAsync(1)).ReturnsAsync(session);
 
-            var vm = new InterviewInterviewerViewModel(mockSessionService.Object, mockNotificationService.Object);
+            var session = new InterviewSession { Id = 1 };
+
+            mockSessionService
+                .Setup(s => s.GetSessionAsync(1))
+                .ReturnsAsync(session);
+
+            var vm = new InterviewInterviewerViewModel(
+                mockSessionService.Object,
+                mockNotificationService.Object,
+                string.Empty);
+
             vm.InitializeSession(1);
-            await Task.Delay(100); // Wait for async initialization to complete
-           
+
+            await Task.Delay(100);
+
             vm.Score = 4.5f;
             vm.SubmitScoreCommand.Execute(null);
-            await Task.Delay(100); // Wait for async submit to complete
 
-            mockSessionService.Verify(s => s.SubmitScoreAsync(1, 4.5f), Times.Once);
-            mockNotificationService.Verify(n => n.ShowSimpleNotification("Score submitted", It.IsAny<string>()), Times.Once);
+            await Task.Delay(100);
+
+            mockSessionService.Verify(
+                s => s.SubmitScoreAsync(1, 4.5f),
+                Times.Once);
+
+            mockNotificationService.Verify(
+                n => n.ShowSimpleNotification(
+                    "Score submitted",
+                    It.IsAny<string>()),
+                Times.Once);
         }
+
         [Fact]
         public void SettingScore_RaisesPropertyChanged()
         {
             var mockSessionService = new Mock<IInterviewSessionService>();
             var mockNotificationService = new Mock<INotificationService>();
-           
-            var vm = new InterviewInterviewerViewModel(mockSessionService.Object, mockNotificationService.Object);
-            bool propertyChangedRaised = false;
+
+            var vm = new InterviewInterviewerViewModel(
+                mockSessionService.Object,
+                mockNotificationService.Object,
+                string.Empty);
+
+            var propertyChangedRaised = false;
+
             vm.PropertyChanged += (sender, args) =>
             {
                 if (args.PropertyName == nameof(InterviewInterviewerViewModel.Score))
@@ -42,7 +69,9 @@ namespace TestsAndInterviews.Tests.ViewModels
                     propertyChangedRaised = true;
                 }
             };
+
             vm.Score = 3.0f;
+
             Assert.True(propertyChangedRaised, "Setting Score should raise PropertyChanged event.");
         }
 
@@ -51,28 +80,75 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             var mockSessionService = new Mock<IInterviewSessionService>();
             var mockNotificationService = new Mock<INotificationService>();
-           
-            var session = new InterviewSession { Id = 1, Video = "http://localhost/InterviewSessions/videos/video.mp4" };
-            mockSessionService.Setup(s => s.GetSessionAsync(1)).ReturnsAsync(session);
 
-            var vm = new InterviewInterviewerViewModel(mockSessionService.Object, mockNotificationService.Object);
+            var session = new InterviewSession
+            {
+                Id = 1,
+                Video = @"Users\Test\Videos\video.mp4",
+            };
+
+            mockSessionService
+                .Setup(s => s.GetSessionAsync(1))
+                .ReturnsAsync(session);
+
+            var vm = new InterviewInterviewerViewModel(
+                mockSessionService.Object,
+                mockNotificationService.Object,
+                @"Users\Test\Videos\");
+
             vm.InitializeSession(1);
-            await Task.Delay(100); // Wait for async initialization to complete
 
-            Assert.Equal(new Uri(session.Video), vm.RecordingUri);
+            await Task.Delay(100);
+
+            Assert.Equal(new Uri("ms-appdata:///local/video.mp4"), vm.RecordingUri);
         }
 
         [Fact]
-        public async Task VideoShouldLoadEvenIfServiceThrowsError() 
+        public async Task VideoPathDoesNotStartWithLocalPath()
         {
             var mockSessionService = new Mock<IInterviewSessionService>();
             var mockNotificationService = new Mock<INotificationService>();
-            var session = new InterviewSession { Id = 1, Video = "" };
-            mockSessionService.Setup(s => s.GetSessionAsync(It.IsAny<int>())).ThrowsAsync(new Exception("Database error"));
 
-            var vm = new InterviewInterviewerViewModel(mockSessionService.Object, mockNotificationService.Object);
+            var session = new InterviewSession
+            {
+                Id = 1,
+                Video = "Videos\\video.mp4",
+            };
+
+            mockSessionService
+                .Setup(s => s.GetSessionAsync(1))
+                .ReturnsAsync(session);
+
+            var vm = new InterviewInterviewerViewModel(
+                mockSessionService.Object,
+                mockNotificationService.Object,
+                "C:\\Users\\Test\\Videos");
+
             vm.InitializeSession(1);
-            await Task.Delay(100); // Wait for async initialization to complete
+
+            await Task.Delay(100);
+
+            Assert.Equal(new Uri("ms-appdata:///local/Videos/video.mp4"), vm.RecordingUri);
+        }
+
+        [Fact]
+        public async Task VideoShouldLoadEvenIfServiceThrowsError()
+        {
+            var mockSessionService = new Mock<IInterviewSessionService>();
+            var mockNotificationService = new Mock<INotificationService>();
+
+            mockSessionService
+                .Setup(s => s.GetSessionAsync(It.IsAny<int>()))
+                .ThrowsAsync(new Exception("Database error"));
+
+            var vm = new InterviewInterviewerViewModel(
+                mockSessionService.Object,
+                mockNotificationService.Object,
+                "C:\\Users\\Test\\Videos");
+
+            vm.InitializeSession(1);
+
+            await Task.Delay(100);
 
             Assert.Equal(new Uri("about:blank"), vm.RecordingUri);
         }
@@ -82,37 +158,94 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             var mockSessionService = new Mock<IInterviewSessionService>();
             var mockNotif = new Mock<INotificationService>();
+
             var session = new InterviewSession { Id = 1 };
 
-            mockSessionService.Setup(s => s.GetSessionAsync(It.IsAny<int>())).ReturnsAsync(session);
+            mockSessionService
+                .Setup(s => s.GetSessionAsync(It.IsAny<int>()))
+                .ReturnsAsync(session);
 
-            mockNotif.Setup(n => n.ShowSimpleNotification(It.IsAny<string>(), It.IsAny<string>()))
-                     .Throws(new Exception("Notification Crash"));
+            mockNotif
+                .Setup(n => n.ShowSimpleNotification(It.IsAny<string>(), It.IsAny<string>()))
+                .Throws(new Exception("Notification Crash"));
 
-            var vm = new InterviewInterviewerViewModel(mockSessionService.Object, mockNotif.Object);
+            var vm = new InterviewInterviewerViewModel(
+                mockSessionService.Object,
+                mockNotif.Object,
+                "C:\\Test");
+
             vm.InitializeSession(1);
+
             await Task.Delay(50);
 
             vm.SubmitScore();
+
             await Task.Delay(50);
-            mockSessionService.Verify(s => s.SubmitScoreAsync(1, It.IsAny<float>()), Times.Once);
+
+            mockSessionService.Verify(
+                s => s.SubmitScoreAsync(1, It.IsAny<float>()),
+                Times.Once);
         }
+
         [Fact]
         public async Task SubmitScore_WhenServiceFails_HandlesExceptionGracefully()
         {
             var mockSessionService = new Mock<IInterviewSessionService>();
             var mockNotif = new Mock<INotificationService>();
 
-            mockSessionService.Setup(s => s.GetSessionAsync(It.IsAny<int>())).ThrowsAsync(new Exception("Database Offline"));
+            mockSessionService
+                .Setup(s => s.GetSessionAsync(It.IsAny<int>()))
+                .ThrowsAsync(new Exception("Database Offline"));
 
-            var vm = new InterviewInterviewerViewModel(mockSessionService.Object, mockNotif.Object);
+            var vm = new InterviewInterviewerViewModel(
+                mockSessionService.Object,
+                mockNotif.Object,
+                "C:\\Test");
+
             vm.InitializeSession(1);
+
             await Task.Delay(50);
 
             vm.SubmitScore();
+
             await Task.Delay(50);
 
-            mockNotif.Verify(n => n.ShowSimpleNotification(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            mockNotif.Verify(
+                n => n.ShowSimpleNotification(It.IsAny<string>(), It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task InitializeSession_WhenVideoPathIsRaw()
+        {
+            var mockSessionService = new Mock<IInterviewSessionService>();
+
+            var externalPath = "D:\\ExternalVideos\\video.mp4";
+
+            var session = new InterviewSession
+            {
+                Id = 1,
+                Video = externalPath,
+            };
+
+            mockSessionService
+                .Setup(s => s.GetSessionAsync(1))
+                .ReturnsAsync(session);
+
+            var vm = new InterviewInterviewerViewModel(
+                mockSessionService.Object,
+                Mock.Of<INotificationService>(),
+                "C:\\Users\\Test\\Videos");
+
+            vm.InitializeSession(1);
+
+            await Task.Delay(50);
+
+            Assert.Contains("video.mp4", vm.RecordingUri.ToString());
+
+            Assert.False(
+                vm.RecordingUri.ToString().StartsWith("ms-appdata:///local/"),
+                "External video paths should not be converted to ms-appdata URIs.");
         }
     }
 }

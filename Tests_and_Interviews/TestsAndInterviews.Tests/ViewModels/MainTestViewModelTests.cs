@@ -6,12 +6,14 @@ namespace TestsAndInterviews.Tests.ViewModels
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Microsoft.UI.Xaml;
     using Moq;
+    using Xunit;
+
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.ViewModels;
-    using Xunit;
 
     public class MainTestViewModelTests
     {
@@ -24,11 +26,6 @@ namespace TestsAndInterviews.Tests.ViewModels
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindTestsByCategoryAsync(It.IsAny<string>()))
                 .ReturnsAsync(new List<Test>());
-        }
-
-        private MainTestViewModel CreateViewModel()
-        {
-            return new MainTestViewModel(this.mockTestRepository.Object);
         }
 
         [Fact]
@@ -52,12 +49,13 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Programming"))
                 .ReturnsAsync(tests);
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadTestsAsync();
+            var viewModel = this.CreateViewModel();
 
-            Assert.Single(viewmodel.Tests);
-            Assert.Equal("C# Basics", viewmodel.Tests[0].Title);
-            Assert.Equal("SINGLE/CHOICE", viewmodel.Tests[0].QuestionTypeLabel);
+            await viewModel.LoadTestsAsync();
+
+            Assert.Single(viewModel.Tests);
+            Assert.Equal("C# Basics", viewModel.Tests[0].Title);
+            Assert.Equal("SINGLE/CHOICE", viewModel.Tests[0].QuestionTypeLabel);
         }
 
         [Fact]
@@ -78,28 +76,31 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Programming"))
                 .ReturnsAsync(tests);
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadTestsAsync();
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal("MIXED", viewmodel.Tests[0].QuestionTypeLabel);
+            await viewModel.LoadTestsAsync();
+
+            Assert.Equal("MIXED", viewModel.Tests[0].QuestionTypeLabel);
         }
 
         [Fact]
         public async Task LoadTestsAsync_WhenNoTestsExist_LeavesTestsEmpty()
         {
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadTestsAsync();
+            var viewModel = this.CreateViewModel();
 
-            Assert.Empty(viewmodel.Tests);
+            await viewModel.LoadTestsAsync();
+
+            Assert.Empty(viewModel.Tests);
         }
 
         [Fact]
         public async Task LoadTestsAsync_SetsIsLoadingFalseWhenComplete()
         {
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadTestsAsync();
+            var viewModel = this.CreateViewModel();
 
-            Assert.False(viewmodel.IsLoading);
+            await viewModel.LoadTestsAsync();
+
+            Assert.False(viewModel.IsLoading);
         }
 
         [Fact]
@@ -120,19 +121,21 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Programming"))
                 .ReturnsAsync(tests);
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadTestsAsync();
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal("MIXED", viewmodel.Tests[0].QuestionTypeLabel);
+            await viewModel.LoadTestsAsync();
+
+            Assert.Equal("MIXED", viewModel.Tests[0].QuestionTypeLabel);
         }
 
         [Fact]
         public async Task NoTestsVisible_WhenNoTestsAndNotLoading_ReturnsVisible()
         {
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadTestsAsync();
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(Visibility.Visible, viewmodel.NoTestsVisible);
+            await viewModel.LoadTestsAsync();
+
+            Assert.Equal(Visibility.Visible, viewModel.NoTestsVisible);
         }
 
         [Fact]
@@ -140,35 +143,44 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             var tests = new List<Test>
             {
-                new Test { Id = 1, Title = "Test", Category = "Programming", Questions = new List<Question>() },
+                new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                    Category = "Programming",
+                    Questions = new List<Question>(),
+                },
             };
 
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Programming"))
                 .ReturnsAsync(tests);
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadTestsAsync();
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(Visibility.Collapsed, viewmodel.NoTestsVisible);
+            await viewModel.LoadTestsAsync();
+
+            Assert.Equal(Visibility.Collapsed, viewModel.NoTestsVisible);
         }
 
         [Fact]
         public void NoTestsVisible_WhenIsLoadingTrue_ReturnsCollapsed()
         {
-            var viewmodel = this.CreateViewModel();
-            viewmodel.IsLoading = true;
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(Visibility.Collapsed, viewmodel.NoTestsVisible);
+            viewModel.IsLoading = true;
+
+            Assert.Equal(Visibility.Collapsed, viewModel.NoTestsVisible);
         }
 
         [Fact]
         public void SelectedTest_WhenSet_MarksNewTestAsSelected()
         {
-            var viewmodel = this.CreateViewModel();
+            var viewModel = this.CreateViewModel();
+
             var testCard = new TestCardViewModel { TestId = 1 };
 
-            viewmodel.SelectedTest = testCard;
+            viewModel.SelectedTest = testCard;
 
             Assert.True(testCard.IsSelected);
         }
@@ -176,12 +188,13 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void SelectedTest_WhenChanged_DeselectsPreviousTest()
         {
-            var viewmodel = this.CreateViewModel();
+            var viewModel = this.CreateViewModel();
+
             var firstCard = new TestCardViewModel { TestId = 1 };
             var secondCard = new TestCardViewModel { TestId = 2 };
 
-            viewmodel.SelectedTest = firstCard;
-            viewmodel.SelectedTest = secondCard;
+            viewModel.SelectedTest = firstCard;
+            viewModel.SelectedTest = secondCard;
 
             Assert.False(firstCard.IsSelected);
             Assert.True(secondCard.IsSelected);
@@ -190,8 +203,9 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void SelectedTest_WhenSetToNull_DoesNotThrow()
         {
-            var viewmodel = this.CreateViewModel();
-            var exception = Record.Exception(() => viewmodel.SelectedTest = null);
+            var viewModel = this.CreateViewModel();
+
+            var exception = Record.Exception(() => viewModel.SelectedTest = null);
 
             Assert.Null(exception);
         }
@@ -199,20 +213,28 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void SelectedTest_WhenGet_ReturnsCurrentValue()
         {
-            var viewmodel = this.CreateViewModel();
-            var testCard = new TestCardViewModel { TestId = 1 };
-            viewmodel.SelectedTest = testCard;
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(testCard, viewmodel.SelectedTest);
+            var testCard = new TestCardViewModel { TestId = 1 };
+
+            viewModel.SelectedTest = testCard;
+
+            Assert.Equal(testCard, viewModel.SelectedTest);
         }
 
         [Fact]
         public void OnPropertyChanged_WhenNoListenersAttached_DoesNotThrow()
         {
-            var viewmodel = this.CreateViewModel();
-            var exception = Record.Exception(() => viewmodel.IsLoading = true);
+            var viewModel = this.CreateViewModel();
+
+            var exception = Record.Exception(() => viewModel.IsLoading = true);
 
             Assert.Null(exception);
+        }
+
+        private MainTestViewModel CreateViewModel()
+        {
+            return new MainTestViewModel(this.mockTestRepository.Object);
         }
     }
 }
