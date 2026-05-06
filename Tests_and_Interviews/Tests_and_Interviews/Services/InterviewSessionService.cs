@@ -25,17 +25,14 @@ namespace Tests_and_Interviews.Services
     /// </summary>
     public class InterviewSessionService : IInterviewSessionService
     {
-        private readonly IInterviewSessionRepository sessionRepo;
         private readonly IQuestionRepository questionRepo;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InterviewSessionService"/> class.
         /// </summary>
-        /// <param name="sessionRepository">The interview session repository.</param>
         /// <param name="questionRepository">The question repository.</param>
-        public InterviewSessionService(IInterviewSessionRepository sessionRepository, IQuestionRepository questionRepository)
+        public InterviewSessionService(IQuestionRepository questionRepository)
         {
-            this.sessionRepo = sessionRepository;
             this.questionRepo = questionRepository;
         }
 
@@ -46,14 +43,15 @@ namespace Tests_and_Interviews.Services
         /// <returns>A tuple containing the loaded interview session and its questions.</returns>
         public async Task<(InterviewSession? Session, List<Question> Questions)> StartSessionAsync(int sessionId)
         {
-            var session = await this.sessionRepo.GetInterviewSessionByIdAsync(sessionId);
+            InterviewSession? session = await this.GetSessionAsync(sessionId);
+
             if (session != null)
             {
                 session.DateStart = DateTime.UtcNow;
-                await this.sessionRepo.UpdateInterviewSessionAsync(session);
+                await this.UpdateSessionViaApiAsync(session);
             }
 
-            var questions = session != null
+            List<Question> questions = session != null
                 ? await this.questionRepo.GetInterviewQuestionsByPositionAsync(session.PositionId)
                 : new List<Question>();
 
@@ -64,8 +62,7 @@ namespace Tests_and_Interviews.Services
         /// Uploads a video recording file for the specified interview session and updates the session's video and
         /// status information.
         /// </summary>
-        /// <remarks>After a successful upload, the session's video and status are updated to reflect the
-        /// new recording. The method ensures the server response indicates success before updating the session.</remarks>
+        /// <remarks>After a successful upload, the server persists the video and status changes.</remarks>
         /// <param name="session">The interview session to which the recording will be attached. Must not be null.</param>
         /// <param name="recordingFilePath">The full file system path to the video recording file to upload. Must refer to an existing file.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
@@ -83,14 +80,6 @@ namespace Tests_and_Interviews.Services
                 content);
 
             response.EnsureSuccessStatusCode();
-
-            InterviewSessionDto? updatedSession = await response.Content.ReadFromJsonAsync<InterviewSessionDto>();
-
-            // TODO next lines currently save changes to db but that's the job of the api (used next lines for testing)
-            // remove next lines when api really saves to db and the rest of the app is connected to the api
-            session.Video = updatedSession?.ToEntity().Video;
-            session.Status = InterviewStatus.InProgress.ToString();
-            await this.sessionRepo.UpdateInterviewSessionAsync(session);
         }
 
         /// <summary>
@@ -101,23 +90,41 @@ namespace Tests_and_Interviews.Services
         /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task SubmitScoreAsync(int sessionId, float score)
         {
-            var session = await this.sessionRepo.GetInterviewSessionByIdAsync(sessionId);
+            InterviewSession? session = await this.GetSessionAsync(sessionId);
             if (session != null)
             {
                 session.Score = (decimal)score;
                 session.Status = InterviewStatus.Completed.ToString();
-                await this.sessionRepo.UpdateInterviewSessionAsync(session);
+                await this.UpdateSessionViaApiAsync(session);
             }
         }
 
         /// <summary>
-        /// Loads an interview session by its ID.
+        /// Loads an interview session by its ID from the Web API.
         /// </summary>
         /// <param name="sessionId">The ID of the interview session.</param>
         /// <returns>The interview session corresponding to the specified ID.</returns>
         public async Task<InterviewSession> GetSessionAsync(int sessionId)
         {
-            return await this.sessionRepo.GetInterviewSessionByIdAsync(sessionId);
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"interviewsessions/{sessionId}");
+            response.EnsureSuccessStatusCode();
+
+            InterviewSessionDto? dto = await response.Content.ReadFromJsonAsync<InterviewSessionDto>();
+            return dto!.ToEntity();
+        }
+
+        /// <summary>
+        /// Persists an updated interview session to the Web API.
+        /// </summary>
+        /// <param name="session">The session with updated values to send.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task UpdateSessionViaApiAsync(InterviewSession session)
+        {
+            HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+                $"interviewsessions/{session.Id}",
+                session.ToDto());
+
+            response.EnsureSuccessStatusCode();
         }
     }
 }
