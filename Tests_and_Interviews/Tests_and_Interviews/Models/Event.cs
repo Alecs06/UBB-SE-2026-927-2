@@ -16,6 +16,38 @@
     [Table("events")]
     public class Event
     {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Column("event_id")]
+        public int Id { get; set; }
+
+        [Column("photo", TypeName = "nvarchar(max)")]
+        public string Photo { get; set; }
+
+        [Column("title", TypeName = "nvarchar(200)")]
+        public string Title { get; set; }
+
+        [Column("description", TypeName = "nvarchar(max)")]
+
+        public string Description { get; set; }
+
+        [Column("start_date", TypeName = "date")]
+        public DateTime StartDate { get; set; }
+
+        [Column("end_date", TypeName = "date")]
+        public DateTime EndDate { get; set; }
+
+        [Column("location", TypeName = "nvarchar(300)")]
+        public string Location { get; set; }
+
+        [Column("host_company_id")]
+        public int HostCompanyId { get; set; }
+        public Company HostCompany { get; set; } = null!;
+
+        [Column("posted_at", TypeName = "datetime")]
+        public DateTime PostedAt { get; set;  }
+        public ICollection<Collaborator> Collaborators { get; set; } = new List<Collaborator>();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Event"/> class.
         /// </summary>
@@ -44,73 +76,6 @@
         public Event()
         {
         }
-
-        /// <summary>
-        /// Gets or sets the unique identifier for the event. This property is marked as the primary key and is mapped to the "event_id" column in the database.
-        /// </summary>
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
-        [Column("event_id")]
-        public int Id { get; set; }
-
-        /// <summary>
-        /// Gets or sets the photo associated with the event. This property is mapped to the "photo" column in the database and is of type nvarchar(max) to allow for storing a URL or base64-encoded string representing the photo.
-        /// </summary>
-        [Column("photo", TypeName = "nvarchar(max)")]
-        public string? Photo { get; set; }
-
-        /// <summary>
-        /// Gets or sets the title of the event. This property is mapped to the "title" column in the database and has a maximum length of 200 characters.
-        /// </summary>
-        [Column("title", TypeName = "nvarchar(200)")]
-        public string? Title { get; set; }
-
-        /// <summary>
-        /// Gets or sets the description of the event. This property is mapped to the "description" column in the database and is of type nvarchar(max) to allow for storing a detailed description of the event.
-        /// </summary>
-        [Column("description", TypeName = "nvarchar(max)")]
-        public string? Description { get; set; }
-
-        /// <summary>
-        /// Gets or sets the start date of the event. This property is mapped to the "start_date" column in the database and is of type date, representing the date on which the event begins.
-        /// </summary>
-        [Column("start_date", TypeName = "date")]
-        public DateTime? StartDate { get; set; }
-
-        /// <summary>
-        /// Gets or sets the end date of the event. This property is mapped to the "end_date" column in the database and is of type date, representing the date on which the event ends.
-        /// </summary>
-        [Column("end_date", TypeName = "date")]
-        public DateTime? EndDate { get; set; }
-
-        /// <summary>
-        /// Gets or sets the location of the event. This property is mapped to the "location" column in the database and has a maximum length of 300 characters.
-        /// </summary>
-        [Column("location", TypeName = "nvarchar(300)")]
-        public string? Location { get; set; }
-
-        /// <summary>
-        /// Gets or sets the unique identifier of the host company that created the event. This property is mapped to the "host_company_id" column in the database and represents a foreign key relationship to the Company entity.
-        /// </summary>
-        [Column("host_company_id")]
-        public int HostCompanyId { get; set; }
-
-        /// <summary>
-        /// Gets or sets the host company that created the event. This property represents a navigation property to the Company entity, allowing for access to the company's details and related information.
-        /// </summary>
-        public Company? HostCompany { get; set; } = null;
-
-        /// <summary>
-        /// Gets or sets the date and time when the event was posted. This property is mapped to the "posted_at" column in the database and is of type datetime, representing the timestamp of when the event was created or made public.
-        /// </summary>
-        [Column("posted_at", TypeName = "datetime")]
-        public DateTime PostedAt { get; set;  }
-
-        /// <summary>
-        /// Gets or sets the collection of collaborators associated with the event. This property represents a navigation property to a collection of Collaborator entities, allowing for access to the details of each collaborator such as their name, role, and contact information.
-        /// </summary>
-        public ICollection<Collaborator> Collaborators { get; set; } = new List<Collaborator>();
-
         /// <summary>
         /// Returns a string representation of the event, including its photo, title, description, start and end dates, location, host company ID, and collaborators. This method is overridden to provide a meaningful representation of the event's details when the ToString method is called.
         /// </summary>

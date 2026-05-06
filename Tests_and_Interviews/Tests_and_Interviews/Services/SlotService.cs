@@ -13,7 +13,7 @@ namespace Tests_and_Interviews.Services
     using Tests_and_Interviews.Mappers;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories;
+    using Tests_and_Interviews.Repositories.Interfaces;
 
     /// <summary>
     /// Provides operations for managing recruiter slots, including retrieval and creation of slots.

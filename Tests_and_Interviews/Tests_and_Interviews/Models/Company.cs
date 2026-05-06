@@ -10,12 +10,34 @@ namespace Tests_and_Interviews.Models
     [Table("companies")]
     public class Company
     {
-        /// <summary>
-        /// The Game property represents a navigation property to the Game entity, allowing for access to the game's details and related information. It is marked with the [NotMapped] attribute, indicating that it does not correspond to a column in the database and is used solely for navigation purposes within the application.
-        /// This property can be used to establish a relationship between the Company and Game entities, enabling access to game-related information such as scenarios, dialogues, and other interactive elements that may be associated with the company's buddy character in the context of the application.
-        /// </summary>
-        [NotMapped]
-        private Game? game;
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Column("company_id")]
+        public int CompanyId { get; set; }
+
+        [Column("company_name", TypeName = "nvarchar(255)")]
+        public string Name { get; set; } = string.Empty;
+
+        [Column("about_us", TypeName = "nvarchar(max)")]
+        public string? AboutUs { get; set; }
+
+        [Column("profile_picture_url", TypeName = "nvarchar(max)")]
+        public string? ProfilePicturePath { get; set; }
+
+        [Column("logo_picture_url", TypeName = "nvarchar(max)")]
+        public string CompanyLogoPath { get; set; } = string.Empty;
+
+        [Column("location", TypeName = "nvarchar(300)")]
+        public string? Location { get; set; }
+
+        [Column("email", TypeName = "nvarchar(100)")]
+        public string? Email { get; set; }
+
+        [Column("posted_jobs_count")]
+        public int PostedJobsCount { get; set; }
+
+        [Column("collaborators_count")]
+        public int CollaboratorsCount { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Company"/> class with default values.
@@ -56,62 +78,7 @@ namespace Tests_and_Interviews.Models
             this.CollaboratorsCount = collaboratorsCount;
         }
 
-        /// <summary>
-        /// Gets or sets the unique identifier for the company. This property is marked as the primary key and is mapped to the "company_id" column in the database.
-        /// </summary>
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
-        [Column("company_id")]
-        public int CompanyId { get; set; }
-
-        /// <summary>
-        /// Gets or sets the name of the company. This property is mapped to the "company_name" column in the database and has a maximum length of 255 characters. It is initialized to an empty string to ensure it is never null.
-        /// </summary>
-        [Column("company_name", TypeName = "nvarchar(255)")]
-        public string Name { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the "About Us" section for the company.
-        /// </summary>
-        [Column("about_us", TypeName = "nvarchar(max)")]
-        public string? AboutUs { get; set; }
-
-        /// <summary>
-        /// Gets or sets the URL for the company's profile picture.
-        /// </summary>
-        [Column("profile_picture_url", TypeName = "nvarchar(max)")]
-        public string? ProfilePicturePath { get; set; }
-
-        /// <summary>
-        /// Gets or sets the URL for the company's logo picture.
-        /// </summary>
-        [Column("logo_picture_url", TypeName = "nvarchar(max)")]
-        public string CompanyLogoPath { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the location of the company. 
-        /// </summary>
-        [Column("location", TypeName = "nvarchar(300)")]
-        public string? Location { get; set; }
-
-        /// <summary>
-        /// Gets or sets the email address of the company.
-        /// </summary>
-        [Column("email", TypeName = "nvarchar(100)")]
-        public string? Email { get; set; }
-
-        /// <summary>
-        /// Gets or sets the count of jobs posted by the company.
-        /// </summary>
-        [Column("posted_jobs_count")]
-        public int PostedJobsCount { get; set; }
-
-        /// <summary>
-        /// Gets or sets the count of collaborators associated with the company.
-        /// </summary>
-        [Column("collaborators_count")]
-        public int CollaboratorsCount { get; set; }
-
+        private Game? game;
         /// <summary>
         /// Gets or sets the Game associated with the company. This property is marked with the [NotMapped] attribute, indicating that it does not correspond to a column in the database and is used solely for navigation purposes within the application.
         /// </summary>

@@ -27,7 +27,7 @@ CREATE TABLE Users (
 );
 
 CREATE TABLE companies (
-    company_id int PRIMARY KEY,
+    company_id int IDENTITY(1,1) PRIMARY KEY,
     company_name nvarchar(255) not null,
     about_us text,
     profile_picture_url nvarchar(max),
@@ -57,7 +57,7 @@ CREATE TABLE companies (
 );
 
 CREATE TABLE jobs (
-    job_id int PRIMARY KEY,
+    job_id int IDENTITY PRIMARY KEY,
     company_id int,
     photo nvarchar(255),
     job_title nvarchar(255) NOT NULL,
@@ -91,7 +91,7 @@ CREATE TABLE job_skills (
 );
 
 CREATE TABLE applicants (
-    applicant_id int PRIMARY KEY,
+    applicant_id int IDENTITY PRIMARY KEY,
     job_id int,
     cv_file_url nvarchar(500),
     app_test_grade decimal(5,2),
@@ -108,7 +108,7 @@ CREATE TABLE applicants (
 );
 
 CREATE TABLE events (
-    event_id int PRIMARY KEY,
+    event_id int IDENTITY(1,1) PRIMARY KEY,
     host_company_id int NOT NULL,
     photo varchar(max),
     title varchar(200) not null,
@@ -287,6 +287,7 @@ INSERT INTO skills (skill_name) VALUES
 ('Python'),
 ('Azure');
 
+SET IDENTITY_INSERT companies ON;
 INSERT INTO companies (
     company_id, company_name, about_us, profile_picture_url, logo_picture_url, 
     location, email, buddy_name, avatar_id, final_quote, 
@@ -332,7 +333,9 @@ INSERT INTO companies (
     'Toxic leadership.', 'Excellent agile management.', 'Negligent.', 
     'Strict professional companion', 0, 1
 );
+SET IDENTITY_INSERT companies OFF;
 
+SET IDENTITY_INSERT jobs ON;
 INSERT INTO jobs (
     job_id, company_id, photo, job_title, industry_field, job_type, 
     experience_level, start_date, end_date, job_description, 
@@ -348,7 +351,7 @@ INSERT INTO jobs (
     'Senior', '2026-07-01', '2027-07-01', 'Maintain cloud data pipelines and warehouses.', 
     'New York, NY', 1, '2026-04-18 10:30:00', 120000, 0, '2026-06-01'
 );
-
+SET IDENTITY_INSERT jobs OFF;
 INSERT INTO job_skills (skill_id, job_id, required_percentage) VALUES
 (1, 101, 90),
 (2, 101, 60),
@@ -356,6 +359,7 @@ INSERT INTO job_skills (skill_id, job_id, required_percentage) VALUES
 (2, 102, 95),
 (4, 102, 85);
 
+SET IDENTITY_INSERT applicants ON;
 INSERT INTO applicants (
     applicant_id, job_id, cv_file_url, app_test_grade, cv_grade, 
     company_test_grade, interview_grade, application_status, 
@@ -369,7 +373,8 @@ INSERT INTO applicants (
     502, 102, 'bob_jones_cv.pdf', 7.00, 8.00, 7.50, 6.50, 
     'Rejected', 1, '2026-04-20 09:15:00', 7
 );
-
+SET IDENTITY_INSERT applicants OFF;
+SET IDENTITY_INSERT events ON;
 INSERT INTO events (
     event_id, host_company_id, photo, title, description, 
     start_date, end_date, location, posted_at
@@ -404,7 +409,7 @@ INSERT INTO events (
     'Join our core developers as we contribute to major open-source projects for the weekend.', 
     '2026-09-05', '2026-09-06', 'Virtual', '2026-04-10 12:00:00'
 );
-
+SET IDENTITY_INSERT events OFF;
 INSERT INTO collaborators (event_id, company_id) VALUES
 (201, 2),
 (202, 1),

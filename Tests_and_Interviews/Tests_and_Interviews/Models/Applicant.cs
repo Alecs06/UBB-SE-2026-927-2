@@ -18,7 +18,7 @@ namespace Tests_and_Interviews.Models
         /// Gets or sets the unique identifier for the applicant. This property is marked as the primary key and is mapped to the "applicant_id" column in the database.
         /// </summary>
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [Column("applicant_id")]
         public int ApplicantId { get; set; }
 
