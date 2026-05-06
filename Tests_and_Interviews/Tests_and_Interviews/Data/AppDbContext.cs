@@ -49,6 +49,56 @@
         public DbSet<LeaderboardEntry> LeaderboardEntries { get; set; }
 
         /// <summary>
+        /// Gets or sets companies.
+        /// </summary>
+        public DbSet<Company> Companies { get; set; }
+
+        /// <summary>
+        /// Gets or sets job postings.
+        /// </summary>
+        public DbSet<JobPosting> Jobs { get; set; }
+
+        /// <summary>
+        /// Gets or sets the job skills, which represent the many-to-many relationship between jobs and skills.
+        /// </summary>
+        public DbSet<JobSkill> JobSkills { get; set; }
+
+        /// <summary>
+        /// Gets or sets skills.
+        /// </summary>
+        public DbSet<Skill> Skills { get; set; }
+
+        /// <summary>
+        /// Gets or sets applicants.
+        /// </summary>
+        public DbSet<Applicant> Applicants { get; set; }
+
+        /// <summary>
+        /// Gets or sets events.
+        /// </summary>
+        public DbSet<Event> Events { get; set; }
+
+        /// <summary>
+        /// Gets or sets collaborators, which represent the many-to-many relationship between events and companies.
+        /// </summary>
+        public DbSet<Collaborator> Collaborators { get; set; }
+
+        /// <summary>
+        /// Gets or sets recruiters.
+        /// </summary>
+        public DbSet<Recruiter> Recruiters { get; set; }
+
+        /// <summary>
+        /// Gets or sets slots, which represent scheduled interview slots for candidates.
+        /// </summary>
+        public DbSet<Slot> Slots { get; set; }
+
+        /// <summary>
+        /// Gets or sets interview sessions, which represent the actual interview sessions that take place between candidates and recruiters.
+        /// </summary>
+        public DbSet<InterviewSession> InterviewSessions { get; set; }
+
+        /// <summary>
         /// Configures the database connection and provider for the context.
         /// </summary>
         /// <param name="optionsBuilder">A builder used to create or modify options for this context.</param>
@@ -57,17 +107,10 @@
             optionsBuilder.UseSqlServer(Env.CONNECTION_STRING);
         }
 
-        public DbSet<Company> Companies { get; set; }
-        public DbSet<JobPosting> Jobs { get; set; }
-        public DbSet<JobSkill> JobSkills { get; set; }
-        public DbSet<Skill> Skills { get; set; }
-        public DbSet<Applicant> Applicants { get; set; }
-        public DbSet<Event> Events { get; set; }
-        public DbSet<Collaborator> Collaborators { get; set; }
-        public DbSet<Recruiter> Recruiters { get; set; }
-        public DbSet<Slot> Slots { get; set; }
-        public DbSet<InterviewSession> InterviewSessions { get; set; }
-
+        /// <summary>
+        /// Overrides the default model creation behavior to configure entity relationships, keys, and delete behaviors.
+        /// </summary>
+        /// <param name="modelBuilder">A builder used to construct the model for this context.</param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<JobSkill>()
