@@ -2,7 +2,7 @@
 using Tests_and_Interviews.Dtos;
 using Tests_and_Interviews.Models;
 using Tests_and_Interviews.Models.Enums;
-using Tests_and_Interviews.Repositories;
+using Tests_and_Interviews.Repositories.Interfaces;
 using Tests_and_Interviews.Services;
 
 

@@ -2,7 +2,7 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace Tests_and_Interviews.Repositories
+namespace Tests_and_Interviews.Repositories.Interfaces
 {
     using System;
     using System.Collections.Generic;

@@ -55,7 +55,7 @@ namespace Tests_and_Interviews.ViewModels
         {
             this.sessionService = sessionService;
             this.notificationService = notificationService;
-            this.SubmitScoreCommand = new RelayCommand(_ => this.SubmitScore());
+            this.SubmitScoreCommand = new RelayCommand(parameter => this.SubmitScore());
 
             this.recordingUri = new Uri("about:blank");
             this.score = 1.0f;

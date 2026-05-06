@@ -9,6 +9,7 @@ namespace Tests_and_Interviews.Views
     using Microsoft.UI.Xaml;
     using Microsoft.UI.Xaml.Controls;
     using Microsoft.UI.Xaml.Navigation;
+    using Tests_and_Interviews.Repositories;
     using Tests_and_Interviews.ViewModels;
     using Windows.Globalization.NumberFormatting;
     using Windows.Media.Core;
@@ -26,7 +27,7 @@ namespace Tests_and_Interviews.Views
         public InterviewInterviewerPage()
         {
             this.InitializeComponent();
-            var sessionService = new Services.InterviewSessionService(new Repositories.InterviewSessionRepository(), new Repositories.QuestionRepository());
+            var sessionService = new Services.InterviewSessionService(new QuestionRepository());
             var notificationService = new Services.NotificationService(new Services.Interfaces.WindowsToastNotifier());
             this.ViewModel = new InterviewInterviewerViewModel(sessionService, notificationService);
             this.SetNumberBoxNumberFormatter();

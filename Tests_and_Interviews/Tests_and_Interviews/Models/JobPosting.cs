@@ -17,8 +17,8 @@ namespace Tests_and_Interviews.Models
         /// It is not auto-generated, meaning that it must be explicitly set when creating a new JobPosting instance.
         /// </summary>
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
         [Column("job_id")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int JobId { get; set; }
 
         /// <summary>
