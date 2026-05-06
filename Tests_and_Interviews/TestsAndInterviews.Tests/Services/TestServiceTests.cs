@@ -27,6 +27,7 @@ namespace TestsAndInterviews.Tests.Services
         private readonly Mock<IGradingService> mockGradingService;
         private readonly Mock<ITimerService> mockTimerService;
         private readonly Mock<IAttemptValidationService> mockValidationService;
+        private readonly Mock<IDataProcessingService> mockDataProcessingService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TestServiceTests"/> class.
@@ -39,6 +40,7 @@ namespace TestsAndInterviews.Tests.Services
             this.mockGradingService = new Mock<IGradingService>();
             this.mockTimerService = new Mock<ITimerService>();
             this.mockValidationService = new Mock<IAttemptValidationService>();
+            this.mockDataProcessingService = new Mock<IDataProcessingService>();
         }
 
         private TestService MakeTestService()
@@ -49,7 +51,8 @@ namespace TestsAndInterviews.Tests.Services
                 this.mockAnswerRepository.Object,
                 this.mockGradingService.Object,
                 this.mockTimerService.Object,
-                this.mockValidationService.Object);
+                this.mockValidationService.Object,
+                this.mockDataProcessingService.Object);
         }
 
         // StartTestAsync tests

@@ -70,6 +70,7 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="System.Net.Http.Json" Version="10.0.7" />
 	</ItemGroup>
 	<ItemGroup>
 		<Page Include="MainWindow.xaml">

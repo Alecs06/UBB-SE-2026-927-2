@@ -76,7 +76,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         }
 
         [Fact]
-        public async Task LocalFolderPath_IsConvertedToMSAppDataURI()
+        public async Task RecordingUri_SetFromUrl()
         {
             var mockSessionService = new Mock<IInterviewSessionService>();
             var mockNotificationService = new Mock<INotificationService>();
