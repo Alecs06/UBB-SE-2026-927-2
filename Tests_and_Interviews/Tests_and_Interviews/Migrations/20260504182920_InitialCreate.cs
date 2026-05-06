@@ -1,14 +1,19 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
-
-#nullable disable
+﻿#nullable disable
 
 namespace Tests_and_Interviews.Migrations
 {
-    /// <inheritdoc />
+    using System;
+    using Microsoft.EntityFrameworkCore.Migrations;
+
+    /// <summary>
+    /// Initial migration for creating the database schema.
+    /// </summary>
     public partial class InitialCreate : Migration
     {
-        /// <inheritdoc />
+        /// <summary>
+        /// Applies the migration by creating the necessary database tables and schema.
+        /// </summary>
+        /// <param name="migrationBuilder">The migration builder used to build the database schema.</param>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -41,7 +46,7 @@ namespace Tests_and_Interviews.Migrations
                     scen2_answer3 = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     scen2_reaction1 = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     scen2_reaction2 = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    scen2_reaction3 = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    scen2_reaction3 = table.Column<string>(type: "nvarchar(max)", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -54,7 +59,7 @@ namespace Tests_and_Interviews.Migrations
                 {
                     skill_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    skill_name = table.Column<string>(type: "nvarchar(255)", nullable: false)
+                    skill_name = table.Column<string>(type: "nvarchar(255)", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -69,7 +74,7 @@ namespace Tests_and_Interviews.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     category = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    created_at = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    created_at = table.Column<DateTime>(type: "datetime2", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -84,7 +89,7 @@ namespace Tests_and_Interviews.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     name = table.Column<string>(type: "nvarchar(255)", nullable: false),
                     email = table.Column<string>(type: "nvarchar(255)", nullable: false),
-                    cv_xml = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    cv_xml = table.Column<string>(type: "nvarchar(max)", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -103,7 +108,7 @@ namespace Tests_and_Interviews.Migrations
                     end_date = table.Column<DateTime>(type: "date", nullable: false),
                     location = table.Column<string>(type: "nvarchar(300)", nullable: false),
                     host_company_id = table.Column<int>(type: "int", nullable: false),
-                    posted_at = table.Column<DateTime>(type: "datetime", nullable: false)
+                    posted_at = table.Column<DateTime>(type: "datetime", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -135,7 +140,7 @@ namespace Tests_and_Interviews.Migrations
                     posted_at = table.Column<DateTime>(type: "datetime", nullable: true),
                     salary = table.Column<int>(type: "int", nullable: true),
                     amount_payed = table.Column<int>(type: "int", nullable: true),
-                    deadline = table.Column<DateTime>(type: "date", nullable: true)
+                    deadline = table.Column<DateTime>(type: "date", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -153,7 +158,7 @@ namespace Tests_and_Interviews.Migrations
                 columns: table => new
                 {
                     company_id = table.Column<int>(type: "int", nullable: false),
-                    name = table.Column<string>(type: "nvarchar(255)", nullable: false)
+                    name = table.Column<string>(type: "nvarchar(255)", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -177,7 +182,7 @@ namespace Tests_and_Interviews.Migrations
                     question_type = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     question_score = table.Column<float>(type: "real", nullable: false),
                     question_answer = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    options_json = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true)
+                    options_json = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
                 },
                 constraints: table =>
                 {
@@ -202,7 +207,7 @@ namespace Tests_and_Interviews.Migrations
                     date_start = table.Column<DateTime>(type: "datetime2", nullable: false),
                     video = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     status = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    score = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
+                    score = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -226,7 +231,7 @@ namespace Tests_and_Interviews.Migrations
                     normalized_score = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     rank_position = table.Column<int>(type: "int", nullable: false),
                     tie_break_priority = table.Column<int>(type: "int", nullable: false),
-                    last_recalculation_at = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    last_recalculation_at = table.Column<DateTime>(type: "datetime2", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -261,7 +266,7 @@ namespace Tests_and_Interviews.Migrations
                     is_validated = table.Column<bool>(type: "bit", nullable: false),
                     percentage_score = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     rejection_reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    rejected_at = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    rejected_at = table.Column<DateTime>(type: "datetime2", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -285,7 +290,7 @@ namespace Tests_and_Interviews.Migrations
                 columns: table => new
                 {
                     event_id = table.Column<int>(type: "int", nullable: false),
-                    company_id = table.Column<int>(type: "int", nullable: false)
+                    company_id = table.Column<int>(type: "int", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -317,7 +322,7 @@ namespace Tests_and_Interviews.Migrations
                     application_status = table.Column<string>(type: "nvarchar(50)", nullable: true),
                     applied_at = table.Column<DateTime>(type: "datetime", nullable: false),
                     recommended_from_company_id = table.Column<int>(type: "int", nullable: true),
-                    cv_file_url = table.Column<string>(type: "nvarchar(500)", nullable: true)
+                    cv_file_url = table.Column<string>(type: "nvarchar(500)", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -347,7 +352,7 @@ namespace Tests_and_Interviews.Migrations
                 {
                     skill_id = table.Column<int>(type: "int", nullable: false),
                     job_id = table.Column<int>(type: "int", nullable: false),
-                    required_percentage = table.Column<int>(type: "int", nullable: false)
+                    required_percentage = table.Column<int>(type: "int", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -378,7 +383,7 @@ namespace Tests_and_Interviews.Migrations
                     end_time = table.Column<DateTime>(type: "datetime2", nullable: false),
                     duration = table.Column<int>(type: "int", nullable: false),
                     status = table.Column<int>(type: "int", nullable: false),
-                    interview_type = table.Column<string>(type: "nvarchar(255)", nullable: false)
+                    interview_type = table.Column<string>(type: "nvarchar(255)", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -405,7 +410,7 @@ namespace Tests_and_Interviews.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     question_id = table.Column<int>(type: "int", nullable: false),
                     attempt_id = table.Column<int>(type: "int", nullable: false),
-                    value = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    value = table.Column<string>(type: "nvarchar(max)", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -510,7 +515,10 @@ namespace Tests_and_Interviews.Migrations
                 column: "test_id");
         }
 
-        /// <inheritdoc />
+        /// <summmary>
+        /// Reverts the migration by dropping the database tables created in the Up method.
+        /// </summary>
+        /// <param name="migrationBuilder">The migration builder used to build the database schema.</param>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
