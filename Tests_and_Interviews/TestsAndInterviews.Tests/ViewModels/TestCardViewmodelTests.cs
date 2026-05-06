@@ -4,8 +4,9 @@
 
 namespace TestsAndInterviews.Tests.ViewModels
 {
-    using Tests_and_Interviews.ViewModels;
     using Xunit;
+
+    using Tests_and_Interviews.ViewModels;
 
     public class TestCardViewModelTests
     {
@@ -13,6 +14,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         public void IsSelected_WhenSetToTrue_ReturnsTrue()
         {
             var testCard = new TestCardViewModel();
+
             testCard.IsSelected = true;
 
             Assert.True(testCard.IsSelected);
@@ -22,6 +24,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         public void IsSelected_WhenSetToFalse_ReturnsFalse()
         {
             var testCard = new TestCardViewModel();
+
             testCard.IsSelected = true;
             testCard.IsSelected = false;
 
@@ -32,6 +35,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         public void IsHovered_WhenSetToTrue_ReturnsTrue()
         {
             var testCard = new TestCardViewModel();
+
             testCard.IsHovered = true;
 
             Assert.True(testCard.IsHovered);
@@ -41,6 +45,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         public void IsHovered_WhenSetToFalse_ReturnsFalse()
         {
             var testCard = new TestCardViewModel();
+
             testCard.IsHovered = true;
             testCard.IsHovered = false;
 
@@ -51,6 +56,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         public void OnPropertyChanged_WhenNoListenersAttached_DoesNotThrow()
         {
             var testCard = new TestCardViewModel();
+
             var exception = Record.Exception(() => testCard.IsSelected = true);
 
             Assert.Null(exception);
@@ -60,8 +66,13 @@ namespace TestsAndInterviews.Tests.ViewModels
         public void PropertyChanged_WhenIsSelectedChanges_FiresEvent()
         {
             var testCard = new TestCardViewModel();
+
             var fired = false;
-            testCard.PropertyChanged += (sender, eventArgs) => { fired = true; };
+
+            testCard.PropertyChanged += (sender, eventArgs) =>
+            {
+                fired = true;
+            };
 
             testCard.IsSelected = true;
 
@@ -72,8 +83,13 @@ namespace TestsAndInterviews.Tests.ViewModels
         public void PropertyChanged_WhenIsHoveredChanges_FiresEvent()
         {
             var testCard = new TestCardViewModel();
+
             var fired = false;
-            testCard.PropertyChanged += (sender, eventArgs) => { fired = true; };
+
+            testCard.PropertyChanged += (sender, eventArgs) =>
+            {
+                fired = true;
+            };
 
             testCard.IsHovered = true;
 

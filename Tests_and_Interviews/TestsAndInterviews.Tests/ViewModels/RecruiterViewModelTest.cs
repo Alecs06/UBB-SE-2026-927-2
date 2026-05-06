@@ -7,18 +7,21 @@ namespace TestsAndInterviews.Tests.ViewModels
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Moq;
+    using Xunit;
+
     using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
     using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services;
     using Tests_and_Interviews.ViewModels;
-    using Xunit;
 
     public class RecruiterViewModelTests
     {
         private readonly Mock<ISlotService> mockSlotService;
+
         private readonly Mock<IInterviewSessionRepository> mockSessionRepository;
 
         public RecruiterViewModelTests()
@@ -35,29 +38,32 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .ReturnsAsync(new List<InterviewSession>());
         }
 
-        private RecruiterViewModel CreateViewModel()
-        {
-            return new RecruiterViewModel(
-                this.mockSlotService.Object,
-                this.mockSessionRepository.Object);
-        }
-
         [Fact]
         public async Task LoadSlotsAsync_WhenSlotsExist_PopulatesSlots()
         {
             var slots = new List<SlotDto>
             {
-                new SlotDto { Id = 1, StartTime = DateTime.Today },
-                new SlotDto { Id = 2, StartTime = DateTime.Today.AddHours(1) },
+                new SlotDto
+                {
+                    Id = 1,
+                    StartTime = DateTime.Today,
+                },
+                new SlotDto
+                {
+                    Id = 2,
+                    StartTime = DateTime.Today.AddHours(1),
+                },
             };
+
             this.mockSlotService
                 .Setup(slotService => slotService.LoadRecruiterVisibleSlotsAsync(It.IsAny<int>(), It.IsAny<DateTime>()))
                 .ReturnsAsync(slots);
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadSlotsAsync();
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(2, viewmodel.Slots.Count);
+            await viewModel.LoadSlotsAsync();
+
+            Assert.Equal(2, viewModel.Slots.Count);
         }
 
         [Fact]
@@ -68,14 +74,16 @@ namespace TestsAndInterviews.Tests.ViewModels
                 new InterviewSession { Id = 1 },
                 new InterviewSession { Id = 2 },
             };
+
             this.mockSessionRepository
                 .Setup(sessionRepository => sessionRepository.GetSessionsByStatusAsync(It.IsAny<string>()))
                 .ReturnsAsync(sessions);
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadPendingReviewsAsync();
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(2, viewmodel.PendingReviews.Count);
+            await viewModel.LoadPendingReviewsAsync();
+
+            Assert.Equal(2, viewModel.PendingReviews.Count);
         }
 
         [Fact]
@@ -85,17 +93,19 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .Setup(sessionRepository => sessionRepository.GetSessionsByStatusAsync(It.IsAny<string>()))
                 .ThrowsAsync(new Exception("Database error"));
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadPendingReviewsAsync();
+            var viewModel = this.CreateViewModel();
 
-            Assert.Empty(viewmodel.PendingReviews);
+            await viewModel.LoadPendingReviewsAsync();
+
+            Assert.Empty(viewModel.PendingReviews);
         }
 
         [Fact]
         public void LoadPendingReviews_WhenCalled_DoesNotThrow()
         {
-            var viewmodel = this.CreateViewModel();
-            var exception = Record.Exception(() => viewmodel.LoadPendingReviews());
+            var viewModel = this.CreateViewModel();
+
+            var exception = Record.Exception(() => viewModel.LoadPendingReviews());
 
             Assert.Null(exception);
         }
@@ -103,14 +113,20 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public async Task CreateSlotAsync_WhenCalled_CallsServiceAndReloadsSlots()
         {
-            var slot = new SlotDto { Id = 1, StartTime = DateTime.Today };
-            var viewmodel = this.CreateViewModel();
+            var slot = new SlotDto
+            {
+                Id = 1,
+                StartTime = DateTime.Today,
+            };
 
-            await viewmodel.CreateSlotAsync(slot, 60);
+            var viewModel = this.CreateViewModel();
+
+            await viewModel.CreateSlotAsync(slot, 60);
 
             this.mockSlotService.Verify(
                 slotService => slotService.CreateRecruiterSlotAsync(slot, 60),
                 Times.Once);
+
             this.mockSlotService.Verify(
                 slotService => slotService.LoadRecruiterVisibleSlotsAsync(It.IsAny<int>(), It.IsAny<DateTime>()),
                 Times.AtLeastOnce);
@@ -119,13 +135,14 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public async Task DeleteSlotAsync_WhenCalled_CallsServiceAndReloadsSlots()
         {
-            var viewmodel = this.CreateViewModel();
+            var viewModel = this.CreateViewModel();
 
-            await viewmodel.DeleteSlotAsync(1);
+            await viewModel.DeleteSlotAsync(1);
 
             this.mockSlotService.Verify(
                 slotService => slotService.DeleteRecruiterSlotAsync(1),
                 Times.Once);
+
             this.mockSlotService.Verify(
                 slotService => slotService.LoadRecruiterVisibleSlotsAsync(It.IsAny<int>(), It.IsAny<DateTime>()),
                 Times.AtLeastOnce);
@@ -134,11 +151,17 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public async Task UpdateSlotAsync_WhenCalled_CallsServiceWithCorrectStartTimeAndReloadsSlots()
         {
-            var slot = new SlotDto { Id = 1, StartTime = DateTime.Today };
-            var newStartTime = new TimeSpan(10, 0, 0);
-            var viewmodel = this.CreateViewModel();
+            var slot = new SlotDto
+            {
+                Id = 1,
+                StartTime = DateTime.Today,
+            };
 
-            await viewmodel.UpdateSlotAsync(slot, newStartTime, 60);
+            var newStartTime = new TimeSpan(10, 0, 0);
+
+            var viewModel = this.CreateViewModel();
+
+            await viewModel.UpdateSlotAsync(slot, newStartTime, 60);
 
             this.mockSlotService.Verify(
                 slotService => slotService.UpdateRecruiterSlotAsync(
@@ -151,8 +174,9 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void SelectedDate_WhenChanged_TriggersSlotReload()
         {
-            var viewmodel = this.CreateViewModel();
-            viewmodel.SelectedDate = DateTime.Today.AddDays(1);
+            var viewModel = this.CreateViewModel();
+
+            viewModel.SelectedDate = DateTime.Today.AddDays(1);
 
             this.mockSlotService.Verify(
                 slotService => slotService.LoadRecruiterVisibleSlotsAsync(It.IsAny<int>(), It.IsAny<DateTime>()),
@@ -162,20 +186,32 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void SelectedDateFormatted_ReturnsCorrectFormat()
         {
-            var viewmodel = this.CreateViewModel();
-            var date = new DateTime(2025, 4, 14);
-            viewmodel.SelectedDate = date;
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(date.ToString("dddd dd/MM/yyyy"), viewmodel.SelectedDateFormatted);
+            var date = new DateTime(2025, 4, 14);
+
+            viewModel.SelectedDate = date;
+
+            Assert.Equal(
+                date.ToString("dddd dd/MM/yyyy"),
+                viewModel.SelectedDateFormatted);
         }
 
         [Fact]
         public void OnPropertyChanged_WhenNoListenersAttached_DoesNotThrow()
         {
-            var viewmodel = this.CreateViewModel();
-            var exception = Record.Exception(() => viewmodel.SelectedDate = DateTime.Today.AddDays(1));
+            var viewModel = this.CreateViewModel();
+
+            var exception = Record.Exception(() => viewModel.SelectedDate = DateTime.Today.AddDays(1));
 
             Assert.Null(exception);
+        }
+
+        private RecruiterViewModel CreateViewModel()
+        {
+            return new RecruiterViewModel(
+                this.mockSlotService.Object,
+                this.mockSessionRepository.Object);
         }
     }
 }
