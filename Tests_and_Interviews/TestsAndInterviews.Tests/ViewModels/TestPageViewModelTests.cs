@@ -7,23 +7,31 @@ namespace TestsAndInterviews.Tests.ViewModels
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Moq;
+    using Xunit;
+
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
     using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services;
     using Tests_and_Interviews.Services.Interfaces;
     using Tests_and_Interviews.ViewModels;
-    using Xunit;
 
     public class TestPageViewModelTests
     {
         private readonly Mock<IUserRepository> mockUserRepository;
+
         private readonly Mock<ITestRepository> mockTestRepository;
+
         private readonly Mock<IQuestionRepository> mockQuestionRepository;
+
         private readonly Mock<ITestAttemptRepository> mockAttemptRepository;
+
         private readonly Mock<IAnswerRepository> mockAnswerRepository;
+
         private readonly Mock<ITestService> mockTestService;
+
         private readonly Mock<IDataProcessingService> mockDataProcessingService;
 
         public TestPageViewModelTests()
@@ -41,18 +49,6 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .ReturnsAsync(new List<Question>());
         }
 
-        private TestPageViewModel CreateViewModel()
-        {
-            return new TestPageViewModel(
-                this.mockUserRepository.Object,
-                this.mockTestRepository.Object,
-                this.mockQuestionRepository.Object,
-                this.mockAttemptRepository.Object,
-                this.mockAnswerRepository.Object,
-                this.mockTestService.Object,
-                this.mockDataProcessingService.Object);
-        }
-
         [Fact]
         public async Task LoadAsync_WhenTestNotFound_DoesNotLoadQuestions()
         {
@@ -60,10 +56,11 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
                 .ReturnsAsync((Test?)null);
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Empty(viewmodel.Questions);
+            await viewModel.LoadAsync(1, 1);
+
+            Assert.Empty(viewModel.Questions);
         }
 
         [Fact]
@@ -71,29 +68,44 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "C# Basics" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "C# Basics",
+                });
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal("C# Basics", viewmodel.TestTitle);
+            await viewModel.LoadAsync(1, 1);
+
+            Assert.Equal("C# Basics", viewModel.TestTitle);
         }
 
         [Fact]
         public async Task LoadAsync_WhenUserIdIsZero_LooksUpUserByName()
         {
-            var users = new List<User> { new User(5, "Alice Johnson", string.Empty) };
+            var users = new List<User>
+            {
+                new User(5, "Alice Johnson", string.Empty),
+            };
+
             this.mockUserRepository
                 .Setup(userRepository => userRepository.GetAllAsync())
                 .ReturnsAsync(users);
+
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 0);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(5, viewmodel.UserId);
+            await viewModel.LoadAsync(1, 0);
+
+            Assert.Equal(5, viewModel.UserId);
         }
 
         [Fact]
@@ -102,14 +114,20 @@ namespace TestsAndInterviews.Tests.ViewModels
             this.mockUserRepository
                 .Setup(userRepository => userRepository.GetAllAsync())
                 .ReturnsAsync(new List<User>());
+
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 0);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(0, viewmodel.UserId);
+            await viewModel.LoadAsync(1, 0);
+
+            Assert.Equal(0, viewModel.UserId);
         }
 
         [Fact]
@@ -117,15 +135,21 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
+
             this.mockTestService
                 .Setup(testService => testService.StartTestAsync(It.IsAny<int>(), It.IsAny<int>()))
                 .ThrowsAsync(new InvalidOperationException("Already attempted"));
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
+            var viewModel = this.CreateViewModel();
 
-            Assert.True(viewmodel.AlreadyAttempted);
+            await viewModel.LoadAsync(1, 1);
+
+            Assert.True(viewModel.AlreadyAttempted);
         }
 
         [Fact]
@@ -133,15 +157,21 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
+
             this.mockTestService
                 .Setup(testService => testService.StartTestAsync(It.IsAny<int>(), It.IsAny<int>()))
                 .ThrowsAsync(new Exception("Generic error"));
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
+            var viewModel = this.CreateViewModel();
 
-            Assert.False(viewmodel.AlreadyAttempted);
+            await viewModel.LoadAsync(1, 1);
+
+            Assert.False(viewModel.AlreadyAttempted);
         }
 
         [Fact]
@@ -149,40 +179,63 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
+
             this.mockQuestionRepository
                 .Setup(questionRepository => questionRepository.FindByTestIdAsync(1))
                 .ReturnsAsync(new List<Question>
                 {
-                    new Question { Id = 1, QuestionText = "What is C#?", QuestionTypeString = "TEXT" },
+                    new Question
+                    {
+                        Id = 1,
+                        QuestionText = "What is C#?",
+                        QuestionTypeString = "TEXT",
+                    },
                 });
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Single(viewmodel.Questions);
+            await viewModel.LoadAsync(1, 1);
+
+            Assert.Single(viewModel.Questions);
         }
-
-
 
         [Fact]
         public async Task LoadAsync_WhenQuestionIsInterview_SkipsIt()
         {
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
+
             this.mockQuestionRepository
                 .Setup(questionRepository => questionRepository.FindByTestIdAsync(1))
                 .ReturnsAsync(new List<Question>
                 {
-                    new Question { Id = 1, QuestionTypeString = "INTERVIEW" },
-                    new Question { Id = 2, QuestionTypeString = "TEXT" },
+                    new Question
+                    {
+                        Id = 1,
+                        QuestionTypeString = "INTERVIEW",
+                    },
+                    new Question
+                    {
+                        Id = 2,
+                        QuestionTypeString = "TEXT",
+                    },
                 });
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Single(viewmodel.Questions);
+            await viewModel.LoadAsync(1, 1);
+
+            Assert.Single(viewModel.Questions);
         }
 
         [Fact]
@@ -190,7 +243,12 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
+
             this.mockQuestionRepository
                 .Setup(questionRepository => questionRepository.FindByTestIdAsync(1))
                 .ReturnsAsync(new List<Question>
@@ -203,10 +261,11 @@ namespace TestsAndInterviews.Tests.ViewModels
                     },
                 });
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(2, viewmodel.Questions[0].Options.Count);
+            await viewModel.LoadAsync(1, 1);
+
+            Assert.Equal(2, viewModel.Questions[0].Options.Count);
         }
 
         [Fact]
@@ -214,7 +273,12 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
+
             this.mockQuestionRepository
                 .Setup(questionRepository => questionRepository.FindByTestIdAsync(1))
                 .ReturnsAsync(new List<Question>
@@ -227,10 +291,11 @@ namespace TestsAndInterviews.Tests.ViewModels
                     },
                 });
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(6, viewmodel.Questions[0].Options.Count);
+            await viewModel.LoadAsync(1, 1);
+
+            Assert.Equal(6, viewModel.Questions[0].Options.Count);
         }
 
         [Fact]
@@ -238,7 +303,12 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
+
             this.mockQuestionRepository
                 .Setup(questionRepository => questionRepository.FindByTestIdAsync(1))
                 .ReturnsAsync(new List<Question>
@@ -251,10 +321,11 @@ namespace TestsAndInterviews.Tests.ViewModels
                     },
                 });
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(3, viewmodel.Questions[0].Options.Count);
+            await viewModel.LoadAsync(1, 1);
+
+            Assert.Equal(3, viewModel.Questions[0].Options.Count);
         }
 
         [Fact]
@@ -262,22 +333,29 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
+
             this.mockTestService
                 .Setup(testService => testService.StartTestAsync(It.IsAny<int>(), It.IsAny<int>()))
                 .ThrowsAsync(new Exception("Outer", new Exception("Inner")));
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
+            var viewModel = this.CreateViewModel();
 
-            Assert.False(viewmodel.AlreadyAttempted);
+            await viewModel.LoadAsync(1, 1);
+
+            Assert.False(viewModel.AlreadyAttempted);
         }
 
         [Fact]
         public void StopTimer_WhenTimerIsNull_DoesNotThrow()
         {
-            var viewmodel = this.CreateViewModel();
-            var exception = Record.Exception(() => viewmodel.StopTimer());
+            var viewModel = this.CreateViewModel();
+
+            var exception = Record.Exception(() => viewModel.StopTimer());
 
             Assert.Null(exception);
         }
@@ -289,8 +367,9 @@ namespace TestsAndInterviews.Tests.ViewModels
                 .Setup(attemptRepository => attemptRepository.FindByUserAndTestAsync(It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync((TestAttempt?)null);
 
-            var viewmodel = this.CreateViewModel();
-            var result = await viewmodel.SubmitAsync();
+            var viewModel = this.CreateViewModel();
+
+            var result = await viewModel.SubmitAsync();
 
             Assert.Equal(0f, result);
         }
@@ -299,18 +378,22 @@ namespace TestsAndInterviews.Tests.ViewModels
         public async Task SubmitAsync_WhenAttemptFound_CallsSubmitTestAsync()
         {
             var attempt = new TestAttempt { Id = 1 };
+
             this.mockAttemptRepository
                 .Setup(attemptRepository => attemptRepository.FindByUserAndTestAsync(It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync(attempt);
+
             this.mockAttemptRepository
                 .Setup(attemptRepository => attemptRepository.FindByIdAsync(It.IsAny<int>()))
                 .ReturnsAsync(attempt);
+
             this.mockDataProcessingService
                 .Setup(dataProcessingService => dataProcessingService.ProcessFinalizedAttemptAsync(It.IsAny<int>()))
                 .ReturnsAsync(true);
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.SubmitAsync();
+            var viewModel = this.CreateViewModel();
+
+            await viewModel.SubmitAsync();
 
             this.mockTestService.Verify(
                 testService => testService.SubmitTestAsync(attempt.Id),
@@ -321,26 +404,31 @@ namespace TestsAndInterviews.Tests.ViewModels
         public async Task SubmitAsync_WhenAnsweredQuestionsExist_SavesAnswers()
         {
             var attempt = new TestAttempt { Id = 1 };
+
             this.mockAttemptRepository
                 .Setup(attemptRepository => attemptRepository.FindByUserAndTestAsync(It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync(attempt);
+
             this.mockAttemptRepository
                 .Setup(attemptRepository => attemptRepository.FindByIdAsync(It.IsAny<int>()))
                 .ReturnsAsync(attempt);
+
             this.mockDataProcessingService
                 .Setup(dataProcessingService => dataProcessingService.ProcessFinalizedAttemptAsync(It.IsAny<int>()))
                 .ReturnsAsync(true);
 
-            var viewmodel = this.CreateViewModel();
+            var viewModel = this.CreateViewModel();
+
             var answeredQuestion = new QuestionViewModel
             {
                 QuestionId = 1,
                 Type = QuestionType.TEXT,
                 TextAnswer = "My answer",
             };
-            viewmodel.Questions.Add(answeredQuestion);
 
-            await viewmodel.SubmitAsync();
+            viewModel.Questions.Add(answeredQuestion);
+
+            await viewModel.SubmitAsync();
 
             this.mockAnswerRepository.Verify(
                 answerRepository => answerRepository.SaveAsync(It.IsAny<Answer>()),
@@ -351,26 +439,31 @@ namespace TestsAndInterviews.Tests.ViewModels
         public async Task SubmitAsync_WhenUnansweredQuestionsExist_DoesNotSaveAnswers()
         {
             var attempt = new TestAttempt { Id = 1 };
+
             this.mockAttemptRepository
                 .Setup(attemptRepository => attemptRepository.FindByUserAndTestAsync(It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync(attempt);
+
             this.mockAttemptRepository
                 .Setup(attemptRepository => attemptRepository.FindByIdAsync(It.IsAny<int>()))
                 .ReturnsAsync(attempt);
+
             this.mockDataProcessingService
                 .Setup(dataProcessingService => dataProcessingService.ProcessFinalizedAttemptAsync(It.IsAny<int>()))
                 .ReturnsAsync(true);
 
-            var viewmodel = this.CreateViewModel();
+            var viewModel = this.CreateViewModel();
+
             var unansweredQuestion = new QuestionViewModel
             {
                 QuestionId = 1,
                 Type = QuestionType.TEXT,
                 TextAnswer = string.Empty,
             };
-            viewmodel.Questions.Add(unansweredQuestion);
 
-            await viewmodel.SubmitAsync();
+            viewModel.Questions.Add(unansweredQuestion);
+
+            await viewModel.SubmitAsync();
 
             this.mockAnswerRepository.Verify(
                 answerRepository => answerRepository.SaveAsync(It.IsAny<Answer>()),
@@ -382,37 +475,56 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             this.mockTestRepository
                 .Setup(testRepository => testRepository.FindByIdAsync(1))
-                .ReturnsAsync(new Test { Id = 1, Title = "Test" });
+                .ReturnsAsync(new Test
+                {
+                    Id = 1,
+                    Title = "Test",
+                });
+
             this.mockQuestionRepository
                 .Setup(questionRepository => questionRepository.FindByTestIdAsync(1))
                 .ReturnsAsync(new List<Question>
                 {
-            new Question { Id = 1, QuestionTypeString = "TEXT" },
+                    new Question
+                    {
+                        Id = 1,
+                        QuestionTypeString = "TEXT",
+                    },
                 });
 
-            var viewmodel = this.CreateViewModel();
-            await viewmodel.LoadAsync(1, 1);
-            viewmodel.Questions[0].TextAnswer = "My answer";
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(1, viewmodel.AnsweredCount);
+            await viewModel.LoadAsync(1, 1);
+
+            viewModel.Questions[0].TextAnswer = "My answer";
+
+            Assert.Equal(1, viewModel.AnsweredCount);
         }
 
         [Fact]
         public async Task SubmitAsync_WhenFinalAttemptFound_ReturnsScore()
         {
-            var attempt = new TestAttempt { Id = 1, Score = 85m };
+            var attempt = new TestAttempt
+            {
+                Id = 1,
+                Score = 85m,
+            };
+
             this.mockAttemptRepository
                 .Setup(attemptRepository => attemptRepository.FindByUserAndTestAsync(It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync(attempt);
+
             this.mockAttemptRepository
                 .Setup(attemptRepository => attemptRepository.FindByIdAsync(It.IsAny<int>()))
                 .ReturnsAsync(attempt);
+
             this.mockDataProcessingService
                 .Setup(dataProcessingService => dataProcessingService.ProcessFinalizedAttemptAsync(It.IsAny<int>()))
                 .ReturnsAsync(true);
 
-            var viewmodel = this.CreateViewModel();
-            var result = await viewmodel.SubmitAsync();
+            var viewModel = this.CreateViewModel();
+
+            var result = await viewModel.SubmitAsync();
 
             Assert.Equal(85f, result);
         }
@@ -421,19 +533,23 @@ namespace TestsAndInterviews.Tests.ViewModels
         public async Task SubmitAsync_WhenFinalAttemptIsNull_ReturnsZero()
         {
             var attempt = new TestAttempt { Id = 1 };
+
             this.mockAttemptRepository
                 .SetupSequence(attemptRepository => attemptRepository.FindByUserAndTestAsync(It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync(attempt)
                 .ReturnsAsync((TestAttempt?)null);
+
             this.mockAttemptRepository
                 .Setup(attemptRepository => attemptRepository.FindByIdAsync(It.IsAny<int>()))
                 .ReturnsAsync(attempt);
+
             this.mockDataProcessingService
                 .Setup(dataProcessingService => dataProcessingService.ProcessFinalizedAttemptAsync(It.IsAny<int>()))
                 .ReturnsAsync(true);
 
-            var viewmodel = this.CreateViewModel();
-            var result = await viewmodel.SubmitAsync();
+            var viewModel = this.CreateViewModel();
+
+            var result = await viewModel.SubmitAsync();
 
             Assert.Equal(0f, result);
         }
@@ -441,28 +557,42 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public void TotalCount_ReturnsQuestionsCount()
         {
-            var viewmodel = this.CreateViewModel();
-            viewmodel.Questions.Add(new QuestionViewModel { Type = QuestionType.TEXT });
-            viewmodel.Questions.Add(new QuestionViewModel { Type = QuestionType.TEXT });
+            var viewModel = this.CreateViewModel();
 
-            Assert.Equal(2, viewmodel.TotalCount);
+            viewModel.Questions.Add(new QuestionViewModel { Type = QuestionType.TEXT });
+            viewModel.Questions.Add(new QuestionViewModel { Type = QuestionType.TEXT });
+
+            Assert.Equal(2, viewModel.TotalCount);
         }
 
         [Fact]
         public void TimerDisplay_ReturnsFormattedTime()
         {
-            var viewmodel = this.CreateViewModel();
+            var viewModel = this.CreateViewModel();
 
-            Assert.Matches(@"^\d{2}:\d{2}$", viewmodel.TimerDisplay);
+            Assert.Matches(@"^\d{2}:\d{2}$", viewModel.TimerDisplay);
         }
 
         [Fact]
         public void Notify_WhenNoListenersAttached_DoesNotThrow()
         {
-            var viewmodel = this.CreateViewModel();
-            var exception = Record.Exception(() => viewmodel.TestTitle = "Test");
+            var viewModel = this.CreateViewModel();
+
+            var exception = Record.Exception(() => viewModel.TestTitle = "Test");
 
             Assert.Null(exception);
+        }
+
+        private TestPageViewModel CreateViewModel()
+        {
+            return new TestPageViewModel(
+                this.mockUserRepository.Object,
+                this.mockTestRepository.Object,
+                this.mockQuestionRepository.Object,
+                this.mockAttemptRepository.Object,
+                this.mockAnswerRepository.Object,
+                this.mockTestService.Object,
+                this.mockDataProcessingService.Object);
         }
     }
 }

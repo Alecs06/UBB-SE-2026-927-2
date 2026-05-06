@@ -2,40 +2,24 @@
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
+
     using Moq;
+    using Xunit;
+
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Services.Interfaces;
     using Tests_and_Interviews.ViewModels;
-    using Xunit;
 
     public class LeaderboardViewModelTests
     {
         private readonly Mock<ILeaderboardService> leaderboardServiceMock;
+
         private readonly LeaderboardViewModel viewModel;
 
         public LeaderboardViewModelTests()
         {
             this.leaderboardServiceMock = new Mock<ILeaderboardService>();
             this.viewModel = new LeaderboardViewModel(this.leaderboardServiceMock.Object);
-        }
-
-        private static List<LeaderboardEntry> MakeEntries(int count)
-        {
-            var entries = new List<LeaderboardEntry>();
-            for (int i = 1; i <= count; i++)
-            {
-                entries.Add(new LeaderboardEntry
-                {
-                    Id = i,
-                    TestId = 1,
-                    UserId = i,
-                    NormalizedScore = 100 - i,
-                    RankPosition = i,
-                    TieBreakPriority = i,
-                });
-            }
-
-            return entries;
         }
 
         [Fact]
@@ -47,7 +31,9 @@
 
             await this.viewModel.LoadAsync(42);
 
-            this.leaderboardServiceMock.Verify(s => s.GetFullLeaderboardAsync(42), Times.Once);
+            this.leaderboardServiceMock.Verify(
+                s => s.GetFullLeaderboardAsync(42),
+                Times.Once);
         }
 
         [Fact]
@@ -58,7 +44,9 @@
                 .ReturnsAsync(MakeEntries(25));
 
             await this.viewModel.LoadAsync(1);
+
             this.viewModel.GoToNextPage();
+
             await this.viewModel.LoadAsync(1);
 
             Assert.Equal(1, this.viewModel.CurrentPage);
@@ -134,6 +122,7 @@
                 .ReturnsAsync(MakeEntries(25));
 
             await this.viewModel.LoadAsync(1);
+
             this.viewModel.GoToNextPage();
 
             Assert.True(this.viewModel.CanGoPrev);
@@ -171,6 +160,7 @@
                 .ReturnsAsync(MakeEntries(25));
 
             await this.viewModel.LoadAsync(1);
+
             this.viewModel.GoToNextPage();
             this.viewModel.GoToNextPage();
             this.viewModel.GoToNextPage();
@@ -186,9 +176,30 @@
                 .ReturnsAsync(MakeEntries(25));
 
             await this.viewModel.LoadAsync(1);
+
             this.viewModel.GoToNextPage();
 
             Assert.Equal(2, this.viewModel.CurrentPage);
+        }
+
+        private static List<LeaderboardEntry> MakeEntries(int count)
+        {
+            var entries = new List<LeaderboardEntry>();
+
+            for (int i = 1; i <= count; i++)
+            {
+                entries.Add(new LeaderboardEntry
+                {
+                    Id = i,
+                    TestId = 1,
+                    UserId = i,
+                    NormalizedScore = 100 - i,
+                    RankPosition = i,
+                    TieBreakPriority = i,
+                });
+            }
+
+            return entries;
         }
 
         [Fact]
@@ -199,6 +210,7 @@
                 .ReturnsAsync(MakeEntries(10));
 
             await this.viewModel.LoadAsync(1);
+
             this.viewModel.GoToNextPage();
 
             Assert.Equal(1, this.viewModel.CurrentPage);
@@ -212,6 +224,7 @@
                 .ReturnsAsync(MakeEntries(25));
 
             await this.viewModel.LoadAsync(1);
+
             this.viewModel.GoToNextPage();
             this.viewModel.GoToPrevPage();
 
@@ -226,6 +239,7 @@
                 .ReturnsAsync(MakeEntries(10));
 
             await this.viewModel.LoadAsync(1);
+
             this.viewModel.GoToPrevPage();
 
             Assert.Equal(1, this.viewModel.CurrentPage);
@@ -251,6 +265,7 @@
                 .ReturnsAsync(MakeEntries(13));
 
             await this.viewModel.LoadAsync(1);
+
             this.viewModel.GoToNextPage();
 
             Assert.Equal(3, this.viewModel.GetCurrentPageEntries().Count);
@@ -276,6 +291,7 @@
                 .ReturnsAsync(MakeEntries(25));
 
             await this.viewModel.LoadAsync(1);
+
             this.viewModel.GoToNextPage();
 
             Assert.Equal(11, this.viewModel.GetCurrentPageEntries()[0].RankPosition);
@@ -290,13 +306,16 @@
 
             await this.viewModel.GetTopThreeAsync(7);
 
-            this.leaderboardServiceMock.Verify(s => s.GetTopThreeAsync(7), Times.Once);
+            this.leaderboardServiceMock.Verify(
+                s => s.GetTopThreeAsync(7),
+                Times.Once);
         }
 
         [Fact]
         public async Task GetTopThreeAsync_ReturnsResultFromService()
         {
             var expected = MakeEntries(3);
+
             this.leaderboardServiceMock
                 .Setup(s => s.GetTopThreeAsync(It.IsAny<int>()))
                 .ReturnsAsync(expected);
@@ -315,13 +334,21 @@
 
             await this.viewModel.GetUserRankingAsync(5, 3);
 
-            this.leaderboardServiceMock.Verify(s => s.GetUserRankingAsync(5, 3), Times.Once);
+            this.leaderboardServiceMock.Verify(
+                s => s.GetUserRankingAsync(5, 3),
+                Times.Once);
         }
 
         [Fact]
         public async Task GetUserRankingAsync_ReturnsEntryFromService()
         {
-            var expected = new LeaderboardEntry { UserId = 5, TestId = 3, RankPosition = 2 };
+            var expected = new LeaderboardEntry
+            {
+                UserId = 5,
+                TestId = 3,
+                RankPosition = 2,
+            };
+
             this.leaderboardServiceMock
                 .Setup(s => s.GetUserRankingAsync(5, 3))
                 .ReturnsAsync(expected);
