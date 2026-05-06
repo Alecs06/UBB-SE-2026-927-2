@@ -44,6 +44,10 @@ namespace Tests_and_Interviews.Models
         /// </summary>
         [Column("recruiter_id")]
         public int RecruiterId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the recruiter associated with the slot.
+        /// </summary>
         public Recruiter Recruiter { get; set; } = null!;
 
         /// <summary>
@@ -52,6 +56,9 @@ namespace Tests_and_Interviews.Models
         [Column("candidate_id")]
         public int? CandidateId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the candidate associated with the slot. This property is nullable, indicating that a slot may not have a candidate assigned.
+        /// </summary>
         public User? Candidate { get; set; }
 
         /// <summary>
@@ -78,6 +85,9 @@ namespace Tests_and_Interviews.Models
         [Column("status")]
         public int StatusValue { get; set; }
 
+        /// <summary>
+        /// Gets or sets the current status of the slot as an enumeration value. This property is not mapped to the database and provides a more convenient way to work with the slot's status in code.
+        /// </summary>
         [NotMapped]
         public SlotStatus Status
         {
