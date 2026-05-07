@@ -2,7 +2,7 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace Tests_and_Interviews_API.DTOs
+namespace Tests_and_Interviews_API.Dtos
 {
     using System;
 

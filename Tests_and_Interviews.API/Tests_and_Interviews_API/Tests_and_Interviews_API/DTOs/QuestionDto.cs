@@ -1,4 +1,4 @@
-﻿namespace Tests_and_Interviews_API.DTOs
+﻿namespace Tests_and_Interviews_API.Dtos
 {
     /// <summary>
     /// Returned when reading a question (e.g. inside a test response).

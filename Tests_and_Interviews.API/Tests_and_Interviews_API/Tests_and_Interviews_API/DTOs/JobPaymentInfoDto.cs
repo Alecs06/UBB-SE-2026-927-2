@@ -1,4 +1,4 @@
-﻿namespace Tests_and_Interviews_API.DTOs
+﻿namespace Tests_and_Interviews_API.Dtos
 {
     /// <summary>
     /// Represents the payment information related to a specific job.

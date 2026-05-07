@@ -3,7 +3,7 @@
     using Microsoft.AspNetCore.Mvc;
     using System.Collections.Generic;
     using System.Linq;
-    using Tests_and_Interviews_API.DTOs;
+    using Tests_and_Interviews_API.Dtos;
     using Tests_and_Interviews_API.Mappers;
     using Tests_and_Interviews_API.Models;
     using Tests_and_Interviews_API.Services.Interfaces;

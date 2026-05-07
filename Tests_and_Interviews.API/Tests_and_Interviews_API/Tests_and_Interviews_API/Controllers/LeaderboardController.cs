@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using Tests_and_Interviews_API.DTOs;
+    using Tests_and_Interviews_API.Dtos;
     using Tests_and_Interviews_API.Mappers;
     using Tests_and_Interviews_API.Models.Core;
     using Tests_and_Interviews_API.Services.Interfaces;
