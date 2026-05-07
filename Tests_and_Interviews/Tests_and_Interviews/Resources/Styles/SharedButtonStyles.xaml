@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<Style x:Key="GhostBackButtonStyle" TargetType="Button">
+		<Setter Property="Background" Value="Transparent" />
+		<Setter Property="BorderThickness" Value="0" />
+		<Setter Property="Foreground" Value="{StaticResource AppPrimaryBrush}" />
+		<Setter Property="FontSize" Value="14" />
+		<Setter Property="Padding" Value="0" />
+	</Style>
+
+	<Style x:Key="PrimaryActionButtonStyle" TargetType="Button">
+		<Setter Property="Background" Value="{StaticResource AppPrimaryBrush}" />
+		<Setter Property="Foreground" Value="{StaticResource AppSurfaceBrush}" />
+		<Setter Property="CornerRadius" Value="8" />
+		<Setter Property="Padding" Value="24,12" />
+	</Style>
+
+	<Style x:Key="SecondaryActionButtonStyle" TargetType="Button">
+		<Setter Property="Background" Value="{StaticResource AppPanelBackgroundBrush}" />
+		<Setter Property="Foreground" Value="{StaticResource AppTitleBrush}" />
+		<Setter Property="CornerRadius" Value="8" />
+		<Setter Property="Padding" Value="20,10" />
+	</Style>
+
+	<Style x:Key="InterviewActionButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryActionButtonStyle}">
+		<Setter Property="Foreground" Value="{StaticResource InterviewAccentForegroundBrush}" />
+	</Style>
+
+	<Style x:Key="InterviewStopButtonStyle" TargetType="Button" BasedOn="{StaticResource InterviewActionButtonStyle}">
+		<Setter Property="Foreground" Value="{StaticResource InterviewDangerBrush}" />
+	</Style>
+</ResourceDictionary>
