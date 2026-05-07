@@ -2,6 +2,7 @@ namespace Tests_and_Interviews_API.Services
 {
     using System.Collections.Generic;
     using System.Linq;
+    using Tests_and_Interviews_API.Dtos;
     using Tests_and_Interviews_API.Models;
     using Tests_and_Interviews_API.Repositories.Interfaces;
     using Tests_and_Interviews_API.Services.Interfaces;
@@ -76,6 +77,71 @@ namespace Tests_and_Interviews_API.Services
         public void Remove(int companyId)
         {
             this._repository.Remove(companyId);
+        }
+
+        /// <summary>
+        /// Retrieves the game associated with the specified company.
+        /// </summary>
+        public GameDto? GetGame(int companyId)
+        {
+            Company? company = this._repository.GetById(companyId);
+            if (company == null)
+            {
+                return null;
+            }
+            return new GameDto
+            {
+                AvatarId = company.AvatarId ?? 0,
+                BuddyName = company.BuddyName ?? string.Empty,
+                BuddyDescription = company.BuddyDescription ?? string.Empty,
+                FinalQuote = company.FinalQuote ?? string.Empty,
+                Scen1Text = company.Scen1Text ?? string.Empty,
+                Scen1Answer1 = company.Scen1Answer1 ?? string.Empty,
+                Scen1Answer2 = company.Scen1Answer2 ?? string.Empty,
+                Scen1Answer3 = company.Scen1Answer3 ?? string.Empty,
+                Scen1Reaction1 = company.Scen1Reaction1 ?? string.Empty,
+                Scen1Reaction2 = company.Scen1Reaction2 ?? string.Empty,
+                Scen1Reaction3 = company.Scen1Reaction3 ?? string.Empty,
+                Scen2Text = company.Scen2Text ?? string.Empty,
+                Scen2Answer1 = company.Scen2Answer1 ?? string.Empty,
+                Scen2Answer2 = company.Scen2Answer2 ?? string.Empty,
+                Scen2Answer3 = company.Scen2Answer3 ?? string.Empty,
+                Scen2Reaction1 = company.Scen2Reaction1 ?? string.Empty,
+                Scen2Reaction2 = company.Scen2Reaction2 ?? string.Empty,
+                Scen2Reaction3 = company.Scen2Reaction3 ?? string.Empty,
+                IsPublished = true,
+            };
+        }
+
+        /// <summary>
+        /// Saves the game associated with the specified company.
+        /// </summary>
+        public void SaveGame(int companyId, GameDto gameDto)
+        {
+            Company? company = this._repository.GetById(companyId);
+            if (company == null)
+            {
+                throw new InvalidOperationException($"No company found with id '{companyId}'.");
+            }
+            company.AvatarId = gameDto.AvatarId;
+            company.BuddyName = gameDto.BuddyName;
+            company.BuddyDescription = gameDto.BuddyDescription;
+            company.FinalQuote = gameDto.FinalQuote;
+            company.Scen1Text = gameDto.Scen1Text;
+            company.Scen1Answer1 = gameDto.Scen1Answer1;
+            company.Scen1Answer2 = gameDto.Scen1Answer2;
+            company.Scen1Answer3 = gameDto.Scen1Answer3;
+            company.Scen1Reaction1 = gameDto.Scen1Reaction1;
+            company.Scen1Reaction2 = gameDto.Scen1Reaction2;
+            company.Scen1Reaction3 = gameDto.Scen1Reaction3;
+            company.Scen2Text = gameDto.Scen2Text;
+            company.Scen2Answer1 = gameDto.Scen2Answer1;
+            company.Scen2Answer2 = gameDto.Scen2Answer2;
+            company.Scen2Answer3 = gameDto.Scen2Answer3;
+            company.Scen2Reaction1 = gameDto.Scen2Reaction1;
+            company.Scen2Reaction2 = gameDto.Scen2Reaction2;
+            company.Scen2Reaction3 = gameDto.Scen2Reaction3;
+            this._repository.Update(company);
         }
     }
 }

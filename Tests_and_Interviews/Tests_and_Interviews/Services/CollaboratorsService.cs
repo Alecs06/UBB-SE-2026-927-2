@@ -1,25 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Tests_and_Interviews.Repositories.Interfaces;
-using Tests_and_Interviews.Services.Interfaces;
-using Tests_and_Interviews.Models;
-
+﻿// <copyright file="CollaboratorsService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 namespace Tests_and_Interviews.Services
 {
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading.Tasks;
+    using Tests_and_Interviews.Api;
+    using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Mappers;
+    using Tests_and_Interviews.Models;
+    using Tests_and_Interviews.Services.Interfaces;
+
     public class CollaboratorsService : ICollaboratorsService
     {
-        private ICollaboratorsRepo collaboratorsRepository;
-
         /// <summary>
         /// Collaborators service constructor
         /// </summary>
-        /// <param name="collaboratorsRepo"></param>
-        public CollaboratorsService(ICollaboratorsRepo collaboratorsRepo)
+        public CollaboratorsService()
         {
-            this.collaboratorsRepository = collaboratorsRepo;
         }
 
         /// <summary>
@@ -28,9 +29,17 @@ namespace Tests_and_Interviews.Services
         /// <param name="eventToBeCollaboratedOn"> the event the company is invited to collaborate on </param>
         /// <param name="companyInvitedToCollaborate"> the company to be added to the list </param>
         /// <param name="loggedInUserID"></param>
-        public void AddCollaborator(Event eventToBeCollaboratedOn, Company companyInvitedToCollaborate, int loggedInUserID)
+        public async Task AddCollaborator(Event eventToBeCollaboratedOn, Company companyInvitedToCollaborate, int loggedInUserID)
         {
-            this.collaboratorsRepository.AddCollaboratorToRepo(eventToBeCollaboratedOn, companyInvitedToCollaborate, loggedInUserID);
+            CollaboratorDto dto = new CollaboratorDto
+            {
+                EventId = eventToBeCollaboratedOn.Id,
+                CompanyId = companyInvitedToCollaborate.CompanyId,
+            };
+            HttpResponseMessage response = await ApiClient.Http.PostAsJsonAsync(
+                $"collaborators?loggedInUserID={loggedInUserID}",
+                dto);
+            response.EnsureSuccessStatusCode();
         }
 
         /// <summary>
@@ -38,9 +47,12 @@ namespace Tests_and_Interviews.Services
         /// </summary>
         /// <param name="loggedInCompanyId"> the ID of the user company that is currently logged in </param>
         /// <returns> a list of all its collaborators </returns>
-        public List<Company> GetAllCollaborators(int loggedInCompanyId)
+        public async Task<List<Company>> GetAllCollaborators(int loggedInCompanyId)
         {
-            return this.collaboratorsRepository.GetAllCollaborators(loggedInCompanyId);
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"collaborators/{loggedInCompanyId}");
+            response.EnsureSuccessStatusCode();
+            List<CompanyDto>? dtos = await response.Content.ReadFromJsonAsync<List<CompanyDto>>();
+            return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Company>();
         }
     }
 }

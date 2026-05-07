@@ -50,5 +50,22 @@
         {
             return this._repository.AddJob(jobPosting, companyId, skillLinks);
         }
+
+        /// <summary>
+        /// Retrieves all skills linked to a specific job posting.
+        /// </summary>
+        /// <param name="jobId">The unique identifier of the job posting.</param>
+        /// <returns>A read-only list of skill links with required percentages.</returns>
+        public IReadOnlyList<(int SkillId, int RequiredPercentage)> GetSkillsByJob(int jobId)
+        {
+            JobPosting? job = this._repository.GetAllJobs().FirstOrDefault(j => j.JobId == jobId);
+            if (job == null || job.JobSkills == null)
+            {
+                return new List<(int, int)>();
+            }
+            return job.JobSkills
+                .Select(js => (js.SkillId, js.RequiredPercentage))
+                .ToList();
+        }
     }
 }

@@ -47,5 +47,18 @@
 
             return Ok(jobId);
         }
+
+        [HttpGet("{jobId}/skills")]
+        public ActionResult<List<JobSkillDto>> GetSkillsByJob(int jobId)
+        {
+            IReadOnlyList<(int SkillId, int RequiredPercentage)> skillLinks = this._service.GetSkillsByJob(jobId);
+
+            return Ok(skillLinks.Select(s => new JobSkillDto
+            {
+                SkillId = s.SkillId,
+                JobId = jobId,
+                RequiredPercentage = s.RequiredPercentage,
+            }).ToList());
+        }
     }
 }

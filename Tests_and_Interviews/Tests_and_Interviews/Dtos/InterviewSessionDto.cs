@@ -2,7 +2,7 @@
 {
     using System;
 
-    public record InterviewSessionDto
+    public class InterviewSessionDto
     {
         /// <summary>
         /// Gets or sets the unique identifier for the entity.

@@ -28,5 +28,12 @@
         /// <param name="skillLinks">The list of skill links associated with the job posting.</param>
         /// <returns>The unique identifier of the newly added job posting.</returns>
         int AddJob(JobPosting jobPosting, int companyId, IReadOnlyList<(int SkillId, int RequiredPercentage)> skillLinks);
+
+        /// <summary>
+        /// Retrieves all skills linked to a specific job posting.
+        /// </summary>
+        /// <param name="jobId">The unique identifier of the job posting.</param>
+        /// <returns>A read-only list of skill links with required percentages.</returns>
+        IReadOnlyList<(int SkillId, int RequiredPercentage)> GetSkillsByJob(int jobId);
     }
 }

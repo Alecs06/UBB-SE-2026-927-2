@@ -1,29 +1,29 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.DependencyInjection;
-using Tests_and_Interviews.Repositories.Interfaces;
-using Tests_and_Interviews.Services.Interfaces;
-using Tests_and_Interviews.Models;
-
+// <copyright file="EventsService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 namespace Tests_and_Interviews.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Linq;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading.Tasks;
+    using Tests_and_Interviews.Api;
+    using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Mappers;
+    using Tests_and_Interviews.Models;
+    using Tests_and_Interviews.Services.Interfaces;
+    using Tests_and_Interviews_API.Mappers;
+
     public class EventsService : IEventsService
     {
-        private IEventsRepo eventsRepository;
-        // Company company
-
         /// <summary>
         /// Events service constructor
         /// </summary>
-        /// <param name="eventsRepo"> events repository </param>
-        public EventsService(IEventsRepo eventsRepo) // Company Company
+        public EventsService()
         {
-            this.eventsRepository = eventsRepo;
-            // this.company = Company
         }
 
         /// <summary>
@@ -36,26 +36,35 @@ namespace Tests_and_Interviews.Services
         /// <param name="eventEndDate"> the event's ending date </param>
         /// <param name="eventLocation"> the event's location </param>
         /// <param name="collaborators"> a list of all the companies collaborating on the event </param>
-        public Event AddEvent(string eventPhoto, string eventTitle, string eventDescription, DateTime eventStartDate, DateTime eventEndDate, string eventLocation, int hostId, List<Company> collaborators)
+        public async Task<Event> AddEvent(string eventPhoto, string eventTitle, string eventDescription, DateTime eventStartDate, DateTime eventEndDate, string eventLocation, int hostId, List<Company> collaborators)
         {
             Event eventToBeAdded = new Event(eventPhoto, eventTitle, eventDescription,
                 eventStartDate, eventEndDate, eventLocation, hostId);
+
+            HttpResponseMessage eventResponse = await ApiClient.Http.PostAsJsonAsync(
+                "events",
+                eventToBeAdded.ToDto());
+            eventResponse.EnsureSuccessStatusCode();
+            EventDto? createdDto = await eventResponse.Content.ReadFromJsonAsync<EventDto>();
+            Event createdEvent = createdDto!.ToEntity();
 
             if (collaborators != null)
             {
                 foreach (var company in collaborators)
                 {
-                    eventToBeAdded.Collaborators.Add(new Collaborator
+                    CollaboratorDto collaboratorDto = new CollaboratorDto
                     {
+                        EventId = createdEvent.Id,
                         CompanyId = company.CompanyId,
-                        Company = company,
-                        Event = eventToBeAdded
-                    });
+                    };
+                    HttpResponseMessage collaboratorResponse = await ApiClient.Http.PostAsJsonAsync(
+                        $"collaborators?loggedInUserID={hostId}",
+                        collaboratorDto);
+                    collaboratorResponse.EnsureSuccessStatusCode();
                 }
             }
 
-            this.eventsRepository.AddEventToRepo(eventToBeAdded);
-            return eventToBeAdded;
+            return createdEvent;
         }
 
         /// <summary>
@@ -68,36 +77,58 @@ namespace Tests_and_Interviews.Services
         /// <param name="newEventStartDate"> the updated starting date of the event </param>
         /// <param name="newEventEndDate"> the updated ending date of the event </param>
         /// <param name="newEventLocation"> the updated location of the event </param>
-        public void UpdateEvent(int eventIdToBeUpdated, string newEventPhoto, string newEventTitle, string newEventDescription, DateTime newEventStartDate, DateTime newEventEndDate, string newEventLocation)
+        public async Task UpdateEvent(int eventIdToBeUpdated, string newEventPhoto, string newEventTitle, string newEventDescription, DateTime newEventStartDate, DateTime newEventEndDate, string newEventLocation)
         {
-            this.eventsRepository.UpdateEventToRepo(eventIdToBeUpdated, newEventPhoto, newEventTitle, newEventDescription, newEventStartDate, newEventEndDate, newEventLocation);
+            EventDto dto = new EventDto
+            {
+                Id = eventIdToBeUpdated,
+                Photo = newEventPhoto,
+                Title = newEventTitle,
+                Description = newEventDescription,
+                StartDate = newEventStartDate,
+                EndDate = newEventEndDate,
+                Location = newEventLocation,
+            };
+            HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+                $"events/{eventIdToBeUpdated}",
+                dto);
+            response.EnsureSuccessStatusCode();
         }
 
         /// <summary>
         /// Function that deletes an event
         /// </summary>
         /// <param name="eventToBeRemoved"> event selected to be removed </param>
-        public void DeleteEvent(Event eventToBeRemoved)
+        public async Task DeleteEvent(Event eventToBeRemoved)
         {
-            this.eventsRepository.RemoveEventFromRepo(eventToBeRemoved);
+            HttpResponseMessage response = await ApiClient.Http.DeleteAsync($"events/{eventToBeRemoved.Id}");
+            response.EnsureSuccessStatusCode();
         }
 
         /// <summary>
         /// Function that returns a collection of all the current events
         /// </summary>
         /// <returns> ObservableCollection of the current events </returns>
-        public ObservableCollection<Event> GetCurrentEvents(int loggedInUserID)
+        public async Task<ObservableCollection<Event>> GetCurrentEvents(int loggedInUserID)
         {
-            return this.eventsRepository.GetCurrentEventsFromRepo(loggedInUserID);
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"events/current/{loggedInUserID}");
+            response.EnsureSuccessStatusCode();
+            List<EventDto>? dtos = await response.Content.ReadFromJsonAsync<List<EventDto>>();
+            return new ObservableCollection<Event>(
+                dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Event>());
         }
 
         /// <summary>
         /// Function that returns a collection of all the past events
         /// </summary>
         /// <returns> ObservableCollection of the past events </returns>
-        public ObservableCollection<Event> GetPastEvents(int loggedInUserID)
+        public async Task<ObservableCollection<Event>> GetPastEvents(int loggedInUserID)
         {
-            return this.eventsRepository.GetPastEventsFromRepo(loggedInUserID);
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"events/past/{loggedInUserID}");
+            response.EnsureSuccessStatusCode();
+            List<EventDto>? dtos = await response.Content.ReadFromJsonAsync<List<EventDto>>();
+            return new ObservableCollection<Event>(
+                dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Event>());
         }
     }
 }

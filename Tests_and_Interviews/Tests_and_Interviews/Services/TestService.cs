@@ -1,17 +1,19 @@
 // <copyright file="TestService.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
-
 namespace Tests_and_Interviews.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Net.Http;
+    using System.Net.Http.Json;
     using System.Threading.Tasks;
+    using Tests_and_Interviews.Api;
     using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Mappers;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
@@ -20,9 +22,6 @@ namespace Tests_and_Interviews.Services
     /// </summary>
     public class TestService : ITestService
     {
-        private readonly ITestRepository testRepository;
-        private readonly ITestAttemptRepository attemptRepository;
-        private readonly IAnswerRepository answerRepository;
         private readonly IGradingService gradingService;
         private readonly ITimerService timerService;
         private readonly IAttemptValidationService validationService;
@@ -31,25 +30,16 @@ namespace Tests_and_Interviews.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="TestService"/> class with the specified dependencies.
         /// </summary>
-        /// <param name="testRepository">The repository for accessing test data.</param>
-        /// <param name="attemptRepository">The repository for managing test attempts.</param>
-        /// <param name="answerRepository">The repository for managing answers.</param>
         /// <param name="gradingService">The service responsible for grading answers.</param>
         /// <param name="timerService">The service responsible for managing test timers.</param>
         /// <param name="validationService">The service responsible for validating test attempts.</param>
         /// <param name="dataProcessingService">The service responsible for processing test data.</param>
         public TestService(
-            ITestRepository testRepository,
-            ITestAttemptRepository attemptRepository,
-            IAnswerRepository answerRepository,
             IGradingService gradingService,
             ITimerService timerService,
             IAttemptValidationService validationService,
             IDataProcessingService dataProcessingService)
         {
-            this.testRepository = testRepository;
-            this.attemptRepository = attemptRepository;
-            this.answerRepository = answerRepository;
             this.gradingService = gradingService;
             this.timerService = timerService;
             this.validationService = validationService;
@@ -65,7 +55,6 @@ namespace Tests_and_Interviews.Services
         public async Task StartTestAsync(int userId, int testId)
         {
             await this.validationService.CheckExistingAttemptsAsync(userId, testId);
-
             var attempt = new TestAttempt
             {
                 TestId = testId,
@@ -73,10 +62,12 @@ namespace Tests_and_Interviews.Services
                 Status = TestStatus.IN_PROGRESS.ToString(),
                 StartedAt = DateTime.UtcNow,
             };
-
             attempt.Start();
-            await this.attemptRepository.SaveAsync(attempt);
-            this.timerService.StartTimer(attempt.Id);
+            HttpResponseMessage saveResponse = await ApiClient.Http.PostAsJsonAsync("testattempts", attempt.ToDto());
+            saveResponse.EnsureSuccessStatusCode();
+            TestAttemptDto? savedDto = await saveResponse.Content.ReadFromJsonAsync<TestAttemptDto>();
+            int attemptId = savedDto!.ToEntity().Id;
+            this.timerService.StartTimer(attemptId);
         }
 
         /// <summary>
@@ -86,13 +77,19 @@ namespace Tests_and_Interviews.Services
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task SubmitTestAsync(int attemptId)
         {
-            var attempt = await this.attemptRepository.FindByIdAsync(attemptId);
-            if (attempt == null)
+            HttpResponseMessage attemptResponse = await ApiClient.Http.GetAsync($"testattempts/{attemptId}");
+            attemptResponse.EnsureSuccessStatusCode();
+            TestAttemptDto? attemptDto = await attemptResponse.Content.ReadFromJsonAsync<TestAttemptDto>();
+            if (attemptDto == null)
             {
                 throw new InvalidOperationException($"Attempt {attemptId} not found.");
             }
+            TestAttempt attempt = attemptDto.ToEntity();
 
-            var answers = attempt.Answers; // already included
+            HttpResponseMessage answersResponse = await ApiClient.Http.GetAsync($"answers/byattempt/{attemptId}");
+            answersResponse.EnsureSuccessStatusCode();
+            List<AnswerDto>? answerDtos = await answersResponse.Content.ReadFromJsonAsync<List<AnswerDto>>();
+            List<Answer> answers = answerDtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Answer>();
 
             foreach (var answer in answers)
             {
@@ -100,7 +97,6 @@ namespace Tests_and_Interviews.Services
                 {
                     continue;
                 }
-
                 switch (answer.Question.Type)
                 {
                     case QuestionType.SINGLE_CHOICE:
@@ -120,7 +116,10 @@ namespace Tests_and_Interviews.Services
 
             this.gradingService.CalculateFinalScore(attempt);
             attempt.Submit();
-            await this.attemptRepository.UpdateAsync(attempt);
+            HttpResponseMessage updateResponse = await ApiClient.Http.PutAsJsonAsync(
+                $"testattempts/{attempt.Id}",
+                attempt.ToDto());
+            updateResponse.EnsureSuccessStatusCode();
         }
 
         /// <summary>
@@ -130,14 +129,14 @@ namespace Tests_and_Interviews.Services
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task<Test?> GetNextAvailableTestAsync(string category)
         {
-            var tests = await this.testRepository.FindTestsByCategoryAsync(category);
-
-            if (tests.Count == 0)
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"tests/bycategory/{category}");
+            response.EnsureSuccessStatusCode();
+            List<TestDto>? dtos = await response.Content.ReadFromJsonAsync<List<TestDto>>();
+            if (dtos == null || dtos.Count == 0)
             {
                 return null;
             }
-
-            return tests[0];
+            return dtos[0].ToEntity();
         }
 
         /// <summary>
@@ -150,13 +149,17 @@ namespace Tests_and_Interviews.Services
         /// <returns>The final score as a float.</returns>
         public async Task<float> SubmitAttemptAsync(int userId, int testId, IEnumerable<AnswerDto> answers)
         {
-            var attempt = await this.attemptRepository.FindByUserAndTestAsync(userId, testId);
-            if (attempt == null)
+            HttpResponseMessage attemptResponse = await ApiClient.Http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
+            if (!attemptResponse.IsSuccessStatusCode)
             {
                 return 0f;
             }
-
-            var attemptId = attempt.Id;
+            TestAttemptDto? attemptDto = await attemptResponse.Content.ReadFromJsonAsync<TestAttemptDto>();
+            if (attemptDto == null)
+            {
+                return 0f;
+            }
+            int attemptId = attemptDto.ToEntity().Id;
 
             foreach (var answerDto in answers)
             {
@@ -164,23 +167,26 @@ namespace Tests_and_Interviews.Services
                 {
                     continue;
                 }
-
                 var answer = new Answer
                 {
                     AttemptId = attemptId,
                     QuestionId = answerDto.QuestionId,
                     Value = answerDto.Value,
                 };
-
-                await this.answerRepository.SaveAsync(answer);
+                HttpResponseMessage saveResponse = await ApiClient.Http.PostAsJsonAsync("answers", answer.ToDto());
+                saveResponse.EnsureSuccessStatusCode();
             }
 
             await this.SubmitTestAsync(attemptId);
-
             await this.dataProcessingService.ProcessFinalizedAttemptAsync(attemptId);
 
-            var finalAttempt = await this.attemptRepository.FindByUserAndTestAsync(userId, testId);
-            return finalAttempt != null ? (float)(finalAttempt.Score ?? 0m) : 0f;
+            HttpResponseMessage finalResponse = await ApiClient.Http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
+            if (!finalResponse.IsSuccessStatusCode)
+            {
+                return 0f;
+            }
+            TestAttemptDto? finalDto = await finalResponse.Content.ReadFromJsonAsync<TestAttemptDto>();
+            return finalDto != null ? (float)(finalDto.ToEntity().Score ?? 0m) : 0f;
         }
     }
 }

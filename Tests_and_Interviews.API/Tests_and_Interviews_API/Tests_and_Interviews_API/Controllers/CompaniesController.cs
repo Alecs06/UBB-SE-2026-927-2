@@ -79,5 +79,30 @@
 
             return Ok(new { message = "Company removed successfully" });
         }
+
+        [HttpGet("{companyId}/game")]
+        public ActionResult<GameDto> GetGame(int companyId)
+        {
+            GameDto? gameDto = this._service.GetGame(companyId);
+            if (gameDto == null)
+            {
+                return NotFound();
+            }
+            return Ok(gameDto);
+        }
+
+        [HttpPut("{companyId}/game")]
+        public ActionResult SaveGame(int companyId, [FromBody] GameDto gameDto)
+        {
+            try
+            {
+                this._service.SaveGame(companyId, gameDto);
+                return Ok();
+            }
+            catch (InvalidOperationException e)
+            {
+                return NotFound(e.Message);
+            }
+        }
     }
 }

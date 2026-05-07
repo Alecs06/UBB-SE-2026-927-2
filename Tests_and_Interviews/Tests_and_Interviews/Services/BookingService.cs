@@ -1,18 +1,20 @@
 ﻿// <copyright file="BookingService.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
-
 namespace Tests_and_Interviews.Services
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading.Tasks;
+    using Tests_and_Interviews.Api;
+    using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Mappers;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
@@ -23,26 +25,10 @@ namespace Tests_and_Interviews.Services
         private const int MINIMUMPOSITIONID = 0;
         private const int MINIMUMINTERVIEWSCORE = 0;
 
-        private readonly ISlotRepository slotRepo;
-        private readonly IInterviewSessionRepository interviewRepo;
-
         /// <summary>
-        /// Initializes a new instance of the <see cref="BookingService"/> class with the specified repositories.
+        /// Initializes a new instance of the <see cref="BookingService"/> class.
         /// </summary>
-        /// <param name="slotRepository">The slot repository to be used by the service.</param>
-        /// <param name="interviewSessionRepository">The interview session repository to be used by the service.</param>
-        public BookingService(ISlotRepository slotRepository, IInterviewSessionRepository interviewSessionRepository)
-        {
-            this.slotRepo = slotRepository;
-            this.interviewRepo = interviewSessionRepository;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BookingService"/> class with default repositories.
-        /// </summary>
-        [ExcludeFromCodeCoverage]
         public BookingService()
-            : this(new SlotRepository(), new InterviewSessionRepository())
         {
         }
 
@@ -52,13 +38,16 @@ namespace Tests_and_Interviews.Services
         /// <param name="recruiterId"> Id of the recruiter.</param>
         /// <param name="date"> The date for which to retrieve available slots.</param>
         /// <returns> A list of available slots for the specified recruiter and date.</returns>
-        public List<Slot> GetAvailableSlots(int recruiterId, DateTime date)
+        public async Task<List<Slot>> GetAvailableSlots(int recruiterId, DateTime date)
         {
-            return this.slotRepo
-                .GetSlots(recruiterId, date)
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"recruiter/{recruiterId}/date?date={date:O}");
+            response.EnsureSuccessStatusCode();
+            List<SlotDto>? dtos = await response.Content.ReadFromJsonAsync<List<SlotDto>>();
+            return dtos?
+                .Select(dto => dto.ToEntity())
                 .Where(slot => slot.Status == SlotStatus.Free)
                 .OrderBy(slot => slot.StartTime)
-                .ToList();
+                .ToList() ?? new List<Slot>();
         }
 
         /// <summary>
@@ -66,13 +55,16 @@ namespace Tests_and_Interviews.Services
         /// </summary>
         /// <param name="recruiterId"> Id of the recruiter.</param>
         /// <returns> A list of all available slots for the specified recruiter.</returns>
-        public List<Slot> GetAvailableSlotsByRecruiterId(int recruiterId)
+        public async Task<List<Slot>> GetAvailableSlotsByRecruiterId(int recruiterId)
         {
-            return this.slotRepo
-                .GetAllSlots(recruiterId)
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"recruiter/{recruiterId}");
+            response.EnsureSuccessStatusCode();
+            List<SlotDto>? dtos = await response.Content.ReadFromJsonAsync<List<SlotDto>>();
+            return dtos?
+                .Select(dto => dto.ToEntity())
                 .Where(slot => slot.Status == SlotStatus.Free)
                 .OrderBy(slot => slot.StartTime)
-                .ToList();
+                .ToList() ?? new List<Slot>();
         }
 
         /// <summary>
@@ -81,13 +73,12 @@ namespace Tests_and_Interviews.Services
         /// <param name="candidateId"> Id of the candidate.</param>
         /// <param name="slot"> The slot to be booked.</param>
         /// <exception cref="Exception"> Thrown when the slot is not found or is no longer available.</exception>
-        public void ConfirmBooking(int candidateId, Slot slot)
+        public async Task ConfirmBooking(int candidateId, Slot slot)
         {
             if (slot == null)
             {
                 throw new Exception("Slot not found");
             }
-
             if (slot.Status != SlotStatus.Free)
             {
                 throw new Exception("This slot is no longer available");
@@ -97,7 +88,10 @@ namespace Tests_and_Interviews.Services
             slot.CandidateId = candidateId;
             slot.InterviewType = string.Empty;
 
-            this.slotRepo.Update(slot);
+            HttpResponseMessage slotResponse = await ApiClient.Http.PutAsJsonAsync(
+                $"slots/{slot.Id}",
+                slot.ToDto());
+            slotResponse.EnsureSuccessStatusCode();
 
             InterviewSession newInterviewSession = new InterviewSession
             {
@@ -110,7 +104,10 @@ namespace Tests_and_Interviews.Services
                 Score = MINIMUMINTERVIEWSCORE,
             };
 
-            this.interviewRepo.Add(newInterviewSession);
+            HttpResponseMessage sessionResponse = await ApiClient.Http.PostAsJsonAsync(
+                "interviewsessions",
+                newInterviewSession.ToDto());
+            sessionResponse.EnsureSuccessStatusCode();
         }
     }
 }

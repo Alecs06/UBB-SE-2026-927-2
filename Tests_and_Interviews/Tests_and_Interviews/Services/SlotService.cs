@@ -1,34 +1,31 @@
 ﻿// <copyright file="SlotService.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
-
 namespace Tests_and_Interviews.Services
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net.Http;
+    using System.Net.Http.Json;
     using System.Threading.Tasks;
+    using Tests_and_Interviews.Api;
     using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Helpers;
     using Tests_and_Interviews.Mappers;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories.Interfaces;
 
     /// <summary>
     /// Provides operations for managing recruiter slots, including retrieval and creation of slots.
     /// </summary>
     public class SlotService : ISlotService
     {
-        private readonly ISlotRepository slotRepository;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="SlotService"/> class.
         /// </summary>
-        /// <param name="slotRepository">The repository used for slot data operations.</param>
-        public SlotService(ISlotRepository slotRepository)
+        public SlotService()
         {
-            this.slotRepository = slotRepository;
         }
 
         /// <summary>
@@ -41,17 +38,18 @@ namespace Tests_and_Interviews.Services
         /// recruiter and date.</returns>
         public async Task<List<SlotDto>> LoadRecruiterVisibleSlotsAsync(int recruitedId, DateTime date)
         {
-            var existing = await this.slotRepository.GetSlotsAsync(recruitedId, date);
-            var visibleSlots = new List<Slot>();
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"recruiter/{recruitedId}/date?date={date:O}");
+            response.EnsureSuccessStatusCode();
+            List<SlotDto>? dtos = await response.Content.ReadFromJsonAsync<List<SlotDto>>();
+            List<Slot> existing = dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Slot>();
 
+            var visibleSlots = new List<Slot>();
             var currentTime = date.AddHours(8);
             var endOfDay = date.AddHours(18);
-
             while (currentTime < endOfDay)
             {
                 var overlappingSlot = existing.FirstOrDefault(s =>
                     s.StartTime < currentTime.AddMinutes(30) && s.EndTime > currentTime);
-
                 if (overlappingSlot != null)
                 {
                     visibleSlots.Add(overlappingSlot);
@@ -68,11 +66,9 @@ namespace Tests_and_Interviews.Services
                         Status = SlotStatus.Free,
                         InterviewType = string.Empty,
                     });
-
                     currentTime = currentTime.AddMinutes(30);
                 }
             }
-
             return visibleSlots.Select(slot => slot.ToDto()).ToList();
         }
 
@@ -93,8 +89,8 @@ namespace Tests_and_Interviews.Services
                 Status = SlotStatus.Free,
                 InterviewType = "Available",
             };
-
-            await this.slotRepository.AddAsync(newSlot);
+            HttpResponseMessage response = await ApiClient.Http.PostAsJsonAsync("slots", newSlot.ToDto());
+            response.EnsureSuccessStatusCode();
         }
 
         /// <summary>
@@ -104,7 +100,8 @@ namespace Tests_and_Interviews.Services
         /// <returns>A task that represents the asynchronous delete operation.</returns>
         public async Task DeleteRecruiterSlotAsync(int id)
         {
-            await this.slotRepository.DeleteAsync(id);
+            HttpResponseMessage response = await ApiClient.Http.DeleteAsync($"slots/{id}");
+            response.EnsureSuccessStatusCode();
         }
 
         /// <summary>
@@ -121,7 +118,6 @@ namespace Tests_and_Interviews.Services
             {
                 throw new Exception("Slots should be between hours 8 and 18.");
             }
-
             var newSlot = new Slot
             {
                 Id = initialSlot.Id,
@@ -129,8 +125,10 @@ namespace Tests_and_Interviews.Services
                 StartTime = startTime,
                 EndTime = startTime.AddMinutes(duration),
             };
-
-            await this.slotRepository.UpdateAsync(newSlot);
+            HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+                $"slots/{newSlot.Id}",
+                newSlot.ToDto());
+            response.EnsureSuccessStatusCode();
         }
     }
 }
