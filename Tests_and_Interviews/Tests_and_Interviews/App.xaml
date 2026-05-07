@@ -7,6 +7,9 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="ms-appx:///Resources/Styles/SharedColors.xaml" />
+                <ResourceDictionary Source="ms-appx:///Resources/Styles/SharedTextStyles.xaml" />
+                <ResourceDictionary Source="ms-appx:///Resources/Styles/SharedButtonStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

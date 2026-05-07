@@ -1,3 +1,5 @@
+namespace Tests_and_Interviews.ViewModels;
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,30 +11,58 @@ using Tests_and_Interviews.Repositories.Interfaces;
 using Tests_and_Interviews.Services;
 using Tests_and_Interviews.Services.Interfaces;
 using Tests_and_Interviews.Validators;
-using Tests_and_Interviews.ViewModels;
 
-namespace Tests_and_Interviews.ViewModels;
-
+/// <summary>
+/// Represents a row in the collaborators preview list for a company profile.
+/// </summary>
 public sealed class CompanyCollabListRow
 {
+    /// <summary>
+    /// Gets or sets the name of the collaborator.
+    /// </summary>
     public string Name { get; set; } = string.Empty;
 }
 
-/// <summary>Rows for the "Posted jobs" / "Events" preview lists on the company view profile page.</summary>
+/// <summary>
+/// Rows for the "Posted jobs" / "Events" preview lists on the company view profile page.
+/// </summary>
 public sealed class CompanyProfileListRow
 {
+    /// <summary>
+    /// Gets or sets the title of the job or event.
+    /// </summary>
     public string Title { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the subtitle (description) of the job or event.
+    /// </summary>
     public string Subtitle { get; set; } = string.Empty;
 }
 
-/// <summary>One trending skill row for the statistics sidebar (frontend display; fill from analytics later).</summary>
+/// <summary>
+/// One trending skill row for the statistics sidebar (frontend display; fill from analytics later).
+/// </summary>
 public sealed class CompanyTrendingSkillRow
 {
+    /// <summary>
+    /// Gets or sets the rank of the trending skill.
+    /// </summary>
     public string Rank { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the name of the skill.
+    /// </summary>
     public string SkillName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the detail or percentage of the skill.
+    /// </summary>
     public string Detail { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// ViewModel for the Company Profile view, handling presentation logic and statistical summaries.
+/// </summary>
 public partial class CompanyProfileViewModel : ObservableObject
 {
     private const int MaximumTopJobsCount = 3;
@@ -71,91 +101,188 @@ public partial class CompanyProfileViewModel : ObservableObject
 
     private int currentScenarioIndex;
 
+    /// <summary>
+    /// Gets or sets the action to perform when the profile image is successfully decoded.
+    /// </summary>
     public Action<byte[]>? OnProfileImageDecoded { get; set; }
+
+    /// <summary>
+    /// Gets or sets the action to perform when the profile image fails to load or is empty.
+    /// </summary>
     public Action? OnProfileImageCleared { get; set; }
+
+    /// <summary>
+    /// Gets or sets the action to perform when the company logo is successfully decoded.
+    /// </summary>
     public Action<byte[]>? OnLogoDecoded { get; set; }
+
+    /// <summary>
+    /// Gets or sets the action to perform when the company logo fails to load or is empty.
+    /// </summary>
     public Action? OnLogoCleared { get; set; }
 
+    /// <summary>
+    /// Gets or sets the hint text for the profile picture.
+    /// </summary>
     [ObservableProperty]
     private string profilePictureHintText = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the hint text for the company logo.
+    /// </summary>
     [ObservableProperty]
     private string companyLogoHintText = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the current scenario question being asked.
+    /// </summary>
     [ObservableProperty]
     private string currentQuestion = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the choices available for the current scenario.
+    /// </summary>
     [ObservableProperty]
     private ObservableCollection<string> currentChoices = new ();
 
+    /// <summary>
+    /// Gets or sets the feedback provided based on the scenario choice.
+    /// </summary>
     [ObservableProperty]
     private string feedback = string.Empty;
 
-    public string BuddyImagePath => BuddyImageProvider.GetImagePathById(gameService.GetBuddyId());
+    /// <summary>
+    /// Gets the image path for the buddy based on the current game buddy ID.
+    /// </summary>
+    public string BuddyImagePath => BuddyImageProvider.GetImagePathById(this.gameService.GetBuddyId());
 
+    /// <summary>
+    /// Gets or sets the welcome message from the buddy interacting in the game.
+    /// </summary>
     [ObservableProperty]
     private string welcomeMessage = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the current game state for the scenario interactions.
+    /// </summary>
     [ObservableProperty]
     private GameState currentState = GameState.NotCompleted;
 
+    /// <summary>
+    /// Gets or sets the current company being viewed.
+    /// </summary>
     [ObservableProperty]
     private Company? company;
 
+    /// <summary>
+    /// Gets or sets the message explaining load state or errors.
+    /// </summary>
     [ObservableProperty]
     private string loadMessage = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the profile completion percentage.
+    /// </summary>
     [ObservableProperty]
     private int completionPercentage;
 
+    /// <summary>
+    /// Gets or sets the count of completed profile tasks.
+    /// </summary>
     [ObservableProperty]
     private int completedTasksCount;
 
+    /// <summary>
+    /// Gets or sets the remaining tasks necessary to complete the profile.
+    /// </summary>
     [ObservableProperty]
     private ObservableCollection<string> remainingTasks = new ();
 
+    /// <summary>
+    /// Gets or sets the summary details of applicants.
+    /// </summary>
     [ObservableProperty]
     private string applicantSummary = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the collection of trending skills calculated for the company.
+    /// </summary>
     [ObservableProperty]
     private ObservableCollection<CompanyTrendingSkillRow> trendingSkills = new ();
 
+    /// <summary>
+    /// Gets the top 3 previews of jobs posted by the company.
+    /// </summary>
     public IEnumerable<CompanyProfileListRow> Top3JobPreviews =>
-        jobsRepository
+        this.jobsRepository
             .GetAllJobs()
             .Take(MaximumTopJobsCount)
             .Select(job => new CompanyProfileListRow
             {
                 Title = job.JobTitle,
-                Subtitle = job.JobDescription
+                Subtitle = job.JobDescription,
             });
 
+    /// <summary>
+    /// Gets the top 3 previews of upcoming events for the company.
+    /// </summary>
     public IEnumerable<CompanyProfileListRow> Top3EventPreviews =>
-        eventsService
-            .GetCurrentEvents(sessionService.LoggedInUser.CompanyId)
+        this.eventsService
+            .GetCurrentEvents(this.sessionService.LoggedInUser.CompanyId)
             .Take(MaximumTopEventsCount)
             .Select(eventItem => new CompanyProfileListRow
             {
                 Title = eventItem.Title,
-                Subtitle = eventItem.Description
+                Subtitle = eventItem.Description,
             });
 
+    /// <summary>
+    /// Gets the top 3 previews of collaborators associated with the company.
+    /// </summary>
     public IEnumerable<CompanyCollabListRow> Top3CollabsPreviews =>
-        collaboratorsService
-            .GetAllCollaborators(sessionService.LoggedInUser.CompanyId)
+        this.collaboratorsService
+            .GetAllCollaborators(this.sessionService.LoggedInUser.CompanyId)
             .Take(MaximumTopCollaboratorsCount)
             .Select(collaborator => new CompanyCollabListRow
             {
-                Name = collaborator.Name
+                Name = collaborator.Name,
             });
 
+    /// <summary>
+    /// Event triggered when navigation to all collaborators is requested.
+    /// </summary>
     public event EventHandler? NavigateAllCollaboratorRequested;
+
+    /// <summary>
+    /// Event triggered when navigation to profile editing is requested.
+    /// </summary>
     public event EventHandler? NavigateEditProfileRequested;
+
+    /// <summary>
+    /// Event triggered when navigation to view all events is requested.
+    /// </summary>
     public event EventHandler? NavigateAllEventsRequested;
+
+    /// <summary>
+    /// Event triggered when navigation to view all jobs is requested.
+    /// </summary>
     public event EventHandler? NavigateAllJobsRequested;
 
+    /// <summary>
+    /// Gets the ID of the company currently loaded in the profile.
+    /// </summary>
     public int CompanyId { get; private set; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CompanyProfileViewModel"/> class.
+    /// </summary>
+    /// <param name="companyService">The company service.</param>
+    /// <param name="calculator">The profile completion calculator.</param>
+    /// <param name="gameService">The game service.</param>
+    /// <param name="eventService">The events service.</param>
+    /// <param name="sessionService">The current session service.</param>
+    /// <param name="collaboratorsService">The collaborators service.</param>
+    /// <param name="jobsRepository">The jobs repository.</param>
     public CompanyProfileViewModel(
         ICompanyService companyService,
         IProfileCompletionCalculator calculator,
@@ -168,41 +295,45 @@ public partial class CompanyProfileViewModel : ObservableObject
         this.gameService = gameService;
         this.companyService = companyService;
         this.calculator = calculator;
-        eventsService = eventService;
+        this.eventsService = eventService;
         this.sessionService = sessionService;
         this.collaboratorsService = collaboratorsService;
         this.jobsRepository = jobsRepository;
     }
 
+    /// <summary>
+    /// Loads the data associated with the specified company ID.
+    /// </summary>
+    /// <param name="companyId">The ID of the company to load.</param>
     public void Load(int companyId)
     {
-        CompanyId = companyId;
-        Company = companyService.GetCompanyById(companyId);
-        if (Company is null)
+        this.CompanyId = companyId;
+        this.Company = this.companyService.GetCompanyById(companyId);
+        if (this.Company is null)
         {
-            LoadMessage = ProfileLoadErrorMessage;
-            CompletionPercentage = EmptyCompletionPercentage;
-            CompletedTasksCount = EmptyTaskCount;
-            RemainingTasks.Clear();
+            this.LoadMessage = ProfileLoadErrorMessage;
+            this.CompletionPercentage = EmptyCompletionPercentage;
+            this.CompletedTasksCount = EmptyTaskCount;
+            this.RemainingTasks.Clear();
             return;
         }
 
-        ApplicantSummary = calculator.ApplicantsMessage(companyId);
+        this.ApplicantSummary = this.calculator.ApplicantsMessage(companyId);
 
-        LoadMessage = string.Empty;
-        RefreshProfileStatistics();
-        FillPreviewSections();
-        ProcessImages();
-        GamePreview();
+        this.LoadMessage = string.Empty;
+        this.RefreshProfileStatistics();
+        this.FillPreviewSections();
+        this.ProcessImages();
+        this.GamePreview();
     }
 
     private void ProcessImages()
     {
-        var rawLogo = Company?.CompanyLogoPath ?? string.Empty;
+        var rawLogo = this.Company?.CompanyLogoPath ?? string.Empty;
         if (string.IsNullOrWhiteSpace(rawLogo))
         {
-            CompanyLogoHintText = HintNoLogo;
-            OnLogoCleared?.Invoke();
+            this.CompanyLogoHintText = HintNoLogo;
+            this.OnLogoCleared?.Invoke();
         }
         else if (rawLogo.StartsWith(DataUriPrefix, StringComparison.OrdinalIgnoreCase))
         {
@@ -213,32 +344,32 @@ public partial class CompanyProfileViewModel : ObservableObject
                 try
                 {
                     var bytes = Convert.FromBase64String(base64);
-                    CompanyLogoHintText = string.Empty;
-                    OnLogoDecoded?.Invoke(bytes);
+                    this.CompanyLogoHintText = string.Empty;
+                    this.OnLogoDecoded?.Invoke(bytes);
                 }
                 catch
                 {
-                    CompanyLogoHintText = HintLogoRenderError;
-                    OnLogoCleared?.Invoke();
+                    this.CompanyLogoHintText = HintLogoRenderError;
+                    this.OnLogoCleared?.Invoke();
                 }
             }
             else
             {
-                CompanyLogoHintText = HintLogoRenderError;
-                OnLogoCleared?.Invoke();
+                this.CompanyLogoHintText = HintLogoRenderError;
+                this.OnLogoCleared?.Invoke();
             }
         }
         else
         {
-            CompanyLogoHintText = HintLogoSet;
-            OnLogoCleared?.Invoke();
+            this.CompanyLogoHintText = HintLogoSet;
+            this.OnLogoCleared?.Invoke();
         }
 
-        var rawPic = Company?.ProfilePicturePath ?? string.Empty;
+        var rawPic = this.Company?.ProfilePicturePath ?? string.Empty;
         if (string.IsNullOrWhiteSpace(rawPic))
         {
-            ProfilePictureHintText = HintNoImage;
-            OnProfileImageCleared?.Invoke();
+            this.ProfilePictureHintText = HintNoImage;
+            this.OnProfileImageCleared?.Invoke();
         }
         else if (rawPic.StartsWith(DataUriPrefix, StringComparison.OrdinalIgnoreCase))
         {
@@ -249,194 +380,236 @@ public partial class CompanyProfileViewModel : ObservableObject
                 try
                 {
                     var bytes = Convert.FromBase64String(base64);
-                    ProfilePictureHintText = string.Empty;
-                    OnProfileImageDecoded?.Invoke(bytes);
+                    this.ProfilePictureHintText = string.Empty;
+                    this.OnProfileImageDecoded?.Invoke(bytes);
                 }
                 catch
                 {
-                    ProfilePictureHintText = HintImageRenderError;
-                    OnProfileImageCleared?.Invoke();
+                    this.ProfilePictureHintText = HintImageRenderError;
+                    this.OnProfileImageCleared?.Invoke();
                 }
             }
             else
             {
-                ProfilePictureHintText = HintImageRenderError;
-                OnProfileImageCleared?.Invoke();
+                this.ProfilePictureHintText = HintImageRenderError;
+                this.OnProfileImageCleared?.Invoke();
             }
         }
         else
         {
-            ProfilePictureHintText = HintImageSet;
-            OnProfileImageCleared?.Invoke();
+            this.ProfilePictureHintText = HintImageSet;
+            this.OnProfileImageCleared?.Invoke();
         }
     }
 
-    public void RefreshProfileStatistics()
+    /// <summary>
+    /// Refreshes the profile statistics and updates completion values.
+    /// </summary>
+    private void RefreshProfileStatistics()
     {
-        if (Company is null)
+        if (this.Company is null)
         {
             return;
         }
 
-        var (percentage, tasks) = calculator.Calculate(Company);
-        CompletionPercentage = percentage;
-        CompletedTasksCount = TotalProfileTasksCount - tasks.Count;
-        if (CompletedTasksCount < EmptyTaskCount)
+        var (percentage, tasks) = this.calculator.Calculate(this.Company);
+        this.CompletionPercentage = percentage;
+        this.CompletedTasksCount = TotalProfileTasksCount - tasks.Count;
+        if (this.CompletedTasksCount < EmptyTaskCount)
         {
-            CompletedTasksCount = EmptyTaskCount;
+            this.CompletedTasksCount = EmptyTaskCount;
         }
 
-        RemainingTasks.Clear();
+        this.RemainingTasks.Clear();
         foreach (var task in tasks)
         {
-            RemainingTasks.Add(task);
+            this.RemainingTasks.Add(task);
         }
     }
 
     private void FillPreviewSections()
     {
-        if (Company is null)
+        if (this.Company is null)
         {
             return;
         }
 
-        TrendingSkills.Clear();
-        var (skillNames, percents) = calculator.GetSkillsTop3(Company.CompanyId);
+        this.TrendingSkills.Clear();
+        var (skillNames, percents) = this.calculator.GetSkillsTop3(this.Company.CompanyId);
 
         for (int index = 0; index < MaximumTrendingSkillsCount; index++)
         {
             string skillName = index < skillNames.Count ? skillNames[index] : EmptySkillNameFallback;
             string percent = index < percents.Count ? $"{percents[index]}{FormattedSkillPercentageSuffix}" : EmptySkillPercentageFallback;
 
-            TrendingSkills.Add(new CompanyTrendingSkillRow
+            this.TrendingSkills.Add(new CompanyTrendingSkillRow
             {
                 Rank = (index + BaseDisplayRankOffset).ToString(),
                 SkillName = skillName,
-                Detail = percent
+                Detail = percent,
             });
         }
 
-        OnPropertyChanged(nameof(Top3JobPreviews));
-        OnPropertyChanged(nameof(Top3EventPreviews));
-        OnPropertyChanged(nameof(Top3CollabsPreviews));
+        this.OnPropertyChanged(nameof(this.Top3JobPreviews));
+        this.OnPropertyChanged(nameof(this.Top3EventPreviews));
+        this.OnPropertyChanged(nameof(this.Top3CollabsPreviews));
     }
 
     [RelayCommand]
     private void SeeAllCollaborators()
     {
-        NavigateAllCollaboratorRequested?.Invoke(this, EventArgs.Empty);
+        this.NavigateAllCollaboratorRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
     private void EditProfile()
     {
-        NavigateEditProfileRequested?.Invoke(this, EventArgs.Empty);
+        this.NavigateEditProfileRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
     private void SeeAllEvents()
     {
-        NavigateAllEventsRequested?.Invoke(this, EventArgs.Empty);
+        this.NavigateAllEventsRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
     private void SeeAllJobs()
     {
-        NavigateAllJobsRequested?.Invoke(this, EventArgs.Empty);
+        this.NavigateAllJobsRequested?.Invoke(this, EventArgs.Empty);
     }
 
     partial void OnCurrentStateChanged(GameState value)
     {
-        OnPropertyChanged(nameof(IncompleteGame));
-        OnPropertyChanged(nameof(IsStartVisible));
-        OnPropertyChanged(nameof(IsChoice1Visible));
-        OnPropertyChanged(nameof(IsReaction1Visible));
-        OnPropertyChanged(nameof(IsChoice2Visible));
-        OnPropertyChanged(nameof(IsReaction2Visible));
-        OnPropertyChanged(nameof(IsConclusionVisible));
-        OnPropertyChanged(nameof(IsChoiceActive));
-        OnPropertyChanged(nameof(IsReactionActive));
+        this.OnPropertyChanged(nameof(this.IncompleteGame));
+        this.OnPropertyChanged(nameof(this.IsStartVisible));
+        this.OnPropertyChanged(nameof(this.IsChoice1Visible));
+        this.OnPropertyChanged(nameof(this.IsReaction1Visible));
+        this.OnPropertyChanged(nameof(this.IsChoice2Visible));
+        this.OnPropertyChanged(nameof(this.IsReaction2Visible));
+        this.OnPropertyChanged(nameof(this.IsConclusionVisible));
+        this.OnPropertyChanged(nameof(this.IsChoiceActive));
+        this.OnPropertyChanged(nameof(this.IsReactionActive));
     }
 
-    public bool IncompleteGame => CurrentState == GameState.NotCompleted;
-    public bool IsStartVisible => CurrentState == GameState.Start;
-    public bool IsChoice1Visible => CurrentState == GameState.Choices1;
-    public bool IsReaction1Visible => CurrentState == GameState.Reaction1;
-    public bool IsChoice2Visible => CurrentState == GameState.Choices2;
-    public bool IsReaction2Visible => CurrentState == GameState.Reaction2;
-    public bool IsConclusionVisible => CurrentState == GameState.Conclusion;
+    /// <summary>
+    /// Gets a value indicating whether the game is currently incomplete.
+    /// </summary>
+    public bool IncompleteGame => this.CurrentState == GameState.NotCompleted;
 
-    public bool IsChoiceActive => IsChoice1Visible || IsChoice2Visible;
-    public bool IsReactionActive => IsReaction1Visible || IsReaction2Visible;
+    /// <summary>
+    /// Gets a value indicating whether the start state is visible.
+    /// </summary>
+    public bool IsStartVisible => this.CurrentState == GameState.Start;
+
+    /// <summary>
+    /// Gets a value indicating whether the first choice set is visible.
+    /// </summary>
+    public bool IsChoice1Visible => this.CurrentState == GameState.Choices1;
+
+    /// <summary>
+    /// Gets a value indicating whether the first reaction is visible.
+    /// </summary>
+    public bool IsReaction1Visible => this.CurrentState == GameState.Reaction1;
+
+    /// <summary>
+    /// Gets a value indicating whether the second choice set is visible.
+    /// </summary>
+    public bool IsChoice2Visible => this.CurrentState == GameState.Choices2;
+
+    /// <summary>
+    /// Gets a value indicating whether the second reaction is visible.
+    /// </summary>
+    public bool IsReaction2Visible => this.CurrentState == GameState.Reaction2;
+
+    /// <summary>
+    /// Gets a value indicating whether the conclusion of the game is visible.
+    /// </summary>
+    public bool IsConclusionVisible => this.CurrentState == GameState.Conclusion;
+
+    /// <summary>
+    /// Gets a value indicating whether any choice state is currently active.
+    /// </summary>
+    public bool IsChoiceActive => this.IsChoice1Visible || this.IsChoice2Visible;
+
+    /// <summary>
+    /// Gets a value indicating whether any reaction state is currently active.
+    /// </summary>
+    public bool IsReactionActive => this.IsReaction1Visible || this.IsReaction2Visible;
 
     private void UpdateScenario()
     {
-        if (currentScenarioIndex < MaximumScenarioCount)
+        if (this.currentScenarioIndex < MaximumScenarioCount)
         {
-            CurrentQuestion = gameService.ShowScenarioText(currentScenarioIndex);
+            this.CurrentQuestion = this.gameService.ShowScenarioText(this.currentScenarioIndex);
 
-            CurrentChoices.Clear();
-            var choices = gameService.ShowChoices(currentScenarioIndex);
+            this.CurrentChoices.Clear();
+            var choices = this.gameService.ShowChoices(this.currentScenarioIndex);
             foreach (var choice in choices)
             {
-                CurrentChoices.Add(choice);
+                this.CurrentChoices.Add(choice);
             }
         }
     }
 
-    public void GamePreview()
+    /// <summary>
+    /// Initializes and previews the game states.
+    /// </summary>
+    private void GamePreview()
     {
-        if (gameService.IsPublished())
+        if (this.gameService.IsPublished())
         {
-            WelcomeMessage = gameService.ShowCoworker();
-            CurrentState = GameState.Start;
-            currentScenarioIndex = InitialScenarioIndex;
-            UpdateScenario();
+            this.WelcomeMessage = this.gameService.ShowCoworker();
+            this.CurrentState = GameState.Start;
+            this.currentScenarioIndex = InitialScenarioIndex;
+            this.UpdateScenario();
         }
     }
 
     [RelayCommand]
     private void RetryGame()
     {
-        GamePreview();
+        this.GamePreview();
     }
 
     [RelayCommand]
     private void StartGame()
     {
-        CurrentState = GameState.Choices1;
+        this.CurrentState = GameState.Choices1;
     }
 
     [RelayCommand]
     private void SelectChoice(string? choiceText)
     {
-        if (string.IsNullOrEmpty(choiceText) || CurrentChoices == null)
+        if (string.IsNullOrEmpty(choiceText) || this.CurrentChoices == null)
         {
             return;
         }
-        int adviceIndex = CurrentChoices.IndexOf(choiceText);
+
+        int adviceIndex = this.CurrentChoices.IndexOf(choiceText);
         if (adviceIndex < 0)
         {
             return;
         }
-        Feedback = gameService.ChoiceMade(currentScenarioIndex, adviceIndex);
-        CurrentState = currentScenarioIndex == InitialScenarioIndex ? GameState.Reaction1 : GameState.Reaction2;
+
+        this.Feedback = this.gameService.ChoiceMade(this.currentScenarioIndex, adviceIndex);
+        this.CurrentState = this.currentScenarioIndex == InitialScenarioIndex ? GameState.Reaction1 : GameState.Reaction2;
     }
 
     [RelayCommand]
     private void GoToNextStep()
     {
-        currentScenarioIndex++;
+        this.currentScenarioIndex++;
 
-        if (currentScenarioIndex < MaximumScenarioCount)
+        if (this.currentScenarioIndex < MaximumScenarioCount)
         {
-            UpdateScenario();
-            CurrentState = GameState.Choices2;
+            this.UpdateScenario();
+            this.CurrentState = GameState.Choices2;
         }
         else
         {
-            Feedback = gameService.ShowConclusion();
-            CurrentState = GameState.Conclusion;
+            this.Feedback = this.gameService.ShowConclusion();
+            this.CurrentState = GameState.Conclusion;
         }
     }
 }

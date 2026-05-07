@@ -1,65 +1,80 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
-using System;
-using System.Linq;
-using Tests_and_Interviews.Repositories;
-using Tests_and_Interviews.ViewModels;
-
 namespace Tests_and_Interviews.Views
 {
+    using System;
+    using System.Linq;
+    using Microsoft.UI.Xaml;
+    using Microsoft.UI.Xaml.Controls;
+    using Microsoft.UI.Xaml.Input;
+    using Microsoft.UI.Xaml.Navigation;
+    using Tests_and_Interviews.Repositories;
+    using Tests_and_Interviews.ViewModels;
+
     public sealed partial class RecruiterTestsPage : Page
     {
-        public MainTestViewModel ViewModel { get; }
-
         public RecruiterTestsPage()
         {
-            InitializeComponent();
-            ViewModel = new MainTestViewModel(new TestRepository());
+            this.InitializeComponent();
+            this.ViewModel = new MainTestViewModel(new TestRepository());
         }
 
-        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        public MainTestViewModel ViewModel { get; }
+
+        protected override async void OnNavigatedTo(NavigationEventArgs eventArgs)
         {
-            base.OnNavigatedTo(e);
-            await ViewModel.LoadTestsAsync();
+            base.OnNavigatedTo(eventArgs);
+            await this.ViewModel.LoadTestsAsync();
         }
 
-        private void SeeLeaderboard_Click(object sender, RoutedEventArgs e)
+        private void SeeLeaderboard_Click(object sender, RoutedEventArgs eventArgs)
         {
-            if (sender is Button btn && btn.Tag != null)
+            if (sender is not Button button || button.Tag == null)
             {
-                int testId = Convert.ToInt32(btn.Tag);
+                return;
+            }
 
-                var selected = ViewModel.Tests.FirstOrDefault(t => t.TestId == testId);
-                if (selected != null) ViewModel.SelectedTest = selected;
+            int testId = Convert.ToInt32(button.Tag);
+            var selected = this.ViewModel.Tests.FirstOrDefault(test => test.TestId == testId);
+            if (selected != null)
+            {
+                this.ViewModel.SelectedTest = selected;
+            }
 
-                Frame.Navigate(typeof(RecruiterLeaderboardPage), testId);
+            this.Frame.Navigate(typeof(RecruiterLeaderboardPage), testId);
+        }
+
+        private void Card_PointerEntered(object sender, PointerRoutedEventArgs eventArgs)
+        {
+            if (sender is not Button button || button.Tag == null)
+            {
+                return;
+            }
+
+            int testId = Convert.ToInt32(button.Tag);
+            var card = this.ViewModel.Tests.FirstOrDefault(test => test.TestId == testId);
+            if (card != null)
+            {
+                card.IsHovered = true;
             }
         }
 
-        private void Card_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        private void Card_PointerExited(object sender, PointerRoutedEventArgs eventArgs)
         {
-            if (sender is Button btn && btn.Tag != null)
+            if (sender is not Button button || button.Tag == null)
             {
-                int testId = Convert.ToInt32(btn.Tag);
-                var card = ViewModel.Tests.FirstOrDefault(t => t.TestId == testId);
-                if (card != null) card.IsHovered = true;
+                return;
+            }
+
+            int testId = Convert.ToInt32(button.Tag);
+            var card = this.ViewModel.Tests.FirstOrDefault(test => test.TestId == testId);
+            if (card != null)
+            {
+                card.IsHovered = false;
             }
         }
 
-        private void Card_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        private void BackButton_Click(object sender, RoutedEventArgs eventArgs)
         {
-            if (sender is Button btn && btn.Tag != null)
-            {
-                int testId = Convert.ToInt32(btn.Tag);
-                var card = ViewModel.Tests.FirstOrDefault(t => t.TestId == testId);
-                if (card != null) card.IsHovered = false;
-            }
-        }
-
-        private void BackButton_Click(object sender, RoutedEventArgs e)
-        {
-            Frame.Navigate(typeof(RecruiterPage));
+            this.Frame.Navigate(typeof(RecruiterPage));
         }
     }
 }
