@@ -5,6 +5,7 @@ namespace Tests_and_Interviews.ViewModels
     using System.Linq;
     using System.Net;
     using System.Net.Mail;
+    using System.Threading.Tasks;
     using CommunityToolkit.Mvvm.ComponentModel;
     using CommunityToolkit.Mvvm.Input;
     using Tests_and_Interviews.Models;
@@ -175,7 +176,7 @@ namespace Tests_and_Interviews.ViewModels
         /// Function that tries to create a new event.
         /// </summary>
         [RelayCommand]
-        public void CreateEvent()
+        public async Task CreateEvent()
         {
             if (!this.titleIsValid || !this.descriptionIsValid || !this.startDateIsValid || !this.endDateIsValid || !this.locationIsValid)
             {
@@ -190,7 +191,7 @@ namespace Tests_and_Interviews.ViewModels
                 DateTime eventEndDateTime = this.EndDate.Value.DateTime;
 
                 int hostCompanyId = this.sessionService.LoggedInUser.CompanyId;
-                Event createdEvent = this.eventsService.AddEvent(this.Photo, this.Title, this.Description, eventStartDateTime, eventEndDateTime, this.Location, hostCompanyId, this.SelectedCollaborators.ToList());
+                Event createdEvent = await this.eventsService.AddEvent(this.Photo, this.Title, this.Description, eventStartDateTime, eventEndDateTime, this.Location, hostCompanyId, this.SelectedCollaborators.ToList());
                 this.EventCreatedSuccessfully = true;
 
                 this.AddAllCollaboratorsWhenEventCreated(createdEvent);
@@ -351,33 +352,27 @@ namespace Tests_and_Interviews.ViewModels
         /// Function that tries to add a collaborator to the event.
         /// </summary>
         /// <param name="companyName"> the invited company's name. </param>
-        /// <param name="errorMessage"> the error message returned. </param>
-        /// <returns> true if the company name exists, false otherwise. </returns>
-        public bool TryAddCollaboratorByName(string companyName, out string errorMessage)
+        /// <returns> tuple with success boolean and error message. </returns>
+        public async Task<(bool success, string errorMessage)> TryAddCollaboratorByName(string companyName)
         {
-            errorMessage = EmptyStringValue;
-
             if (string.IsNullOrWhiteSpace(companyName))
             {
-                errorMessage = ErrorCompanyNameMissing;
-                return false;
+                return (false, ErrorCompanyNameMissing);
             }
 
-            Company? companyToInvite = this.companyService.GetCompanyByName(companyName);
+            Company? companyToInvite = await this.companyService.GetCompanyByName(companyName);
             if (companyToInvite == null)
             {
-                errorMessage = ErrorCompanyNotFound;
-                return false;
+                return (false, ErrorCompanyNotFound);
             }
 
             if (this.SelectedCollaborators.Any(collaborator => string.Equals(collaborator.Name, companyToInvite.Name, StringComparison.OrdinalIgnoreCase)))
             {
-                errorMessage = ErrorCompanyAlreadyAdded;
-                return false;
+                return (false, ErrorCompanyAlreadyAdded);
             }
 
             this.SelectedCollaborators.Add(companyToInvite);
-            return true;
+            return (true, EmptyStringValue);
         }
 
         /// <summary>

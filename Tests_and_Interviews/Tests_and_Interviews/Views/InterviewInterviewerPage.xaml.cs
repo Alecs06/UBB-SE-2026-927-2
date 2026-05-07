@@ -1,7 +1,3 @@
-// <copyright file="InterviewInterviewerPage.xaml.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace Tests_and_Interviews.Views
 {
     using System;
@@ -19,39 +15,57 @@ namespace Tests_and_Interviews.Views
     /// </summary>
     public sealed partial class InterviewInterviewerPage : Page
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InterviewInterviewerPage"/> class.
+        /// The constructor for the <see cref="InterviewInterviewerPage"/> class initializes the page, sets up the ViewModel,
+        /// and configures the number formatter for the score input.
+        /// </summary>
         public InterviewInterviewerPage()
         {
             this.InitializeComponent();
-
-            var sessionService = new Services.InterviewSessionService(new QuestionRepository());
+            var sessionService = new Services.InterviewSessionService();
             var notificationService = new Services.NotificationService(new Services.Interfaces.WindowsToastNotifier());
-
             this.ViewModel = new InterviewInterviewerViewModel(sessionService, notificationService);
             this.SetNumberBoxNumberFormatter();
             this.DataContext = this.ViewModel;
         }
 
-        public InterviewInterviewerViewModel ViewModel { get; }
+        /// <summary>
+        /// Gets or sets the ViewModel for the InterviewInterviewerPage.
+        /// </summary>
+        public InterviewInterviewerViewModel ViewModel { get; set; }
 
-        public MediaSource? CreateMediaSource(Uri uri)
+        /// <summary>
+        /// Creates a MediaSource from the given URI.
+        /// </summary>
+        /// <param name="uri">The URI of the media to create the MediaSource from.</param>
+        /// <returns>A MediaSource if the URI is valid; otherwise, null.</returns>
+        public MediaSource? WidegetMediaSource(Uri uri)
         {
             return uri != null ? MediaSource.CreateFromUri(uri) : null;
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs eventArgs)
+        /// <summary>
+        /// Called when the page is navigated to.
+        /// </summary>
+        /// <param name="e">The navigation event arguments.</param>
+        protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            base.OnNavigatedTo(eventArgs);
-
-            if (eventArgs.Parameter is int interviewSessionId && interviewSessionId > 0)
+            base.OnNavigatedTo(e);
+            if (e.Parameter is int id && id > 0)
             {
-                this.ViewModel.InitializeSession(interviewSessionId);
+                this.ViewModel.InitializeSession(id);
             }
         }
 
-        private void SubmitScore_Click(object sender, RoutedEventArgs eventArgs)
+        /// <summary>
+        /// Handles the click event for the SubmitScore button.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The event arguments.</param>
+        private void SubmitScore_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             this.ViewModel.SubmitScore();
-
             if (this.Tag is Window hostWindow)
             {
                 try
@@ -71,32 +85,31 @@ namespace Tests_and_Interviews.Views
             }
         }
 
-        private void Skip10_Click(object sender, RoutedEventArgs eventArgs)
+        private void Skip10_Click(object sender, RoutedEventArgs e)
         {
             if (this.InterviewPlayer.MediaPlayer == null)
             {
                 return;
             }
 
-            var playbackSession = this.InterviewPlayer.MediaPlayer.PlaybackSession;
-            playbackSession.Position += TimeSpan.FromSeconds(10);
+            var session = this.InterviewPlayer.MediaPlayer.PlaybackSession;
+            session.Position += TimeSpan.FromSeconds(10);
         }
 
         private void SetNumberBoxNumberFormatter()
         {
-            var rounder = new IncrementNumberRounder
+            IncrementNumberRounder rounder = new IncrementNumberRounder
             {
                 Increment = 0.01,
                 RoundingAlgorithm = RoundingAlgorithm.RoundHalfUp,
             };
 
-            var formatter = new DecimalFormatter
+            DecimalFormatter formatter = new DecimalFormatter
             {
                 IntegerDigits = 1,
                 FractionDigits = 2,
                 NumberRounder = rounder,
             };
-
             this.FormattedNumberBox.NumberFormatter = formatter;
             this.FormattedNumberBox.Minimum = 1;
             this.FormattedNumberBox.Maximum = 10;

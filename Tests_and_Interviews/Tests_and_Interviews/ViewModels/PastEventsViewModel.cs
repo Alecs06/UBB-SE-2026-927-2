@@ -26,7 +26,7 @@ namespace Tests_and_Interviews.ViewModels
             this.eventsService = eventsService;
             this.sessionService = sessionService;
 
-            PastEventsCollection = this.eventsService.GetPastEvents(this.sessionService.LoggedInUser.CompanyId);
+            PastEventsCollection = this.eventsService.GetPastEvents(this.sessionService.LoggedInUser.CompanyId).Result;
         }
     }
 }

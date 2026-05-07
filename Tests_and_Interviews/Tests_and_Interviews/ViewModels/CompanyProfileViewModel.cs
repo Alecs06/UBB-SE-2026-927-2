@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Tests_and_Interviews.Models;
@@ -154,7 +155,7 @@ public partial class CompanyProfileViewModel : ObservableObject
     /// <summary>
     /// Gets the image path for the buddy based on the current game buddy ID.
     /// </summary>
-    public string BuddyImagePath => BuddyImageProvider.GetImagePathById(this.gameService.GetBuddyId());
+    public string BuddyImagePath => BuddyImageProvider.GetImagePathById(this.gameService.GetBuddyId().Result);
 
     /// <summary>
     /// Gets or sets the welcome message from the buddy interacting in the game.
@@ -228,8 +229,8 @@ public partial class CompanyProfileViewModel : ObservableObject
     /// </summary>
     public IEnumerable<CompanyProfileListRow> Top3EventPreviews =>
         this.eventsService
-            .GetCurrentEvents(this.sessionService.LoggedInUser.CompanyId)
-            .Take(MaximumTopEventsCount)
+            .GetCurrentEvents(this.sessionService.LoggedInUser.CompanyId).Result
+            .Take<Event>(MaximumTopEventsCount)
             .Select(eventItem => new CompanyProfileListRow
             {
                 Title = eventItem.Title,
@@ -241,8 +242,8 @@ public partial class CompanyProfileViewModel : ObservableObject
     /// </summary>
     public IEnumerable<CompanyCollabListRow> Top3CollabsPreviews =>
         this.collaboratorsService
-            .GetAllCollaborators(this.sessionService.LoggedInUser.CompanyId)
-            .Take(MaximumTopCollaboratorsCount)
+            .GetAllCollaborators(this.sessionService.LoggedInUser.CompanyId).Result
+            .Take<Company>(MaximumTopCollaboratorsCount)
             .Select(collaborator => new CompanyCollabListRow
             {
                 Name = collaborator.Name,
@@ -305,10 +306,10 @@ public partial class CompanyProfileViewModel : ObservableObject
     /// Loads the data associated with the specified company ID.
     /// </summary>
     /// <param name="companyId">The ID of the company to load.</param>
-    public void Load(int companyId)
+    public async Task Load(int companyId)
     {
         this.CompanyId = companyId;
-        this.Company = this.companyService.GetCompanyById(companyId);
+        this.Company = await this.companyService.GetCompanyById(companyId);
         if (this.Company is null)
         {
             this.LoadMessage = ProfileLoadErrorMessage;
@@ -324,7 +325,7 @@ public partial class CompanyProfileViewModel : ObservableObject
         this.RefreshProfileStatistics();
         this.FillPreviewSections();
         this.ProcessImages();
-        this.GamePreview();
+        await this.GamePreview();
     }
 
     private void ProcessImages()
@@ -537,14 +538,14 @@ public partial class CompanyProfileViewModel : ObservableObject
     /// </summary>
     public bool IsReactionActive => this.IsReaction1Visible || this.IsReaction2Visible;
 
-    private void UpdateScenario()
+    private async Task UpdateScenario()
     {
         if (this.currentScenarioIndex < MaximumScenarioCount)
         {
-            this.CurrentQuestion = this.gameService.ShowScenarioText(this.currentScenarioIndex);
+            this.CurrentQuestion = await this.gameService.ShowScenarioText(this.currentScenarioIndex);
 
             this.CurrentChoices.Clear();
-            var choices = this.gameService.ShowChoices(this.currentScenarioIndex);
+            var choices = await this.gameService.ShowChoices(this.currentScenarioIndex);
             foreach (var choice in choices)
             {
                 this.CurrentChoices.Add(choice);
@@ -555,21 +556,21 @@ public partial class CompanyProfileViewModel : ObservableObject
     /// <summary>
     /// Initializes and previews the game states.
     /// </summary>
-    private void GamePreview()
+    private async Task GamePreview()
     {
-        if (this.gameService.IsPublished())
+        if (await this.gameService.IsPublished())
         {
-            this.WelcomeMessage = this.gameService.ShowCoworker();
+            this.WelcomeMessage = await this.gameService.ShowCoworker();
             this.CurrentState = GameState.Start;
             this.currentScenarioIndex = InitialScenarioIndex;
-            this.UpdateScenario();
+            await this.UpdateScenario();
         }
     }
 
     [RelayCommand]
-    private void RetryGame()
+    private async Task RetryGame()
     {
-        this.GamePreview();
+        await this.GamePreview();
     }
 
     [RelayCommand]
@@ -579,7 +580,7 @@ public partial class CompanyProfileViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void SelectChoice(string? choiceText)
+    private async Task SelectChoice(string? choiceText)
     {
         if (string.IsNullOrEmpty(choiceText) || this.CurrentChoices == null)
         {
@@ -592,23 +593,23 @@ public partial class CompanyProfileViewModel : ObservableObject
             return;
         }
 
-        this.Feedback = this.gameService.ChoiceMade(this.currentScenarioIndex, adviceIndex);
+        this.Feedback = await this.gameService.ChoiceMade(this.currentScenarioIndex, adviceIndex);
         this.CurrentState = this.currentScenarioIndex == InitialScenarioIndex ? GameState.Reaction1 : GameState.Reaction2;
     }
 
     [RelayCommand]
-    private void GoToNextStep()
+    private async Task GoToNextStep()
     {
         this.currentScenarioIndex++;
 
         if (this.currentScenarioIndex < MaximumScenarioCount)
         {
-            this.UpdateScenario();
+            await this.UpdateScenario();
             this.CurrentState = GameState.Choices2;
         }
         else
         {
-            this.Feedback = this.gameService.ShowConclusion();
+            this.Feedback = await this.gameService.ShowConclusion();
             this.CurrentState = GameState.Conclusion;
         }
     }

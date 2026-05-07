@@ -48,11 +48,11 @@ public sealed partial class ViewProfilePage : Page
         };
     }
 
-    protected override void OnNavigatedTo(NavigationEventArgs e)
+    protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
         var id = e.Parameter is int companyId ? companyId : DefaultCompanyIdFallback;
-        ViewModel.Load(id);
+        await ViewModel.Load(id);
     }
 
     private async void SetupProfileImage(byte[] bytes)

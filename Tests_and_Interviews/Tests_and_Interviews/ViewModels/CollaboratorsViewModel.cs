@@ -31,7 +31,7 @@
             this.collaboratorsService = collaboratorsService;
             this.sessionService = sessionService;
 
-            this.AllCollaborators = collaboratorsService.GetAllCollaborators(sessionService.LoggedInUser.CompanyId);
+            this.AllCollaborators = collaboratorsService.GetAllCollaborators(sessionService.LoggedInUser.CompanyId).Result;
         }
     }
 }

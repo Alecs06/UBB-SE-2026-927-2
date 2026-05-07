@@ -1,80 +1,65 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
+using System;
+using System.Linq;
+using Tests_and_Interviews.Repositories;
+using Tests_and_Interviews.ViewModels;
+
 namespace Tests_and_Interviews.Views
 {
-    using System;
-    using System.Linq;
-    using Microsoft.UI.Xaml;
-    using Microsoft.UI.Xaml.Controls;
-    using Microsoft.UI.Xaml.Input;
-    using Microsoft.UI.Xaml.Navigation;
-    using Tests_and_Interviews.Repositories;
-    using Tests_and_Interviews.ViewModels;
-
     public sealed partial class RecruiterTestsPage : Page
     {
-        public RecruiterTestsPage()
-        {
-            this.InitializeComponent();
-            this.ViewModel = new MainTestViewModel(new TestRepository());
-        }
-
         public MainTestViewModel ViewModel { get; }
 
-        protected override async void OnNavigatedTo(NavigationEventArgs eventArgs)
+        public RecruiterTestsPage()
         {
-            base.OnNavigatedTo(eventArgs);
-            await this.ViewModel.LoadTestsAsync();
+            InitializeComponent();
+            ViewModel = new MainTestViewModel(new TestRepository());
         }
 
-        private void SeeLeaderboard_Click(object sender, RoutedEventArgs eventArgs)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
-            if (sender is not Button button || button.Tag == null)
-            {
-                return;
-            }
-
-            int testId = Convert.ToInt32(button.Tag);
-            var selected = this.ViewModel.Tests.FirstOrDefault(test => test.TestId == testId);
-            if (selected != null)
-            {
-                this.ViewModel.SelectedTest = selected;
-            }
-
-            this.Frame.Navigate(typeof(RecruiterLeaderboardPage), testId);
+            base.OnNavigatedTo(e);
+            await ViewModel.LoadTestsAsync();
         }
 
-        private void Card_PointerEntered(object sender, PointerRoutedEventArgs eventArgs)
+        private void SeeLeaderboard_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button button || button.Tag == null)
+            if (sender is Button btn && btn.Tag != null)
             {
-                return;
-            }
+                int testId = Convert.ToInt32(btn.Tag);
 
-            int testId = Convert.ToInt32(button.Tag);
-            var card = this.ViewModel.Tests.FirstOrDefault(test => test.TestId == testId);
-            if (card != null)
-            {
-                card.IsHovered = true;
+                var selected = ViewModel.Tests.FirstOrDefault(t => t.TestId == testId);
+                if (selected != null) ViewModel.SelectedTest = selected;
+
+                Frame.Navigate(typeof(RecruiterLeaderboardPage), testId);
             }
         }
 
-        private void Card_PointerExited(object sender, PointerRoutedEventArgs eventArgs)
+        private void Card_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
         {
-            if (sender is not Button button || button.Tag == null)
+            if (sender is Button btn && btn.Tag != null)
             {
-                return;
-            }
-
-            int testId = Convert.ToInt32(button.Tag);
-            var card = this.ViewModel.Tests.FirstOrDefault(test => test.TestId == testId);
-            if (card != null)
-            {
-                card.IsHovered = false;
+                int testId = Convert.ToInt32(btn.Tag);
+                var card = ViewModel.Tests.FirstOrDefault(t => t.TestId == testId);
+                if (card != null) card.IsHovered = true;
             }
         }
 
-        private void BackButton_Click(object sender, RoutedEventArgs eventArgs)
+        private void Card_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
         {
-            this.Frame.Navigate(typeof(RecruiterPage));
+            if (sender is Button btn && btn.Tag != null)
+            {
+                int testId = Convert.ToInt32(btn.Tag);
+                var card = ViewModel.Tests.FirstOrDefault(t => t.TestId == testId);
+                if (card != null) card.IsHovered = false;
+            }
+        }
+
+        private void BackButton_Click(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof(RecruiterPage));
         }
     }
 }

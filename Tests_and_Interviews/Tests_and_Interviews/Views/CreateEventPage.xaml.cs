@@ -54,10 +54,11 @@ namespace Tests_and_Interviews.Views
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void AddCollaborator_Click(object sender, RoutedEventArgs e)
+        private async void AddCollaborator_Click(object sender, RoutedEventArgs e)
         {
             var companyName = CollaboratorNameBox.Text?.Trim() ?? string.Empty;
-            if (CreateEventViewModel.TryAddCollaboratorByName(companyName, out var errorMessage))
+            var (success, errorMessage) = await CreateEventViewModel.TryAddCollaboratorByName(companyName);
+            if (success)
             {
                 CollaboratorNameBox.Text = string.Empty;
                 CollaboratorErrorTextBlock.Text = string.Empty;
@@ -164,7 +165,7 @@ namespace Tests_and_Interviews.Views
         private async void CreateEvent_Click(object sender, RoutedEventArgs e)
         {
             // because click usually runs before command so we must make it run before
-            CreateEventViewModel.CreateEventCommand.Execute(null);
+            await CreateEventViewModel.CreateEvent();
 
             if (CreateEventViewModel.IsEverythingValid)
             {

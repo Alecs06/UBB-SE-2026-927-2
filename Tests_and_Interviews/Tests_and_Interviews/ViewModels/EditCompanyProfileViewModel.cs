@@ -152,12 +152,12 @@ namespace Tests_and_Interviews.ViewModels
         /// Loads the company details by the given company ID.
         /// </summary>
         /// <param name="companyId">The company identifier.</param>
-        public void Load(int companyId)
+        public async Task Load(int companyId)
         {
             this.CompanyId = companyId;
             this.StatusMessage = string.Empty;
 
-            Company? existingCompany = this.companyService.GetCompanyById(companyId);
+            Company? existingCompany = await this.companyService.GetCompanyById(companyId);
             if (existingCompany is null)
             {
                 this.StatusMessage = MessageCompanyNotFound;
@@ -170,6 +170,8 @@ namespace Tests_and_Interviews.ViewModels
             this.ProfilePicturePath = existingCompany.ProfilePicturePath ?? string.Empty;
             this.Location = existingCompany.Location ?? string.Empty;
             this.Email = existingCompany.Email ?? string.Empty;
+
+            await this.EditGame.LoadStoredGame();
         }
 
         private Company ToCompany(int postedJobsCount, int collaboratorsCount)
@@ -190,11 +192,11 @@ namespace Tests_and_Interviews.ViewModels
         /// Tries to save the edited company profile and game data.
         /// </summary>
         /// <returns>An error message string if the save fails; otherwise, null.</returns>
-        public string? TrySave()
+        public async Task<string?> TrySave()
         {
             StatusMessage = string.Empty;
 
-            Company? existingCompany = companyService.GetCompanyById(CompanyId);
+            Company? existingCompany = await companyService.GetCompanyById(CompanyId);
             int existingPostedJobsCount = existingCompany?.PostedJobsCount ?? DefaultCountValue;
             int existingCollaboratorsCount = existingCompany?.CollaboratorsCount ?? DefaultCountValue;
             ICollection<Collaborator> collaboratorsCopy = existingCompany?.Collaborators ?? new List<Collaborator>();
@@ -311,8 +313,12 @@ namespace Tests_and_Interviews.ViewModels
                 this.Scenarios.Add(scenarioInput);
             }
 
-            this.ApplyLoadedGame(this.gameService.GetStoredGame());
             this.StatusMessage = string.Empty;
+        }
+
+        public async Task LoadStoredGame()
+        {
+            this.ApplyLoadedGame(await this.gameService.GetStoredGame());
         }
 
         private void ApplyLoadedGame(Game game)

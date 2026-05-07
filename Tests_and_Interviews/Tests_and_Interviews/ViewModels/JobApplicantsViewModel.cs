@@ -200,14 +200,14 @@ namespace Tests_and_Interviews.ViewModels
             }
         }
 
-        private void LoadApplicants()
+        private async void LoadApplicants()
         {
             Applicants.Clear();
             if (SelectedJob != null)
             {
                 try
                 {
-                    var applicants = applicantService.GetApplicantsForJob(SelectedJob);
+                    var applicants = await applicantService.GetApplicantsForJob(SelectedJob);
                     foreach (var applicant in applicants)
                     {
                         Applicants.Add(applicant);
@@ -242,7 +242,7 @@ namespace Tests_and_Interviews.ViewModels
             try
             {
                 var applicant = SelectedApplicant;
-                decimal? grade = await Task.Run(() => applicantService.ScanCvXml(applicant)).ConfigureAwait(true);
+                decimal? grade = await applicantService.ScanCvXmlAsync(applicant);
 
                 if (grade.HasValue)
                 {

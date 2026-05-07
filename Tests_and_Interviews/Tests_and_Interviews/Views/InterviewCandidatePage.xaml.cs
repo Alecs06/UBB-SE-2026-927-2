@@ -1,13 +1,8 @@
-// <copyright file="InterviewCandidatePage.xaml.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace Tests_and_Interviews.Views
 {
     using System;
     using System.Diagnostics;
     using System.Linq;
-    using System.Threading.Tasks;
     using Microsoft.UI.Xaml;
     using Microsoft.UI.Xaml.Controls;
     using Tests_and_Interviews.Models.Core;
@@ -24,51 +19,64 @@ namespace Tests_and_Interviews.Views
     public sealed partial class InterviewCandidatePage : Page
     {
         private MediaCapture? mediaCapture = new MediaCapture();
-        private bool isRecording;
+
+        private bool isRecording = false;
+
         private StorageFile? recordingFile;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InterviewCandidatePage"/> class.
+        /// </summary>
         public InterviewCandidatePage()
-            : this(null)
-        {
-        }
-
-        public InterviewCandidatePage(InterviewSession? session)
         {
             this.InitializeComponent();
-
-            this.InterviewSession = session;
-
-            var sessionService = new Services.InterviewSessionService(new QuestionRepository());
+            var sessionService = new Services.InterviewSessionService();
             var notificationService = new Services.NotificationService(new WindowsToastNotifier());
-
             this.ViewModel = new InterviewCandidateViewModel(sessionService, notificationService);
             this.DataContext = this.ViewModel;
-
-            this.InitializeControlState();
-
-            if (session != null)
-            {
-                _ = this.ViewModel.LoadData(session.Id);
-            }
-
-            _ = this.StartCameraAsync();
-        }
-
-        public InterviewSession? InterviewSession { get; }
-
-        public InterviewCandidateViewModel ViewModel { get; }
-
-        public Action? OnClosed { get; set; }
-
-        private void InitializeControlState()
-        {
             this.StopVideoButton.IsEnabled = false;
             this.SubmitVideoButton.IsEnabled = false;
             this.NextQuestionButton.IsEnabled = false;
             this.RecordingBorder.BorderThickness = new Thickness(0);
+            this.StartCamera();
         }
 
-        private async Task StartCameraAsync()
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InterviewCandidatePage"/> class with a specified interview session.
+        /// </summary>
+        /// <param name="session">The interview session.</param>
+        public InterviewCandidatePage(InterviewSession session)
+        {
+            this.InterviewSession = session;
+            var sessionService = new Services.InterviewSessionService();
+            var notificationService = new Services.NotificationService(new WindowsToastNotifier());
+            this.ViewModel = new InterviewCandidateViewModel(sessionService, notificationService);
+            this.InitializeComponent();
+            this.DataContext = this.ViewModel;
+            this.StopVideoButton.IsEnabled = false;
+            this.SubmitVideoButton.IsEnabled = false;
+            this.NextQuestionButton.IsEnabled = false;
+            this.RecordingBorder.BorderThickness = new Thickness(0);
+            _ = this.ViewModel.LoadData(session.Id);
+            this.StartCamera();
+        }
+
+        /// <summary>
+        /// Gets or sets the interview session.
+        /// </summary>
+        public InterviewSession? InterviewSession { get; set; }
+
+        /// <summary>
+        /// Gets the view model.
+        /// </summary>
+        public InterviewCandidateViewModel ViewModel { get; }
+
+        /// <summary>
+        /// Gets or sets the action to be invoked when the page is closed.
+        /// </summary>
+        public Action? OnClosed { get; set; }
+
+        private async void StartCamera()
         {
             if (this.mediaCapture == null)
             {
@@ -92,13 +100,14 @@ namespace Tests_and_Interviews.Views
             {
                 this.captureElement.Source = Windows.Media.Core.MediaSource.CreateFromMediaFrameSource(frameSource);
                 this.captureElement.MediaPlayer.Play();
-                return;
             }
-
-            Debug.WriteLine("No valid color video frame source was found.");
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("No valid color video frame source was found.");
+            }
         }
 
-        private async void StartRecording_Click(object sender, RoutedEventArgs eventArgs)
+        private async void StartRecording_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             if (this.isRecording || this.mediaCapture == null)
             {
@@ -116,22 +125,21 @@ namespace Tests_and_Interviews.Views
                 var storageFolder = ApplicationData.Current.LocalFolder;
                 this.recordingFile = await storageFolder.CreateFileAsync("CandidateInterview.mp4", CreationCollisionOption.ReplaceExisting);
                 this.ViewModel.RecordingFilePath = this.recordingFile.Path;
-
                 var encodingProfile = MediaEncodingProfile.CreateMp4(VideoEncodingQuality.Auto);
-                await this.mediaCapture.StartRecordToStorageFileAsync(encodingProfile, this.recordingFile);
 
+                await this.mediaCapture.StartRecordToStorageFileAsync(encodingProfile, this.recordingFile);
                 this.isRecording = true;
-                Debug.WriteLine($"Recording started: {this.recordingFile.Path}");
+                System.Diagnostics.Debug.WriteLine($"Recording started: {this.recordingFile.Path}");
 
                 this.ViewModel.StartQuestions();
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to start recording: {exception.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to start recording: {ex.Message}");
             }
         }
 
-        private async void StopRecording_Click(object sender, RoutedEventArgs eventArgs)
+        private async void StopRecording_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             if (!this.isRecording || this.mediaCapture == null)
             {
@@ -149,16 +157,17 @@ namespace Tests_and_Interviews.Views
                 await this.mediaCapture.StopRecordAsync();
                 this.isRecording = false;
 
-                Debug.WriteLine("Recording stopped successfully.");
+                System.Diagnostics.Debug.WriteLine("Recording stopped successfully.");
+
                 this.ViewModel.ResetQuestions();
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to stop recording: {exception.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to stop recording: {ex.Message}");
             }
         }
 
-        private void ExitPage_Click(object sender, RoutedEventArgs eventArgs)
+        private void ExitPage_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             this.mediaCapture?.Dispose();
             this.mediaCapture = null;

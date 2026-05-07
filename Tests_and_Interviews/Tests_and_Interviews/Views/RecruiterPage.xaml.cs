@@ -26,7 +26,7 @@
 			this.InitializeComponent();
 
 			var slotRepository = new SlotRepository();
-			var slotService = new SlotService(slotRepository);
+			var slotService = new SlotService();
 			this.DataContext = new RecruiterViewModel(slotService);
 		}
 

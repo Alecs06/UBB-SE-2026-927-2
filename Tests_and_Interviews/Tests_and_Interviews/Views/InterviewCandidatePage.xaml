@@ -8,11 +8,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Border x:Name="RecordingBorder"
-            BorderThickness="10"
-            BorderBrush="{StaticResource InterviewDangerBrush}">
+    <Border x:Name="RecordingBorder" BorderThickness="10" BorderBrush="Red" >
 
-        <Grid Background="{StaticResource InterviewPageBackgroundBrush}">
+        <Grid Background="#C9BEFF">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1.5*" />
                 <ColumnDefinition Width="*" />
@@ -24,10 +22,8 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <MediaPlayerElement x:Name="captureElement"
-                                    Grid.Row="0"
-                                    Stretch="UniformToFill"
-                                    AutoPlay="True"/>
+                <MediaPlayerElement x:Name="captureElement" Grid.Row="0" Stretch="UniformToFill" AutoPlay="True"/>
+
 
                 <Grid Grid.Row="1" ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
@@ -37,47 +33,25 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Button x:Name="StartVideoButton"
-                            Grid.Column="0"
-                            Click="StartRecording_Click"
-                            Style="{StaticResource InterviewActionButtonStyle}"
-                            HorizontalAlignment="Center"
-                            Padding="8,12">
+                    <Button x:Name="StartVideoButton" Grid.Column="0" Click="StartRecording_Click" Foreground="#FFDBFD" Background="#8494FF" HorizontalAlignment="Center" Padding="8,12" CornerRadius="8">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <SymbolIcon Symbol="Video" />
                             <TextBlock Text="Start Video" FontWeight="SemiBold" />
                         </StackPanel>
                     </Button>
-
-                    <Button x:Name="StopVideoButton"
-                            Grid.Column="1"
-                            Click="StopRecording_Click"
-                            Style="{StaticResource InterviewStopButtonStyle}"
-                            HorizontalAlignment="Center"
-                            Padding="8,12">
+                    <Button x:Name="StopVideoButton" Grid.Column="1" Click="StopRecording_Click" Foreground="Red" Background="#8494FF" HorizontalAlignment="Center" Padding="8,12" CornerRadius="8">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <SymbolIcon Symbol="Stop" />
                             <TextBlock Text="Stop Video" FontWeight="SemiBold" />
                         </StackPanel>
                     </Button>
-
-                    <Button x:Name="SubmitVideoButton"
-                            Grid.Column="2"
-                            Command="{x:Bind ViewModel.SubmitRecordingCommand}"
-                            Style="{StaticResource InterviewActionButtonStyle}"
-                            HorizontalAlignment="Center"
-                            Padding="8,12">
+                    <Button x:Name="SubmitVideoButton" Grid.Column="2" Command="{x:Bind ViewModel.SubmitRecordingCommand}" Foreground="#FFDBFD" Background="#8494FF" HorizontalAlignment="Center" Padding="8,12" CornerRadius="8">
                         <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                             <SymbolIcon Symbol="Send" />
                             <TextBlock Text="Submit Video" FontWeight="SemiBold" />
                         </StackPanel>
                     </Button>
-
-                    <Button Grid.Column="3"
-                            Click="ExitPage_Click"
-                            Style="{StaticResource InterviewActionButtonStyle}"
-                            HorizontalAlignment="Center"
-                            Padding="8,12">
+                    <Button Grid.Column="3" Click="ExitPage_Click" Foreground="#FFDBFD" Background="#8494FF" HorizontalAlignment="Center" Padding="8,12" CornerRadius="8">
                         <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                             <SymbolIcon Symbol="Cancel" />
                             <TextBlock Text="Exit" FontWeight="SemiBold" />
@@ -92,25 +66,22 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0"
-                        Background="{StaticResource AppPrimaryBrush}"
-                        BorderBrush="{StaticResource InterviewAccentForegroundBrush}"
-                        BorderThickness="2"
-                        CornerRadius="8"
-                        Padding="12">
+                <Border 
+            Background="#8494FF" 
+            BorderBrush="#FFDBFD" 
+            BorderThickness="2" 
+            CornerRadius="8" 
+            Padding="12"                
+            Grid.Row="0">
 
-                    <TextBlock Text="{x:Bind ViewModel.QuestionText, Mode=OneWay}"
-                               Foreground="{StaticResource InterviewAccentForegroundBrush}"
-                               FontSize="24"
-                               TextWrapping="Wrap"/>
+                    <TextBlock 
+                Text="{x:Bind ViewModel.QuestionText, Mode=OneWay}"
+                Foreground="#FFDBFD" 
+                FontSize="24"
+                TextWrapping="Wrap"/>
                 </Border>
 
-                <Button x:Name="NextQuestionButton"
-                        Grid.Row="1"
-                        Grid.Column="3"
-                        Command="{x:Bind ViewModel.NextQuestionCommand}"
-                        Style="{StaticResource InterviewActionButtonStyle}"
-                        HorizontalAlignment="Right">
+                <Button x:Name="NextQuestionButton" Grid.Row="1" Grid.Column="3" Command="{x:Bind ViewModel.NextQuestionCommand}" Foreground="#FFDBFD" Background="#8494FF" HorizontalAlignment="Right" Padding="24,12" CornerRadius="8">
                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                         <TextBlock Text="Next Question" FontWeight="SemiBold" />
                         <SymbolIcon Symbol="Forward" />
@@ -118,5 +89,8 @@
                 </Button>
             </Grid>
         </Grid>
+
     </Border>
+
+    
 </Page>

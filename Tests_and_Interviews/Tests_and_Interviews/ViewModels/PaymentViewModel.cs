@@ -51,7 +51,7 @@ namespace Tests_and_Interviews.ViewModels
         partial void OnSelectedJobTypeChanged(string value) => LoadData();
         partial void OnSelectedExperienceLevelChanged(string value) => LoadData();
 
-        private void LoadData()
+        private async void LoadData()
         {
             if (string.IsNullOrEmpty(SelectedJobType) || string.IsNullOrEmpty(SelectedExperienceLevel))
             {
@@ -59,7 +59,7 @@ namespace Tests_and_Interviews.ViewModels
             }
 
             PaymentData.Clear();
-            var dataFromDatabase = paymentService.GetPaidJobsInfo(SelectedJobType, SelectedExperienceLevel);
+            var dataFromDatabase = await paymentService.GetPaidJobsInfo(SelectedJobType, SelectedExperienceLevel);
 
             foreach (var item in dataFromDatabase)
             {

@@ -6,7 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Background="{StaticResource AppPageBackgroundBrush}">
+    Background="#F0EEFF">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -15,11 +15,8 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0"
-                Background="{StaticResource AppSurfaceBrush}"
-                Padding="32,16"
-                BorderBrush="{StaticResource AppBorderBrush}"
-                BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Background="White" Padding="32,16"
+                BorderBrush="#E8E4FF" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -28,7 +25,11 @@
 
                 <Button Grid.Column="0"
                         Click="BackToRecruiterTests_Click"
-                        Style="{StaticResource GhostBackButtonStyle}">
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="#8494FF"
+                        FontSize="14"
+                        Padding="0">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock Text="←" FontSize="16" VerticalAlignment="Center"/>
                         <TextBlock Text="Back to Tests" VerticalAlignment="Center"/>
@@ -38,27 +39,27 @@
                 <StackPanel Grid.Column="1" HorizontalAlignment="Center">
                     <TextBlock x:Name="PageTitleText"
                                Text="Recruiter Leaderboard"
-                               HorizontalAlignment="Center"
-                               Style="{StaticResource PageTitleTextStyle}"/>
+                               FontSize="22"
+                               FontWeight="Bold"
+                               Foreground="#1a1a2e"
+                               HorizontalAlignment="Center"/>
                     <TextBlock x:Name="PageSubtitleText"
                                Text="Detailed ranking information"
+                               FontSize="13"
+                               Foreground="#777"
                                HorizontalAlignment="Center"
-                               Style="{StaticResource PageSubtitleTextStyle}"
                                Margin="0,2,0,0"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1"
-                      Padding="120,24,120,24"
+        <ScrollViewer Grid.Row="1" Padding="120,24,120,24"
                       VerticalScrollBarVisibility="Auto">
             <StackPanel x:Name="LeaderboardPanel" Spacing="12"/>
         </ScrollViewer>
 
-        <Border Grid.Row="2"
-                Background="{StaticResource AppSurfaceBrush}"
-                BorderBrush="{StaticResource AppBorderBrush}"
-                BorderThickness="0,1,0,0"
+        <Border Grid.Row="2" Background="White"
+                BorderBrush="#E8E4FF" BorderThickness="0,1,0,0"
                 Padding="24,16">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -71,7 +72,10 @@
                         Grid.Column="0"
                         Content="Previous"
                         Click="PrevButton_Click"
-                        Style="{StaticResource SecondaryActionButtonStyle}"
+                        Background="#E8E4FF"
+                        Foreground="#1a1a2e"
+                        Padding="20,10"
+                        CornerRadius="8"
                         IsEnabled="False"/>
 
                 <TextBlock x:Name="PageInfoText"
@@ -79,13 +83,16 @@
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            FontSize="14"
-                           Foreground="{StaticResource AppSecondaryTextBrush}"/>
+                           Foreground="#666"/>
 
                 <Button x:Name="NextButton"
                         Grid.Column="2"
                         Content="Next"
                         Click="NextButton_Click"
-                        Style="{StaticResource PrimaryActionButtonStyle}"/>
+                        Background="#8494FF"
+                        Foreground="White"
+                        Padding="20,10"
+                        CornerRadius="8"/>
             </Grid>
         </Border>
     </Grid>

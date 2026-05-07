@@ -92,11 +92,11 @@ public sealed partial class EditProfilePage : Page
         DataContext = ViewModel;
     }
 
-    protected override void OnNavigatedTo(NavigationEventArgs e)
+    protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
         var id = e.Parameter is int companyId ? companyId : DefaultCompanyIdFallback;
-        ViewModel.Load(id);
+        await ViewModel.Load(id);
     }
 
     private void NavigateBack_Click(object sender, RoutedEventArgs e)
@@ -138,7 +138,7 @@ public sealed partial class EditProfilePage : Page
 
     private async void Save_Click(object sender, RoutedEventArgs e)
     {
-        var err = ViewModel.TrySave();
+        var err = await ViewModel.TrySave();
         if (err is null)
         {
             var successDialog = new ContentDialog

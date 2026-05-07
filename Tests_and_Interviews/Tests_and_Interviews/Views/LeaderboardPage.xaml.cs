@@ -34,7 +34,7 @@ namespace Tests_and_Interviews.Views
             if (e.Parameter is int testId)
             {
                 this.viewModel = new LeaderboardViewModel(
-                    new LeaderboardService(new TestAttemptRepository(), new LeaderboardRepository()));
+                    new LeaderboardService());
 
                 await this.viewModel.LoadAsync(testId);
                 this.RenderPage();

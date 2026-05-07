@@ -137,17 +137,6 @@
 		<Folder Include="Dialogs\" />
 		<Folder Include="Controls\" />
 	</ItemGroup>
-	<ItemGroup>
-	  <None Update="Resources\Styles\SharedButtonStyles.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </None>
-	  <None Update="Resources\Styles\SharedColors.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </None>
-	  <None Update="Resources\Styles\SharedTextStyles.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </None>
-	</ItemGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <CodeAnalysisRuleSet>SE.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>

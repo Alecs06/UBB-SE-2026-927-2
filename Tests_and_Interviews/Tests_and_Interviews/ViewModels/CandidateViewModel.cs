@@ -332,12 +332,12 @@ namespace Tests_and_Interviews.ViewModels
             ];
         }
 
-        private void ScheduleInterview(CompanyPosting company)
+        private async void ScheduleInterview(CompanyPosting company)
         {
             this.IsBookingVisible = true;
             this.SelectedCompany = company;
 
-            var slots = this.bookingService.GetAvailableSlotsByRecruiterId(company.RecruiterId);
+            var slots = await this.bookingService.GetAvailableSlotsByRecruiterId(company.RecruiterId);
 
             var slotsGroupedByDay = slots.GroupBy(slot => slot.StartTime.Date);
             var firstSlotPerDay = slotsGroupedByDay.Select(group => group.First());
@@ -346,15 +346,15 @@ namespace Tests_and_Interviews.ViewModels
             this.SelectedDay = this.AvailableDays.FirstOrDefault()?.StartTime.Date ?? DateTime.Today;
         }
 
-        private void LoadSlotsForSelectedDay()
+        private async void LoadSlotsForSelectedDay()
         {
             if (this.SelectedCompany == null)
             {
                 return;
             }
 
-            this.AvailableSlots = this.bookingService
-                .GetAvailableSlotsByRecruiterId(this.SelectedCompany.RecruiterId)
+            var allSlots = await this.bookingService.GetAvailableSlotsByRecruiterId(this.SelectedCompany.RecruiterId);
+            this.AvailableSlots = allSlots
                 .Where(slot => slot.StartTime.Date == this.SelectedDay.Date)
                 .ToList();
         }
