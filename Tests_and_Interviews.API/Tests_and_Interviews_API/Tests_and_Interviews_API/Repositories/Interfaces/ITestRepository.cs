@@ -1,16 +1,29 @@
-namespace Tests_and_Interviews_API.Repositories.Interfaces
+﻿namespace Tests_and_Interviews_API.Repositories.Interfaces
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
     using Tests_and_Interviews_API.Models.Core;
+
     /// <summary>
-    /// Repository interface for Tests.
+    /// ITestRepostory interface provides methods to perform CRUD operations on the Tests and Questions.
     /// </summary>
     public interface ITestRepository
     {
-        Task<List<Test>> GetAllAsync();
+        /// <summary>
+        /// Finds a test by its ID, including its associated questions.
+        /// </summary>
+        /// <param name="id">The ID of the test to find.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task<Test?> FindByIdAsync(int id);
+
+        /// <summary>
+        /// Asynchronously finds tests by their category, including their associated questions.
+        /// </summary>
+        /// <param name="category">The category of the tests to find.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task<List<Test>> FindTestsByCategoryAsync(string category);
-        Task<Test> CreateAsync(Test test);
-        Task<Test?> UpdateAsync(Test test);
-        Task<bool> DeleteAsync(int id);
     }
 }

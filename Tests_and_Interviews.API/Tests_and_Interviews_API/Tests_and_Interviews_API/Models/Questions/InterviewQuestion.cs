@@ -1,4 +1,4 @@
-﻿namespace Tests_and_Interviews.Models.Questions
+﻿namespace Tests_and_Interviews_API.Models.Questions
 {
     using System.ComponentModel.DataAnnotations.Schema;
     using Tests_and_Interviews_API.Models.Core;

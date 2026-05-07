@@ -11,14 +11,15 @@ namespace Tests_and_Interviews_API.Models.Core
     /// <summary>
     /// Represents an interview session between for a given position.
     /// </summary>
-    [Table("interview_sessions")]
+    [Table("InterviewSessions")]
     public class InterviewSession
     {
         /// <summary>
         /// Gets or sets the unique identifier for the interview session.
         /// </summary>
         [Key]
-        [Column("session_id")]
+        [Column("id")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         /// <summary>
@@ -27,8 +28,8 @@ namespace Tests_and_Interviews_API.Models.Core
         [NotMapped]
         public int SessionId
         {
-            get => Id;
-            set => Id = value;
+            get => this.Id;
+            set => this.Id = value;
         }
 
         /// <summary>
@@ -42,6 +43,7 @@ namespace Tests_and_Interviews_API.Models.Core
         /// </summary>
         [Column("external_user_id")]
         public int? ExternalUserId { get; set; }
+        public User? User { get; set; }
 
         /// <summary>
         /// Gets or sets the identifier of the interviewer conducting the session.
@@ -72,7 +74,8 @@ namespace Tests_and_Interviews_API.Models.Core
         /// <summary>
         /// Gets or sets the score awarded to the candidate following the session. Can be null if not yet evaluated.
         /// </summary>
-        [Column("score")]
+        [Column("score", TypeName = "decimal(18,2)")]
         public decimal? Score { get; set; }
+
     }
 }

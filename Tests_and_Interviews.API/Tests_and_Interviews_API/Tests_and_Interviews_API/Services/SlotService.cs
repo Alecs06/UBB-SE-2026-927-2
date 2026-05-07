@@ -2,6 +2,7 @@
 {
     using Tests_and_Interviews_API.Models;
     using Tests_and_Interviews_API.Repositories;
+    using Tests_and_Interviews_API.Repositories.Interfaces;
     using Tests_and_Interviews_API.Services.Interfaces;
 
     /// <summary>

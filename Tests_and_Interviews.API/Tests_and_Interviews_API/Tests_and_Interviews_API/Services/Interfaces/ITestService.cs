@@ -1,17 +1,30 @@
+// <copyright file="ITestService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 namespace Tests_and_Interviews_API.Services.Interfaces
 {
-    using Tests_and_Interviews_API.DTOs;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+    using Tests_and_Interviews_API.Models.Core;
+
     /// <summary>
-    /// Service layer for Test CRUD operations.
-    /// Sits between the controller and the repository.
+    /// Defines operations for managing tests.
     /// </summary>
     public interface ITestService
     {
-        Task<List<TestSummaryDto>> GetAllTestsAsync();
-        Task<TestDetailDto?> GetTestByIdAsync(int id);
-        Task<List<TestSummaryDto>> GetTestsByCategoryAsync(string category);
-        Task<TestDetailDto> CreateTestAsync(CreateTestDto dto);
-        Task<TestDetailDto?> UpdateTestAsync(int id, UpdateTestDto dto);
-        Task<bool> DeleteTestAsync(int id);
+        /// <summary>
+        /// Asynchronously retrieves the test with the specified identifier, including its associated questions.
+        /// </summary>
+        /// <param name="id">The unique identifier of the test.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the test, or null if not found.</returns>
+        Task<Test?> FindByIdAsync(int id);
+
+        /// <summary>
+        /// Asynchronously retrieves all tests belonging to the specified category, including their associated questions.
+        /// </summary>
+        /// <param name="category">The category to filter tests by.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a list of tests in the specified category.</returns>
+        Task<List<Test>> FindTestsByCategoryAsync(string category);
     }
 }

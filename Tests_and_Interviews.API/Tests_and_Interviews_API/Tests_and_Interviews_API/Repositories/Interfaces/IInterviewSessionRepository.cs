@@ -22,14 +22,16 @@ namespace Tests_and_Interviews_API.Repositories.Interfaces
         /// </summary>
         /// <param name="id">The unique identifier of the interview session to retrieve.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="InterviewSession"/> corresponding to the specified identifier.</returns>
-        Task<InterviewSession?> GetInterviewSessionByIdAsync(int id);
+        /// <exception cref="KeyNotFoundException">Thrown if no interview session exists with the specified <paramref name="id"/>.</exception>
+        Task<InterviewSession> GetInterviewSessionByIdAsync(int id);
 
         /// <summary>
         /// Synchronous version of retrieving an interview session by its unique identifier.
         /// </summary>
         /// <param name="id">The unique identifier of the interview session to retrieve.</param>
         /// <returns>The <see cref="InterviewSession"/> corresponding to the specified identifier.</returns>
-        InterviewSession? GetInterviewSessionById(int id);
+        /// <exception cref="KeyNotFoundException">Thrown if no interview session exists with the specified <paramref name="id"/>.</exception>
+        InterviewSession GetInterviewSessionById(int id);
 
         /// <summary>
         /// Asynchronously retrieves a list of all scheduled interview sessions.

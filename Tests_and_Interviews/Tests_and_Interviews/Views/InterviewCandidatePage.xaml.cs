@@ -34,7 +34,7 @@ namespace Tests_and_Interviews.Views
         public InterviewCandidatePage()
         {
             this.InitializeComponent();
-            var sessionService = new Services.InterviewSessionService(new QuestionRepository());
+            var sessionService = new Services.InterviewSessionService();
             var notificationService = new Services.NotificationService(new WindowsToastNotifier());
             this.ViewModel = new InterviewCandidateViewModel(sessionService, notificationService);
             this.DataContext = this.ViewModel;
@@ -52,7 +52,7 @@ namespace Tests_and_Interviews.Views
         public InterviewCandidatePage(InterviewSession session)
         {
             this.InterviewSession = session;
-            var sessionService = new Services.InterviewSessionService(new QuestionRepository());
+            var sessionService = new Services.InterviewSessionService();
             var notificationService = new Services.NotificationService(new WindowsToastNotifier());
             this.ViewModel = new InterviewCandidateViewModel(sessionService, notificationService);
             this.InitializeComponent();

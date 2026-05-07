@@ -1,55 +1,55 @@
-using Tests_and_Interviews_API.Models.Core;
-using Tests_and_Interviews_API.Repositories.Interfaces;
+// <copyright file="TestRepository.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Tests_and_Interviews_API.Repositories
 {
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Microsoft.EntityFrameworkCore;
+    using Tests_and_Interviews_API.Data;
+    using Tests_and_Interviews_API.Models.Core;
+    using Tests_and_Interviews_API.Repositories.Interfaces;
+
     /// <summary>
-    /// TODO: GENERATED MOCK REPO!!!! DOESNT DO SHIT!!! ONLY FOR TESTING!!! REPLACE!!!
+    /// TestRepository class provides methods to perform CRUD operations on the Tests and Questions tables in the database.
     /// </summary>
     public class TestRepository : ITestRepository
     {
-        private static readonly List<Test> _tests =
-        [
-            new Test { Id = 1, Title = "C# Fundamentals", Category = "Programming", CreatedAt = DateTime.UtcNow },
-            new Test { Id = 2, Title = "SQL Basics", Category = "Database", CreatedAt = DateTime.UtcNow },
-        ];
+        private readonly AppDbContext appDbContext;
 
-        private static int _nextId = 3;
-
-        public Task<List<Test>> GetAllAsync()
-            => Task.FromResult(_tests.ToList());
-
-        public Task<Test?> FindByIdAsync(int id)
-            => Task.FromResult(_tests.FirstOrDefault(t => t.Id == id));
-
-        public Task<List<Test>> FindTestsByCategoryAsync(string category)
-            => Task.FromResult(_tests.Where(t => t.Category == category).ToList());
-
-        public Task<Test> CreateAsync(Test test)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestRepository"/> class.
+        /// </summary>
+        public TestRepository()
         {
-            test.Id = _nextId++;
-            test.CreatedAt = DateTime.UtcNow;
-            _tests.Add(test);
-            return Task.FromResult(test);
+            this.appDbContext = new AppDbContext();
         }
 
-        public Task<Test?> UpdateAsync(Test test)
+        /// <summary>
+        /// Asynchronously finds a test by its ID, including its associated questions.
+        /// </summary>
+        /// <param name="id">The ID of the test to find.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public async Task<Test?> FindByIdAsync(int id)
         {
-            var existing = _tests.FirstOrDefault(t => t.Id == test.Id);
-            if (existing is null) return Task.FromResult<Test?>(null);
-
-            existing.Title = test.Title;
-            existing.Category = test.Category;
-            return Task.FromResult<Test?>(existing);
+            return await this.appDbContext.Tests
+                .Include(test => test.Questions)
+                .FirstOrDefaultAsync(test => test.Id == id);
         }
 
-        public Task<bool> DeleteAsync(int id)
+        /// <summary>
+        /// Asynchronously finds tests by their category, including their associated questions.
+        /// </summary>
+        /// <param name="category">The category of the tests to find.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public async Task<List<Test>> FindTestsByCategoryAsync(string category)
         {
-            var test = _tests.FirstOrDefault(t => t.Id == id);
-            if (test is null) return Task.FromResult(false);
-
-            _tests.Remove(test);
-            return Task.FromResult(true);
+            return await this.appDbContext.Tests
+                .Include(test => test.Questions)
+                .Where(test => test.Category == category)
+                .ToListAsync();
         }
     }
 }

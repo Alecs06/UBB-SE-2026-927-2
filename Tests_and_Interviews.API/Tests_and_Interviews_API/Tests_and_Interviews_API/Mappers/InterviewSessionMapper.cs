@@ -1,6 +1,6 @@
 ﻿namespace Tests_and_Interviews_API.Mappers
 {
-    using Tests_and_Interviews_API.Dtos;
+    using Tests_and_Interviews_API.DTOs;
     using Tests_and_Interviews_API.Models.Core;
 
     /// <summary>

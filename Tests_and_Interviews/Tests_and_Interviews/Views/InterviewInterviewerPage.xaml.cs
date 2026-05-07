@@ -27,7 +27,7 @@ namespace Tests_and_Interviews.Views
         public InterviewInterviewerPage()
         {
             this.InitializeComponent();
-            var sessionService = new Services.InterviewSessionService(new QuestionRepository());
+            var sessionService = new Services.InterviewSessionService();
             var notificationService = new Services.NotificationService(new Services.Interfaces.WindowsToastNotifier());
             this.ViewModel = new InterviewInterviewerViewModel(sessionService, notificationService);
             this.SetNumberBoxNumberFormatter();
