@@ -1,58 +1,51 @@
 // <copyright file="DataProcessingService.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
-
 namespace Tests_and_Interviews.Services
 {
     using System;
+    using System.Net.Http;
+    using System.Net.Http.Json;
     using System.Threading.Tasks;
+    using Tests_and_Interviews.Api;
+    using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Mappers;
     using Tests_and_Interviews.Models.Core;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
 
     /// <inheritdoc cref="IDataProcessingService"/>
     public class DataProcessingService : IDataProcessingService
     {
-        private readonly IUserRepository userRepository;
-        private readonly ITestAttemptRepository attemptRepository;
-        private readonly ITestRepository testRepository;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="DataProcessingService"/> class.
         /// </summary>
-        /// <param name="userRepository">The repository for accessing user profile data.</param>
-        /// <param name="attemptRepository">The repository for managing and updating test attempts.</param>
-        /// <param name="testRepository">The repository for retrieving test configuration and metadata.</param>
-        public DataProcessingService(
-            IUserRepository userRepository,
-            ITestAttemptRepository attemptRepository,
-            ITestRepository testRepository)
+        public DataProcessingService()
         {
-            this.userRepository = userRepository;
-            this.attemptRepository = attemptRepository;
-            this.testRepository = testRepository;
         }
 
         /// <inheritdoc/>
         public async Task<bool> ProcessFinalizedAttemptAsync(int attemptId)
         {
-            var attempt = await this.attemptRepository.FindByIdAsync(attemptId);
-
-            if (attempt == null)
+            HttpResponseMessage attemptResponse = await ApiClient.Http.GetAsync($"testattempts/{attemptId}");
+            attemptResponse.EnsureSuccessStatusCode();
+            TestAttemptDto? attemptDto = await attemptResponse.Content.ReadFromJsonAsync<TestAttemptDto>();
+            if (attemptDto == null)
             {
                 return false;
             }
+            TestAttempt attempt = attemptDto.ToEntity();
 
-            var validationError = await this.ValidateAttemptAsync(attempt);
-
+            string? validationError = await this.ValidateAttemptAsync(attempt);
             if (validationError != null)
             {
                 attempt.IsValidated = false;
                 attempt.PercentageScore = null;
                 attempt.RejectionReason = validationError;
                 attempt.RejectedAt = DateTime.UtcNow;
-
-                await this.attemptRepository.UpdateAsync(attempt);
+                HttpResponseMessage rejectResponse = await ApiClient.Http.PutAsJsonAsync(
+                    $"testattempts/{attempt.Id}",
+                    attempt.ToDto());
+                rejectResponse.EnsureSuccessStatusCode();
                 return false;
             }
 
@@ -60,8 +53,10 @@ namespace Tests_and_Interviews.Services
             attempt.PercentageScore = this.ConvertToPercentageScore(attempt.Score.GetValueOrDefault());
             attempt.RejectionReason = null;
             attempt.RejectedAt = null;
-
-            await this.attemptRepository.UpdateAsync(attempt);
+            HttpResponseMessage updateResponse = await ApiClient.Http.PutAsJsonAsync(
+                $"testattempts/{attempt.Id}",
+                attempt.ToDto());
+            updateResponse.EnsureSuccessStatusCode();
             return true;
         }
 
@@ -77,43 +72,49 @@ namespace Tests_and_Interviews.Services
                 return "User does not exist.";
             }
 
-            var user = await this.userRepository.GetByIdAsync(attempt.ExternalUserId.Value);
-            if (user == null)
+            HttpResponseMessage userResponse = await ApiClient.Http.GetAsync($"users/{attempt.ExternalUserId.Value}");
+            if (!userResponse.IsSuccessStatusCode)
+            {
+                return "User does not exist.";
+            }
+            UserDto? userDto = await userResponse.Content.ReadFromJsonAsync<UserDto>();
+            if (userDto == null)
             {
                 return "User does not exist.";
             }
 
-            var test = await this.testRepository.FindByIdAsync(attempt.TestId);
-            if (test == null)
+            HttpResponseMessage testResponse = await ApiClient.Http.GetAsync($"tests/{attempt.TestId}");
+            if (!testResponse.IsSuccessStatusCode)
             {
                 return "Test does not exist.";
             }
+            TestDto? testDto = await testResponse.Content.ReadFromJsonAsync<TestDto>();
+            if (testDto == null)
+            {
+                return "Test does not exist.";
+            }
+            Test test = testDto.ToEntity();
 
             if (attempt.CompletedAt == null)
             {
                 return "Attempt is incomplete. Missing completion time.";
             }
-
             if (string.IsNullOrWhiteSpace(attempt.Status))
             {
                 return "Attempt status is missing.";
             }
-
             if (!string.Equals(attempt.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase))
             {
                 return "Attempt is not eligible for leaderboard because status is not COMPLETED.";
             }
-
             if (attempt.Score < 0 || attempt.Score > 100)
             {
                 return "Attempt score is invalid.";
             }
-
             if (!this.IsTestStillValidForLeaderboard(test))
             {
                 return "Test is no longer valid for leaderboard inclusion.";
             }
-
             return null;
         }
 

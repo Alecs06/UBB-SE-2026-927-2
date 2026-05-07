@@ -1,78 +1,154 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.PortableExecutable;
-using Microsoft.Data.SqlClient;
-using Tests_and_Interviews.Repositories.Interfaces;
-using Tests_and_Interviews.Services.Interfaces;
-using Tests_and_Interviews.Models;
-
+// <copyright file="GameService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 namespace Tests_and_Interviews.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading.Tasks;
+    using Tests_and_Interviews.Api;
+    using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Models;
+    using Tests_and_Interviews.Services.Interfaces;
+
     public class GameService : IGameService
     {
-        private readonly ICompanyRepo repository;
+        private readonly int companyId;
         public SessionService SessionService;
 
-        public GameService(ICompanyRepo repository)
+        public GameService(int companyId)
         {
-            this.repository = repository;
+            this.companyId = companyId;
         }
 
-        public Game LoadedGame()
+        private async Task<GameDto> FetchGameDtoAsync()
         {
-            var game = repository.GetGame();
-            if (game == null)
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"companies/{this.companyId}/game");
+            response.EnsureSuccessStatusCode();
+            GameDto? dto = await response.Content.ReadFromJsonAsync<GameDto>();
+            if (dto == null)
             {
                 throw new InvalidOperationException("No game is available from the repository.");
             }
-            return game;
+            return dto;
         }
 
-        public int GetBuddyId()
+        private static Game MapDtoToGame(GameDto dto)
         {
-            return LoadedGame().Buddy.Id;
+            var buddy = new Buddy(dto.AvatarId, dto.BuddyName, dto.BuddyDescription);
+            var scenarios = new List<Scenario>();
+            if (!string.IsNullOrEmpty(dto.Scen1Text))
+            {
+                var scenario1 = new Scenario(dto.Scen1Text);
+                scenario1.AddChoice(new AdviceChoice(dto.Scen1Answer1, dto.Scen1Reaction1));
+                scenario1.AddChoice(new AdviceChoice(dto.Scen1Answer2, dto.Scen1Reaction2));
+                scenario1.AddChoice(new AdviceChoice(dto.Scen1Answer3, dto.Scen1Reaction3));
+                scenarios.Add(scenario1);
+            }
+            if (!string.IsNullOrEmpty(dto.Scen2Text))
+            {
+                var scenario2 = new Scenario(dto.Scen2Text);
+                scenario2.AddChoice(new AdviceChoice(dto.Scen2Answer1, dto.Scen2Reaction1));
+                scenario2.AddChoice(new AdviceChoice(dto.Scen2Answer2, dto.Scen2Reaction2));
+                scenario2.AddChoice(new AdviceChoice(dto.Scen2Answer3, dto.Scen2Reaction3));
+                scenarios.Add(scenario2);
+            }
+            return new Game(buddy, scenarios, dto.FinalQuote, dto.IsPublished);
         }
 
-        public void Save(Game game)
+        private static GameDto MapGameToDto(Game game, int companyId)
+        {
+            return new GameDto
+            {
+                AvatarId = game.Buddy.Id,
+                BuddyName = game.Buddy.Name,
+                BuddyDescription = game.Buddy.Introduction,
+                FinalQuote = game.Conclusion,
+                IsPublished = game.IsPublished,
+                Scen1Text = game.GetScenario(0).Description,
+                Scen1Answer1 = game.GetScenario(0).GetAdviceTexts()[0],
+                Scen1Answer2 = game.GetScenario(0).GetAdviceTexts()[1],
+                Scen1Answer3 = game.GetScenario(0).GetAdviceTexts()[2],
+                Scen1Reaction1 = game.GetScenario(0).GetAdviceReactions()[0],
+                Scen1Reaction2 = game.GetScenario(0).GetAdviceReactions()[1],
+                Scen1Reaction3 = game.GetScenario(0).GetAdviceReactions()[2],
+                Scen2Text = game.GetScenario(1).Description,
+                Scen2Answer1 = game.GetScenario(1).GetAdviceTexts()[0],
+                Scen2Answer2 = game.GetScenario(1).GetAdviceTexts()[1],
+                Scen2Answer3 = game.GetScenario(1).GetAdviceTexts()[2],
+                Scen2Reaction1 = game.GetScenario(1).GetAdviceReactions()[0],
+                Scen2Reaction2 = game.GetScenario(1).GetAdviceReactions()[1],
+                Scen2Reaction3 = game.GetScenario(1).GetAdviceReactions()[2],
+            };
+        }
+
+        public async Task<Game> LoadedGame()
+        {
+            GameDto dto = await this.FetchGameDtoAsync();
+            return MapDtoToGame(dto);
+        }
+
+        public async Task<int> GetBuddyId()
+        {
+            return (await this.LoadedGame()).Buddy.Id;
+        }
+
+        public async Task Save(Game game)
         {
             if (game == null)
             {
                 throw new ArgumentNullException(nameof(game));
             }
-            repository.SaveGame(game);
+            GameDto dto = MapGameToDto(game, this.companyId);
+            HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+                $"companies/{this.companyId}/game",
+                dto);
+            response.EnsureSuccessStatusCode();
         }
 
-        public Game GetStoredGame()
+        public async Task<Game> GetStoredGame()
         {
-            return repository.GetGame() ?? new Game();
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"companies/{this.companyId}/game");
+            if (!response.IsSuccessStatusCode)
+            {
+                return new Game();
+            }
+            GameDto? dto = await response.Content.ReadFromJsonAsync<GameDto>();
+            return dto == null ? new Game() : MapDtoToGame(dto);
         }
 
-        public bool IsPublished()
+        public async Task<bool> IsPublished()
         {
-            var game = repository.GetGame();
-            return game != null && game.IsPublished;
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"companies/{this.companyId}/game");
+            if (!response.IsSuccessStatusCode)
+            {
+                return false;
+            }
+            GameDto? dto = await response.Content.ReadFromJsonAsync<GameDto>();
+            return dto != null && dto.IsPublished;
         }
 
-        public string ShowCoworker()
+        public async Task<string> ShowCoworker()
         {
-            return LoadedGame().Buddy.Introduction;
+            return (await this.LoadedGame()).Buddy.Introduction;
         }
 
-        public string ShowScenarioText(int number)
+        public async Task<string> ShowScenarioText(int number)
         {
-            var game = LoadedGame();
+            var game = await this.LoadedGame();
             if (number < 0 || number >= game.Scenarios.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(number), "Scenario index is out of bounds.");
             }
-
             return game.Scenarios[number].Description;
         }
 
-        public List<string> ShowChoices(int number)
+        public async Task<List<string>> ShowChoices(int number)
         {
-            var game = LoadedGame();
+            var game = await this.LoadedGame();
             if (number < 0 || number >= game.Scenarios.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(number));
@@ -80,9 +156,9 @@ namespace Tests_and_Interviews.Services
             return game.Scenarios[number].GetAdviceTexts();
         }
 
-        public string ChoiceMade(int numberScenario, int numberAdvice)
+        public async Task<string> ChoiceMade(int numberScenario, int numberAdvice)
         {
-            var game = LoadedGame();
+            var game = await this.LoadedGame();
             if (numberScenario < 0 || numberScenario >= game.Scenarios.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(numberScenario));
@@ -90,9 +166,9 @@ namespace Tests_and_Interviews.Services
             return game.Scenarios[numberScenario].SelectChoice(numberAdvice);
         }
 
-        public string ShowConclusion()
+        public async Task<string> ShowConclusion()
         {
-            return LoadedGame().Conclusion;
+            return (await this.LoadedGame()).Conclusion;
         }
 
         public Game CreateGameFromInput(
@@ -104,7 +180,6 @@ namespace Tests_and_Interviews.Services
             bool publish = true)
         {
             var buddy = new Buddy(buddyId, buddyName, buddyIntroduction);
-
             var builtScenarios = scenarios
                 .Select(scenarioData =>
                 {
@@ -113,11 +188,9 @@ namespace Tests_and_Interviews.Services
                     {
                         scenario.AddChoice(new AdviceChoice(advice, feedback));
                     }
-
                     return scenario;
                 })
                 .ToList();
-
             return new Game(buddy, builtScenarios, conclusion, publish);
         }
 

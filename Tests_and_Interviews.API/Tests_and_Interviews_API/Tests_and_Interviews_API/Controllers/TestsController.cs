@@ -1,95 +1,48 @@
-namespace TestsAndInterviews.API.Controllers
+// <copyright file="TestsController.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Tests_and_Interviews_API.Controllers
 {
     using Microsoft.AspNetCore.Mvc;
-    using Tests_and_Interviews_API.DTOs;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Tests_and_Interviews_API.Dtos;
+    using Tests_and_Interviews_API.Mappers;
+    using Tests_and_Interviews_API.Models.Core;
     using Tests_and_Interviews_API.Services.Interfaces;
 
-    [ApiController]
     [Route("api/[controller]")]
+    [ApiController]
     public class TestsController : ControllerBase
     {
-        private readonly ITestService _testService;
+        private readonly ITestService _service;
 
-        public TestsController(ITestService testService)
+        public TestsController(ITestService service)
         {
-            _testService = testService;
+            this._service = service;
         }
 
-        /// <summary>
-        /// GET api/tests
-        /// Returns all tests (summary only, no questions).
-        /// Optional filter: api/tests?category=Programming
-        /// </summary>
-        [HttpGet]
-        public async Task<ActionResult<List<TestSummaryDto>>> GetAll([FromQuery] string? category)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<TestDto>> FindById(int id)
         {
-            if (!string.IsNullOrWhiteSpace(category))
+            Test? test = await this._service.FindByIdAsync(id);
+
+            if (test == null)
             {
-                var byCategory = await _testService.GetTestsByCategoryAsync(category);
-                return Ok(byCategory);
+                return NotFound();
             }
 
-            var tests = await _testService.GetAllTestsAsync();
-            return Ok(tests);
+            return Ok(test.ToDto());
         }
 
-        /// <summary>
-        /// GET api/tests/id
-        /// Returns a single test with its full list of questions.
-        /// </summary>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<TestDetailDto>> GetById(int id)
+        [HttpGet("bycategory/{category}")]
+        public async Task<ActionResult<List<TestDto>>> FindByCategory(string category)
         {
-            var test = await _testService.GetTestByIdAsync(id);
-            if (test is null)
-                return NotFound($"Test with id {id} was not found.");
+            List<Test> tests = await this._service.FindTestsByCategoryAsync(category);
 
-            return Ok(test);
-        }
-
-        /// <summary>
-        /// POST api/tests
-        /// Creates a new test. Questions can be included in the body.
-        /// </summary>
-        [HttpPost]
-        public async Task<ActionResult<TestDetailDto>> Create([FromBody] CreateTestDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var created = await _testService.CreateTestAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-        }
-
-        /// <summary>
-        /// PUT api/tests/id
-        /// Updates the title and category of an existing test.
-        /// </summary>
-        [HttpPut("{id}")]
-        public async Task<ActionResult<TestDetailDto>> Update(int id, [FromBody] UpdateTestDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var updated = await _testService.UpdateTestAsync(id, dto);
-            if (updated is null)
-                return NotFound($"Test with id {id} was not found.");
-
-            return Ok(updated);
-        }
-
-        /// <summary>
-        /// DELETE api/tests/id
-        /// Deletes a test and all its associated questions.
-        /// </summary>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var deleted = await _testService.DeleteTestAsync(id);
-            if (!deleted)
-                return NotFound($"Test with id {id} was not found.");
-
-            return NoContent();
+            return Ok(tests.Select(t => t.ToDto()).ToList());
         }
     }
 }

@@ -1,102 +1,49 @@
+// <copyright file="TestService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 namespace Tests_and_Interviews_API.Services
 {
-    using Tests_and_Interviews_API.DTOs;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
     using Tests_and_Interviews_API.Models.Core;
     using Tests_and_Interviews_API.Repositories.Interfaces;
     using Tests_and_Interviews_API.Services.Interfaces;
 
+    /// <summary>
+    /// Provides operations for managing tests.
+    /// </summary>
     public class TestService : ITestService
     {
-        private readonly ITestRepository _testRepository;
+        private readonly ITestRepository _repository;
 
-        public TestService(ITestRepository testRepository)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestService"/> class.
+        /// </summary>
+        /// <param name="repository">The repository used to access test data. Cannot be null.</param>
+        public TestService(ITestRepository repository)
         {
-            _testRepository = testRepository;
+            this._repository = repository;
         }
 
-        public async Task<List<TestSummaryDto>> GetAllTestsAsync()
+        /// <summary>
+        /// Asynchronously retrieves the test with the specified identifier, including its associated questions.
+        /// </summary>
+        /// <param name="id">The unique identifier of the test.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the test, or null if not found.</returns>
+        public async Task<Test?> FindByIdAsync(int id)
         {
-            var tests = await _testRepository.GetAllAsync();
-            return tests.Select(MapToSummary).ToList();
+            return await this._repository.FindByIdAsync(id);
         }
 
-        public async Task<TestDetailDto?> GetTestByIdAsync(int id)
+        /// <summary>
+        /// Asynchronously retrieves all tests belonging to the specified category, including their associated questions.
+        /// </summary>
+        /// <param name="category">The category to filter tests by.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a list of tests in the specified category.</returns>
+        public async Task<List<Test>> FindTestsByCategoryAsync(string category)
         {
-            var test = await _testRepository.FindByIdAsync(id);
-            return test is null ? null : MapToDetail(test);
+            return await this._repository.FindTestsByCategoryAsync(category);
         }
-
-        public async Task<List<TestSummaryDto>> GetTestsByCategoryAsync(string category)
-        {
-            var tests = await _testRepository.FindTestsByCategoryAsync(category);
-            return tests.Select(MapToSummary).ToList();
-        }
-
-        public async Task<TestDetailDto> CreateTestAsync(CreateTestDto dto)
-        {
-            var test = new Test
-            {
-                Title = dto.Title,
-                Category = dto.Category,
-                CreatedAt = DateTime.UtcNow,
-                Questions = dto.Questions.Select(q => new Question
-                {
-                    QuestionText = q.QuestionText,
-                    QuestionTypeString = q.QuestionType,
-                    QuestionScore = q.QuestionScore,
-                    QuestionAnswer = q.QuestionAnswer,
-                    OptionsJson = q.OptionsJson,
-                }).ToList()
-            };
-
-            var created = await _testRepository.CreateAsync(test);
-            return MapToDetail(created);
-        }
-
-        public async Task<TestDetailDto?> UpdateTestAsync(int id, UpdateTestDto dto)
-        {
-            var test = new Test
-            {
-                Id = id,
-                Title = dto.Title,
-                Category = dto.Category,
-            };
-
-            var updated = await _testRepository.UpdateAsync(test);
-            return updated is null ? null : MapToDetail(updated);
-        }
-
-        public async Task<bool> DeleteTestAsync(int id)
-        {
-            return await _testRepository.DeleteAsync(id);
-        }
-
-        // Private mapping helpers
-
-        private static TestSummaryDto MapToSummary(Test t) => new()
-        {
-            Id = t.Id,
-            Title = t.Title,
-            Category = t.Category,
-            CreatedAt = t.CreatedAt,
-            QuestionCount = t.Questions.Count,
-        };
-
-        private static TestDetailDto MapToDetail(Test t) => new()
-        {
-            Id = t.Id,
-            Title = t.Title,
-            Category = t.Category,
-            CreatedAt = t.CreatedAt,
-            Questions = t.Questions.Select(q => new QuestionDto
-            {
-                Id = q.Id,
-                QuestionText = q.QuestionText,
-                QuestionType = q.QuestionTypeString,
-                QuestionScore = q.QuestionScore,
-                QuestionAnswer = q.QuestionAnswer,
-                OptionsJson = q.OptionsJson,
-            }).ToList()
-        };
     }
 }

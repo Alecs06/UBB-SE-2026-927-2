@@ -1,0 +1,46 @@
+﻿namespace Tests_and_Interviews_API.Controllers
+{
+    using Microsoft.AspNetCore.Mvc;
+    using System.Collections.Generic;
+    using System.Linq;
+    using Tests_and_Interviews_API.Dtos;
+    using Tests_and_Interviews_API.Mappers;
+    using Tests_and_Interviews_API.Models;
+    using Tests_and_Interviews_API.Services.Interfaces;
+
+    [Route("api/[controller]")]
+    [ApiController]
+    public class PaymentController : ControllerBase
+    {
+        private readonly IPaymentService _service;
+
+        public PaymentController(IPaymentService service)
+        {
+            this._service = service;
+        }
+
+        [HttpPut("{jobId}")]
+        public ActionResult UpdateJobPayment(int jobId, [FromQuery] int paymentAmount)
+        {
+            this._service.UpdateJobPayment(jobId, paymentAmount);
+
+            return Ok();
+        }
+
+        [HttpGet("paid")]
+        public ActionResult<List<JobPaymentInfoDto>> GetPaidJobs([FromQuery] string jobType, [FromQuery] string experienceLevel)
+        {
+            List<JobPaymentInfo> jobs = this._service.GetPaidJobs(jobType, experienceLevel);
+
+            return Ok(jobs.Select(j => j.ToDto()).ToList());
+        }
+
+        [HttpGet("notify/{currentJobId}")]
+        public ActionResult<List<string>> GetCompaniesToNotify(int currentJobId, [FromQuery] int newPaymentAmount)
+        {
+            List<string> emails = this._service.GetCompaniesToNotify(currentJobId, newPaymentAmount);
+
+            return Ok(emails);
+        }
+    }
+}

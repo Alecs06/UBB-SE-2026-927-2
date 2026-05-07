@@ -1,11 +1,13 @@
 // <copyright file="AttemptValidationService.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
-
 namespace Tests_and_Interviews.Services
 {
+    using System.Net.Http;
+    using System.Net.Http.Json;
     using System.Threading.Tasks;
-    using Tests_and_Interviews.Repositories.Interfaces;
+    using Tests_and_Interviews.Api;
+    using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
@@ -13,15 +15,11 @@ namespace Tests_and_Interviews.Services
     /// </summary>
     public class AttemptValidationService : IAttemptValidationService
     {
-        private readonly ITestAttemptRepository attemptRepository;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="AttemptValidationService"/> class.
         /// </summary>
-        /// <param name="attemptRepository">The repository used to access test attempt data.</param>
-        public AttemptValidationService(ITestAttemptRepository attemptRepository)
+        public AttemptValidationService()
         {
-            this.attemptRepository = attemptRepository;
         }
 
         /// <summary>
@@ -33,14 +31,13 @@ namespace Tests_and_Interviews.Services
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task<bool> CanStartTestAsync(int userId, int testId)
         {
-            var existing = await this.attemptRepository.FindByUserAndTestAsync(userId, testId);
-
-            if (existing == null)
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
+            if (!response.IsSuccessStatusCode)
             {
                 return true;
             }
-
-            return false;
+            TestAttemptDto? dto = await response.Content.ReadFromJsonAsync<TestAttemptDto>();
+            return dto == null;
         }
 
         /// <summary>
@@ -53,13 +50,16 @@ namespace Tests_and_Interviews.Services
         /// <exception cref="System.InvalidOperationException">Thrown when an existing attempt is found for the user and test.</exception>
         public async Task CheckExistingAttemptsAsync(int userId, int testId)
         {
-            var existing = await this.attemptRepository.FindByUserAndTestAsync(userId, testId);
-
-            if (existing == null)
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
+            if (!response.IsSuccessStatusCode)
             {
                 return;
             }
-
+            TestAttemptDto? dto = await response.Content.ReadFromJsonAsync<TestAttemptDto>();
+            if (dto == null)
+            {
+                return;
+            }
             throw new System.InvalidOperationException(
                 $"User {userId} has already attempted test {testId}.");
         }

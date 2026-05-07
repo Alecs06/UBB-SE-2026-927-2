@@ -1,12 +1,12 @@
 ﻿// <copyright file="InterviewSessionService.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
-
 namespace Tests_and_Interviews.Services
 {
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net.Http;
     using System.Net.Http.Json;
     using System.Threading.Tasks;
@@ -15,7 +15,6 @@ namespace Tests_and_Interviews.Services
     using Tests_and_Interviews.Mappers;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
     using Windows.Storage;
     using Windows.Storage.Streams;
@@ -25,15 +24,11 @@ namespace Tests_and_Interviews.Services
     /// </summary>
     public class InterviewSessionService : IInterviewSessionService
     {
-        private readonly IQuestionRepository questionRepo;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="InterviewSessionService"/> class.
         /// </summary>
-        /// <param name="questionRepository">The question repository.</param>
-        public InterviewSessionService(IQuestionRepository questionRepository)
+        public InterviewSessionService()
         {
-            this.questionRepo = questionRepository;
         }
 
         /// <summary>
@@ -44,17 +39,15 @@ namespace Tests_and_Interviews.Services
         public async Task<(InterviewSession? Session, List<Question> Questions)> StartSessionAsync(int sessionId)
         {
             InterviewSession? session = await this.GetSessionAsync(sessionId);
-
             if (session != null)
             {
                 session.DateStart = DateTime.UtcNow;
                 await this.UpdateSessionViaApiAsync(session);
             }
-
-            List<Question> questions = session != null
-                ? await this.questionRepo.GetInterviewQuestionsByPositionAsync(session.PositionId)
-                : new List<Question>();
-
+            HttpResponseMessage questionsResponse = await ApiClient.Http.GetAsync($"questions/byposition/{session.PositionId}");
+            questionsResponse.EnsureSuccessStatusCode();
+            List<QuestionDto>? dtos = await questionsResponse.Content.ReadFromJsonAsync<List<QuestionDto>>();
+            List<Question> questions = dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Question>();
             return (session, questions);
         }
 
@@ -71,14 +64,11 @@ namespace Tests_and_Interviews.Services
             StorageFile file = await StorageFile.GetFileFromPathAsync(recordingFilePath);
             using IRandomAccessStreamWithContentType randomAccessStream = await file.OpenReadAsync();
             using Stream stream = randomAccessStream.AsStreamForRead();
-
             MultipartFormDataContent content = new MultipartFormDataContent();
             content.Add(new StreamContent(stream), "file", file.Name);
-
             HttpResponseMessage response = await ApiClient.Http.PostAsync(
                 $"interviewsessions/{session.Id}/video",
                 content);
-
             response.EnsureSuccessStatusCode();
         }
 
@@ -108,7 +98,6 @@ namespace Tests_and_Interviews.Services
         {
             HttpResponseMessage response = await ApiClient.Http.GetAsync($"interviewsessions/{sessionId}");
             response.EnsureSuccessStatusCode();
-
             InterviewSessionDto? dto = await response.Content.ReadFromJsonAsync<InterviewSessionDto>();
             return dto!.ToEntity();
         }
@@ -123,7 +112,6 @@ namespace Tests_and_Interviews.Services
             HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
                 $"interviewsessions/{session.Id}",
                 session.ToDto());
-
             response.EnsureSuccessStatusCode();
         }
     }

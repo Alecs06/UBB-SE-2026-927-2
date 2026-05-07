@@ -1,94 +1,108 @@
 ﻿namespace Tests_and_Interviews_API.Repositories
 {
+    using Microsoft.EntityFrameworkCore;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Tests_and_Interviews_API.Data;
     using Tests_and_Interviews_API.Models.Core;
+    using Tests_and_Interviews_API.Models.Enums;
     using Tests_and_Interviews_API.Repositories.Interfaces;
 
     /// <summary>
-    /// MOCK REPOSITORY FOR TESTING CONTROLLER TODO
+    /// Repository for managing interview sessions.
     /// </summary>
-    public class InterviewSessionRepository: IInterviewSessionRepository
+    public class InterviewSessionRepository : IInterviewSessionRepository
     {
-        private readonly List<InterviewSession> _sessions = new();
+        private readonly AppDbContext appDbContext;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InterviewSessionRepository"/> class.
+        /// </summary>
         public InterviewSessionRepository()
         {
-            // Seed with some fake data for testing
-            _sessions.Add(new InterviewSession
+            this.appDbContext = new AppDbContext();
+        }
+
+        /// <inheritdoc/>
+        public async Task<InterviewSession> GetInterviewSessionByIdAsync(int id)
+        {
+            var session = await this.appDbContext.InterviewSessions
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (session == null)
             {
-                Id = 1,
-                PositionId = 10,
-                ExternalUserId = 5,
-                InterviewerId = 3,
-                DateStart = DateTime.Now.AddDays(1),
-                Status = "Scheduled",
-                Score = null,
-                Video = null
-            });
+                throw new KeyNotFoundException($"InterviewSession with ID {id} was not found.");
+            }
 
-            _sessions.Add(new InterviewSession
+            return session;
+        }
+
+        /// <inheritdoc/>
+        public InterviewSession GetInterviewSessionById(int id)
+        {
+            var session = this.appDbContext.InterviewSessions
+                .FirstOrDefault(s => s.Id == id);
+
+            if (session == null)
             {
-                Id = 2,
-                PositionId = 11,
-                ExternalUserId = null,
-                InterviewerId = 4,
-                DateStart = DateTime.Now.AddDays(2),
-                Status = "Completed",
-                Score = 8.5m,
-                Video = "Videos/test.mp4"
-            });
+                throw new KeyNotFoundException($"InterviewSession with ID {id} was not found.");
+            }
+
+            return session;
         }
 
-        public Task<InterviewSession?> GetInterviewSessionByIdAsync(int id)
+        /// <inheritdoc/>
+        public async Task UpdateInterviewSessionAsync(InterviewSession updated)
         {
-            return Task.FromResult(_sessions.FirstOrDefault(s => s.Id == id));
+            var existing = await this.appDbContext.InterviewSessions
+                .FirstOrDefaultAsync(s => s.Id == updated.Id);
+
+            if (existing == null)
+            {
+                return;
+            }
+
+            existing.InterviewerId = updated.InterviewerId;
+            existing.PositionId = updated.PositionId;
+            existing.ExternalUserId = updated.ExternalUserId;
+            existing.Status = updated.Status;
+            existing.DateStart = updated.DateStart;
+            existing.Video = updated.Video;
+            existing.Score = updated.Score;
+
+            await this.appDbContext.SaveChangesAsync();
         }
 
-        public InterviewSession? GetInterviewSessionById(int id)
-        {
-            return _sessions.FirstOrDefault(s => s.Id == id);
-        }
-
-        public Task<List<InterviewSession>> GetScheduledSessionsAsync()
-        {
-            var result = _sessions
-                .Where(s => s.Status == "Scheduled")
-                .ToList();
-
-            return Task.FromResult(result);
-        }
-
-        public Task<List<InterviewSession>> GetSessionsByStatusAsync(string status)
-        {
-            var result = _sessions
-                .Where(s => s.Status == status)
-                .ToList();
-
-            return Task.FromResult(result);
-        }
-
+        /// <inheritdoc/>
         public void Add(InterviewSession session)
         {
-            // Simulate auto-increment ID
-            session.Id = _sessions.Count == 0 ? 1 : _sessions.Max(s => s.Id) + 1;
-            _sessions.Add(session);
+            this.appDbContext.InterviewSessions.Add(session);
+            this.appDbContext.SaveChanges();
         }
 
-        public Task UpdateInterviewSessionAsync(InterviewSession updated)
-        {
-            var existing = _sessions.FirstOrDefault(s => s.Id == updated.Id);
-            if (existing == null)
-                return Task.CompletedTask; // no exception, service handles null
-
-            // Replace the object
-            _sessions.Remove(existing);
-            _sessions.Add(updated);
-
-            return Task.CompletedTask;
-        }
-
+        /// <inheritdoc/>
         public void Delete(InterviewSession session)
         {
-            _sessions.Remove(session);
+            this.appDbContext.InterviewSessions.Remove(session);
+            this.appDbContext.SaveChanges();
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<InterviewSession>> GetScheduledSessionsAsync()
+        {
+            return await this.appDbContext.InterviewSessions
+                .Where(s => s.Status == InterviewStatus.Scheduled.ToString())
+                .ToListAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<InterviewSession>> GetSessionsByStatusAsync(string status)
+        {
+            return await this.appDbContext.InterviewSessions
+                .Where(s => s.Status == status)
+                .OrderByDescending(s => s.DateStart)
+                .ToListAsync();
         }
     }
 }

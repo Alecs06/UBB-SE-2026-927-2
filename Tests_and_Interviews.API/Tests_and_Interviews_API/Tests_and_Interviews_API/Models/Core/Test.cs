@@ -9,14 +9,15 @@
     /// The Test class represents a test or quiz that candidates can take. 
     /// It contains properties for the test's title, category, creation date, and related questions and attempts.
     /// </summary>
-    [Table("tests")]
+    [Table("Tests")]
     public class Test
     {
         /// <summary>
         /// Gets or sets the unique identifier for the entity.
         /// </summary>
         [Key]
-        [Column("test_id")]
+        [Column("id")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         /// <summary>

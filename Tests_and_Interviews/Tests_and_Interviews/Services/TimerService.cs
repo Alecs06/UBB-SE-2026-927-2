@@ -1,17 +1,19 @@
 // <copyright file="TimerService.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
-
 namespace Tests_and_Interviews.Services
 {
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Net.Http.Json;
     using System.Threading.Tasks;
+    using Tests_and_Interviews.Api;
+    using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Helpers;
+    using Tests_and_Interviews.Mappers;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
@@ -21,17 +23,14 @@ namespace Tests_and_Interviews.Services
     /// </summary>
     public class TimerService : ITimerService
     {
-        private static readonly ConcurrentDictionary<int, DateTime> Timers = new ();
+        private static readonly ConcurrentDictionary<int, DateTime> Timers = new();
         private static readonly TimeSpan TestDuration = TimeSpan.FromMinutes(TestConstants.TestDurationInMinutes);
-        private readonly ITestAttemptRepository testAttemptRepository;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TimerService"/> class with the specified TestAttemptRepository.
+        /// Initializes a new instance of the <see cref="TimerService"/> class.
         /// </summary>
-        /// <param name="testAttemptRepository">The repository used to manage test attempts in the database.</param>
-        public TimerService(ITestAttemptRepository testAttemptRepository)
+        public TimerService()
         {
-            this.testAttemptRepository = testAttemptRepository;
         }
 
         /// <summary>
@@ -56,7 +55,6 @@ namespace Tests_and_Interviews.Services
             {
                 return false;
             }
-
             return DateTime.UtcNow - startTime > TestDuration;
         }
 
@@ -75,7 +73,6 @@ namespace Tests_and_Interviews.Services
                     expired.Add(timerEntry.Key);
                 }
             }
-
             return expired;
         }
 
@@ -92,8 +89,10 @@ namespace Tests_and_Interviews.Services
                 Status = TestStatus.COMPLETED.ToString(),
                 CompletedAt = DateTime.UtcNow,
             };
-
-            await this.testAttemptRepository.UpdateAsync(expiredAttempt);
+            System.Net.Http.HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+                $"testattempts/{attemptId}",
+                expiredAttempt.ToDto());
+            response.EnsureSuccessStatusCode();
             Timers.TryRemove(attemptId, out _);
         }
     }
