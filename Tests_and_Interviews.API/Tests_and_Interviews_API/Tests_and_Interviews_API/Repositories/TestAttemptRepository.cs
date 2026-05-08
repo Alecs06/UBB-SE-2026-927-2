@@ -19,9 +19,9 @@ namespace Tests_and_Interviews_API.Repositories
         /// Initializes a new instance of the <see cref="TestAttemptRepository"/> class.
         /// TestAttemptRepository constructor initializes the connection string from the environment variable.
         /// </summary>
-        public TestAttemptRepository()
+        public TestAttemptRepository(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext(); // TODO - should be injectable
+            this.appDbContext = appDbContext;
         }
 
         /// <inheritdoc />

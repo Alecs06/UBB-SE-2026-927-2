@@ -19,9 +19,9 @@ namespace Tests_and_Interviews_API.Repositories
         /// <summary>
         /// Initializes a new instance of the <see cref="QuestionRepository"/> class.
         /// </summary>
-        public QuestionRepository()
+        public QuestionRepository(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         /// <inheritdoc />

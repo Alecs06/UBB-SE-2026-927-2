@@ -10,9 +10,9 @@
     {
         private readonly AppDbContext appDbContext;
 
-        public PaymentRepository()
+        public PaymentRepository(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         /// <inheritdoc />

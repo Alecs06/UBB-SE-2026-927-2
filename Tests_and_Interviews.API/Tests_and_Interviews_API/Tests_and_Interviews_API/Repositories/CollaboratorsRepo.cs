@@ -11,9 +11,9 @@
     {
         private readonly AppDbContext appDbContext;
 
-        public CollaboratorsRepo()
+        public CollaboratorsRepo(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         /// <inheritdoc/>

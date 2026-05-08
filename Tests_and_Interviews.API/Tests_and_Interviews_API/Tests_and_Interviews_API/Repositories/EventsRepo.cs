@@ -12,9 +12,9 @@
     {
         private readonly AppDbContext appDbContext;
 
-        public EventsRepo()
+        public EventsRepo(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         /// <inheritdoc/>

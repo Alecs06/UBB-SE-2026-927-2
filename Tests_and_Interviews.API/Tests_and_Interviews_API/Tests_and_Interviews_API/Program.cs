@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Tests_and_Interviews_API.Data;
 using Tests_and_Interviews_API.Repositories;
 using Tests_and_Interviews_API.Repositories.Interfaces;
 using Tests_and_Interviews_API.Services;
@@ -8,8 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-
-//builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddDbContext<AppDbContext>();
 
 builder.Services.AddScoped<ITestRepository, TestRepository>();
 builder.Services.AddScoped<IInterviewSessionRepository, InterviewSessionRepository>();
