@@ -16,9 +16,9 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="LeaderboardRepository"/> class.
         /// </summary>
-        public LeaderboardRepository()
+        public LeaderboardRepository(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         /// <inheritdoc />

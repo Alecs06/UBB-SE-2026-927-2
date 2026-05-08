@@ -22,6 +22,9 @@
         {
             List<Question> questions = await this._service.GetQuestionsByTestIdAsync(testId);
 
+            if (questions is null || !questions.Any())
+                return NotFound($"No questions found for test ID {testId}.");
+
             return Ok(questions.Select(q => q.ToDto()).ToList());
         }
 
@@ -29,6 +32,9 @@
         public async Task<ActionResult<List<QuestionDto>>> GetByPosition(int positionId)
         {
             List<Question> questions = await this._service.GetInterviewQuestionsByPositionAsync(positionId);
+
+            if (questions is null || !questions.Any())
+                return NotFound($"No questions found for position ID {positionId}.");
 
             return Ok(questions.Select(q => q.ToDto()).ToList());
         }

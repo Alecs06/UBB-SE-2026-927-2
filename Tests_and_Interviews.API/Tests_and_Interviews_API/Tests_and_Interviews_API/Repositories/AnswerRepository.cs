@@ -18,9 +18,9 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="AnswerRepository"/> class.
         /// </summary>
-        public AnswerRepository()
+        public AnswerRepository(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         /// <inheritdoc/>

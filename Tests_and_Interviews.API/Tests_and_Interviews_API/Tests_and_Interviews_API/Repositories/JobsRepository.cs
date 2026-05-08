@@ -15,9 +15,9 @@ namespace Tests_and_Interviews_API.Repositories
 
         private readonly AppDbContext appDbContext;
 
-        public JobsRepository()
+        public JobsRepository(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         /// <inheritdoc />

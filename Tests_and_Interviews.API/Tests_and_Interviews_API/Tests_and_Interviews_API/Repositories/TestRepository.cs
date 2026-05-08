@@ -22,9 +22,9 @@ namespace Tests_and_Interviews_API.Repositories
         /// <summary>
         /// Initializes a new instance of the <see cref="TestRepository"/> class.
         /// </summary>
-        public TestRepository()
+        public TestRepository(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         /// <summary>

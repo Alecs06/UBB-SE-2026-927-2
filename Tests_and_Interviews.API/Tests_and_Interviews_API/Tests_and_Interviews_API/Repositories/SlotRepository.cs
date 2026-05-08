@@ -21,9 +21,9 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="SlotRepository"/> class.
         /// </summary>
-        public SlotRepository()
+        public SlotRepository(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         /// <inheritdoc />

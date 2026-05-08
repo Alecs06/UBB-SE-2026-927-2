@@ -14,9 +14,9 @@ namespace Tests_and_Interviews_API.Repositories
         private readonly AppDbContext appDbContext;
         private Company? currentCompany;
 
-        public CompanyRepo()
+        public CompanyRepo(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         private void ValidateRequiredFields(Company company)

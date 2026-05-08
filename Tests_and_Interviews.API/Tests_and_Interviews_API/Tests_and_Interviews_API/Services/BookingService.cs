@@ -6,7 +6,6 @@ namespace Tests_and_Interviews_API.Services
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using Tests_and_Interviews_API.Models;
     using Tests_and_Interviews_API.Models.Core;
@@ -35,15 +34,6 @@ namespace Tests_and_Interviews_API.Services
         {
             this.slotRepo = slotRepository;
             this.interviewRepo = interviewSessionRepository;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BookingService"/> class with default repositories.
-        /// </summary>
-        [ExcludeFromCodeCoverage]
-        public BookingService()
-            : this(new SlotRepository(), new InterviewSessionRepository())
-        {
         }
 
         /// <summary>

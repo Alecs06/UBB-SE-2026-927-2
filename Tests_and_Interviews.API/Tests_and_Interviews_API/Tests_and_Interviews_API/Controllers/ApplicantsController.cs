@@ -24,6 +24,11 @@
         {
             Applicant applicant = this._service.GetApplicantById(applicantId);
 
+            if (applicant is null)
+            {
+                return NotFound($"Applicant with ID {applicantId} was not found.");
+            }
+
             return Ok(applicant.ToDto());
         }
 
@@ -31,6 +36,9 @@
         public ActionResult<List<ApplicantDto>> GetByCompany(int companyId)
         {
             IEnumerable<Applicant> applicants = this._service.GetApplicantsByCompany(companyId);
+
+            if (applicants is null || !applicants.Any())
+                return NotFound($"No applicants found for company ID {companyId}.");
 
             return Ok(applicants.Select(a => a.ToDto()).ToList());
         }
@@ -40,6 +48,9 @@
         {
             JobPosting jobPosting = new JobPosting { JobId = jobId };
             IEnumerable<Applicant> applicants = this._service.GetApplicantsByJob(jobPosting);
+
+            if (applicants is null || !applicants.Any())
+                return NotFound($"No applicants found for job ID {jobId}.");
 
             return Ok(applicants.Select(a => a.ToDto()).ToList());
         }

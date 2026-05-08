@@ -19,9 +19,9 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="InterviewSessionRepository"/> class.
         /// </summary>
-        public InterviewSessionRepository()
+        public InterviewSessionRepository(AppDbContext appDbContext)
         {
-            this.appDbContext = new AppDbContext();
+            this.appDbContext = appDbContext;
         }
 
         /// <inheritdoc/>
