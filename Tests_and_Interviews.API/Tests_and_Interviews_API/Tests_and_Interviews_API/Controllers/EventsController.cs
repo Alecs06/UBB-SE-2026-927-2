@@ -41,6 +41,9 @@
         {
             List<Event> events = this._service.GetCurrentEventsFromRepo(loggedInUser);
 
+            if (events is null || !events.Any())
+                return NotFound($"No current events found for user ID {loggedInUser}.");
+
             return Ok(events.Select(e => e.ToDto()).ToList());
         }
 
@@ -48,6 +51,9 @@
         public ActionResult<List<EventDto>> GetPast(int loggedInUser)
         {
             List<Event> events = this._service.GetPastEventsFromRepo(loggedInUser);
+
+            if (events is null || !events.Any())
+                return NotFound($"No past events found for user ID {loggedInUser}.");
 
             return Ok(events.Select(e => e.ToDto()).ToList());
         }

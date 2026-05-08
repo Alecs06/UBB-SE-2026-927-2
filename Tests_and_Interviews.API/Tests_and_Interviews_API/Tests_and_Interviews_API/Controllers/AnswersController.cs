@@ -30,6 +30,9 @@
         {
             List<Answer> answers = await this._service.FindByAttemptAsync(attemptId);
 
+            if (answers is null || !answers.Any())
+                return NotFound($"No answers found for attempt ID {attemptId}.");
+
             return Ok(answers.Select(a => a.ToDto()).ToList());
         }
     }

@@ -53,6 +53,9 @@
         {
             IReadOnlyList<(int SkillId, int RequiredPercentage)> skillLinks = this._service.GetSkillsByJob(jobId);
 
+            if (skillLinks is null || !skillLinks.Any())
+                return NotFound($"No skills found for job ID {jobId}.");
+
             return Ok(skillLinks.Select(s => new JobSkillDto
             {
                 SkillId = s.SkillId,

@@ -32,6 +32,9 @@
         {
             List<JobPaymentInfo> jobs = this._service.GetPaidJobs(jobType, experienceLevel);
 
+            if (jobs is null || !jobs.Any())
+                return NotFound($"No paid jobs found for type '{jobType}' and experience level '{experienceLevel}'.");
+
             return Ok(jobs.Select(j => j.ToDto()).ToList());
         }
 
@@ -39,6 +42,9 @@
         public ActionResult<List<string>> GetCompaniesToNotify(int currentJobId, [FromQuery] int newPaymentAmount)
         {
             List<string> emails = this._service.GetCompaniesToNotify(currentJobId, newPaymentAmount);
+
+            if (emails is null || !emails.Any())
+                return NotFound($"No companies to notify for job ID {currentJobId}.");
 
             return Ok(emails);
         }

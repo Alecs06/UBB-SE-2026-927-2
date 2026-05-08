@@ -19,6 +19,7 @@
             {
                 QuestionId = entity.QuestionId,
                 Value = entity.Value,
+                AttemptId = entity.AttemptId,
             };
         }
 
@@ -33,6 +34,7 @@
             {
                 QuestionId = dto.QuestionId,
                 Value = dto.Value,
+                AttemptId = dto.AttemptId,
             };
         }
     }

@@ -21,5 +21,11 @@ namespace Tests_and_Interviews_API.Dtos
         /// for text questions it is the free-text response.
         /// </summary>
         public string Value { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the unique identifier of the attempt in which this answer was given.
+        /// </summary>
+        public int AttemptId { get; set; }
+
     }
 }

@@ -263,6 +263,7 @@ namespace Tests_and_Interviews.ViewModels
                 {
                     QuestionId = questionViewModel.QuestionId,
                     Value = answerValue,
+                    AttemptId = this.attemptId,
                 });
             }
 

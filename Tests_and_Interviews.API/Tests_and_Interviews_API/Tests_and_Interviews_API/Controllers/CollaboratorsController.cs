@@ -38,6 +38,9 @@
         {
             List<Company> collaborators = this._service.GetAllCollaborators(loggedInCompanyId);
 
+            if (collaborators is null || !collaborators.Any())
+                return NotFound($"No collaborators found for company ID {loggedInCompanyId}.");
+
             return Ok(collaborators.Select(c => c.ToDto()).ToList());
         }
     }

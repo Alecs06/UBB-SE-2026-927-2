@@ -25,6 +25,9 @@
         {
             List<LeaderboardEntry> entries = await this._service.FindByTestIdAsync(testId);
 
+            if (entries is null || !entries.Any())
+                return NotFound($"No leaderboard entries found for test ID {testId}.");
+
             return Ok(entries.Select(e => e.ToDto()).ToList());
         }
 
@@ -32,6 +35,9 @@
         public async Task<ActionResult<List<LeaderboardEntryDto>>> FindTopByTestId(int testId, int limit)
         {
             List<LeaderboardEntry> entries = await this._service.FindTopByTestIdAsync(testId, limit);
+
+            if (entries is null || !entries.Any())
+                return NotFound($"No leaderboard entries found for test ID {testId}.");
 
             return Ok(entries.Select(e => e.ToDto()).ToList());
         }
@@ -42,9 +48,7 @@
             LeaderboardEntry? entry = await this._service.FindUserEntryAsync(userId, testId);
 
             if (entry == null)
-            {
-                return NotFound();
-            }
+                return NotFound($"No leaderboard entry found for user ID {userId} and test ID {testId}.");
 
             return Ok(entry.ToDto());
         }
