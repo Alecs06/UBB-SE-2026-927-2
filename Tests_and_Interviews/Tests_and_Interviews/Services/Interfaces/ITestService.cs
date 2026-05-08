@@ -44,5 +44,7 @@
         /// <param name="category">The category of the test to retrieve.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task<Test?> GetNextAvailableTestAsync(string category);
+        Task<List<Test>> FindTestsByCategoryAsync(string category);
+        Task<Test> FindByIdAsync(int id);
     }
 }

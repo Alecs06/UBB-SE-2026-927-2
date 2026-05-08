@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Tests_and_Interviews.Models;
 
 namespace Tests_and_Interviews.Services.Interfaces
@@ -9,6 +10,6 @@ namespace Tests_and_Interviews.Services.Interfaces
 
         (List<string> skillNames, List<int> percents) GetSkillsTop3(int companyId);
 
-        string ApplicantsMessage(int companyId);
+        Task<string> ApplicantsMessage(int companyId);
     }
 }

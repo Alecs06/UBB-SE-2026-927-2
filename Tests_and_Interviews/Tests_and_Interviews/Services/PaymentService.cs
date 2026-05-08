@@ -76,6 +76,12 @@ namespace Tests_and_Interviews.Services
         {
             HttpResponseMessage response = await ApiClient.Http.GetAsync(
                 $"payment/paid?jobType={jobType}&experienceLevel={expLevel}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<JobPaymentInfo>();
+            }
+
             response.EnsureSuccessStatusCode();
             List<JobPaymentInfoDto>? dtos = await response.Content.ReadFromJsonAsync<List<JobPaymentInfoDto>>();
             return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<JobPaymentInfo>();

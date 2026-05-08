@@ -20,7 +20,7 @@ public sealed partial class ViewProfilePage : Page
     public ViewProfilePage()
     {
         var mainWindow = App.MainWindow;
-        ViewModel = new CompanyProfileViewModel(mainWindow.CompanyService, new ProfileCompletionCalculator(mainWindow.JobsRepository, mainWindow.ApplicantsRepository), mainWindow.GameService, mainWindow.EventsService, mainWindow.SessionService, mainWindow.CollabsService, mainWindow.JobsRepository);
+        ViewModel = new CompanyProfileViewModel(mainWindow.CompanyService, new ProfileCompletionCalculator(mainWindow.JobsService, mainWindow.ApplicantService), mainWindow.GameService, mainWindow.EventsService, mainWindow.SessionService, mainWindow.CollabsService, mainWindow.JobsService);
 
         ViewModel.OnProfileImageDecoded = SetupProfileImage;
         ViewModel.OnProfileImageCleared = ClearProfileImage;

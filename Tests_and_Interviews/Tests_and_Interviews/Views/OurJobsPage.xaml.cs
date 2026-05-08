@@ -14,7 +14,7 @@ namespace Tests_and_Interviews.Views
         {
             this.InitializeComponent();
             var mainWindow = App.MainWindow;
-            ViewModel = new OurJobsViewModel(mainWindow.JobsRepository);
+            ViewModel = new OurJobsViewModel(mainWindow.JobsService);
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)

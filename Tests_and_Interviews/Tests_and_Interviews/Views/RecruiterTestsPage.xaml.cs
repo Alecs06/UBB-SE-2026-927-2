@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Linq;
 using Tests_and_Interviews.Repositories;
+using Tests_and_Interviews.Services;
 using Tests_and_Interviews.ViewModels;
 
 namespace Tests_and_Interviews.Views
@@ -15,7 +16,11 @@ namespace Tests_and_Interviews.Views
         public RecruiterTestsPage()
         {
             InitializeComponent();
-            ViewModel = new MainTestViewModel(new TestRepository());
+            ViewModel = new MainTestViewModel(new TestService(
+                new GradingService(),
+                new TimerService(),
+                new AttemptValidationService(),
+                new DataProcessingService()));
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)

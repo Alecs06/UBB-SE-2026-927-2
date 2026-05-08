@@ -8,6 +8,7 @@ namespace Tests_and_Interviews.Services.Interfaces
     {
         Task<IEnumerable<Applicant>> GetApplicantsForJob(JobPosting job);
         Task<Applicant> GetApplicant(int applicantId);
+        Task<IEnumerable<Applicant>> GetApplicantsByCompany(int companyId);
         Task ProcessCv(int applicantId);
         Task UpdateAppTestGrade(int applicantId, decimal grade);
         Task UpdateCompanyTestGrade(int applicantId, decimal grade);

@@ -1,11 +1,12 @@
 namespace Tests_and_Interviews.Views
 {
-    using System;
-    using System.Linq;
     using Microsoft.UI.Xaml;
     using Microsoft.UI.Xaml.Controls;
     using Microsoft.UI.Xaml.Navigation;
+    using System;
+    using System.Linq;
     using Tests_and_Interviews.Repositories;
+    using Tests_and_Interviews.Services;
     using Tests_and_Interviews.ViewModels;
 
     /// <summary>
@@ -20,7 +21,11 @@ namespace Tests_and_Interviews.Views
         public MainTestPage()
         {
             this.InitializeComponent();
-            this.ViewModel = new MainTestViewModel(new TestRepository());
+            this.ViewModel = new MainTestViewModel(new TestService(
+                new GradingService(),
+                new TimerService(),
+                new AttemptValidationService(),
+                new DataProcessingService()));
         }
 
         /// <summary>

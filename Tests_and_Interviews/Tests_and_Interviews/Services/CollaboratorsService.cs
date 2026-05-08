@@ -50,6 +50,12 @@ namespace Tests_and_Interviews.Services
         public async Task<List<Company>> GetAllCollaborators(int loggedInCompanyId)
         {
             HttpResponseMessage response = await ApiClient.Http.GetAsync($"collaborators/{loggedInCompanyId}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<Company>();
+            }
+
             response.EnsureSuccessStatusCode();
             List<CompanyDto>? dtos = await response.Content.ReadFromJsonAsync<List<CompanyDto>>();
             return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Company>();

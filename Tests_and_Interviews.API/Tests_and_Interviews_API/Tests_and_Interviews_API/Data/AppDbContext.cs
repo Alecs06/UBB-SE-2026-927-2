@@ -13,8 +13,8 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="AppDbContext"/> class.
         /// </summary>
-        public AppDbContext()
-            : base()
+        public AppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options)
         {
         }
 

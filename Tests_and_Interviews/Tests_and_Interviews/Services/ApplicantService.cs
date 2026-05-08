@@ -70,6 +70,12 @@ namespace Tests_and_Interviews.Services
         public async Task<IEnumerable<Applicant>> GetApplicantsForJob(JobPosting job)
         {
             HttpResponseMessage response = await ApiClient.Http.GetAsync($"applicants/byjob/{job.JobId}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<Applicant>();
+            }
+
             response.EnsureSuccessStatusCode();
             List<ApplicantDto>? dtos = await response.Content.ReadFromJsonAsync<List<ApplicantDto>>();
             return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Applicant>();
@@ -78,9 +84,24 @@ namespace Tests_and_Interviews.Services
         public async Task<Applicant> GetApplicant(int applicantId)
         {
             HttpResponseMessage response = await ApiClient.Http.GetAsync($"applicants/{applicantId}");
+            
             response.EnsureSuccessStatusCode();
             ApplicantDto? dto = await response.Content.ReadFromJsonAsync<ApplicantDto>();
             return dto!.ToEntity();
+        }
+
+        public async Task<IEnumerable<Applicant>> GetApplicantsByCompany(int companyId)
+        {
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"applicants/bycompany/{companyId}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<Applicant>();
+            }
+
+            response.EnsureSuccessStatusCode();
+            List<ApplicantDto>? dtos = await response.Content.ReadFromJsonAsync<List<ApplicantDto>>();
+            return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Applicant>();
         }
 
         public async Task UpdateCompanyTestGrade(int applicantId, decimal grade)

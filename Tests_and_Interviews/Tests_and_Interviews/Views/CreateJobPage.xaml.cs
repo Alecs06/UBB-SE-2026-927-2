@@ -16,11 +16,18 @@ public sealed partial class CreateJobPage : Page
     public CreateJobPage()
     {
         var mainWindow = App.MainWindow;
-        ViewModel = new CreateJobViewModel(mainWindow.JobsRepository, mainWindow.SessionService);
+        ViewModel = new CreateJobViewModel(mainWindow.JobsService, mainWindow.SessionService);
         ViewModel.OnSaveCompleted = HandleSaveCompleted;
 
         InitializeComponent();
         DataContext = this;
+
+        Loaded += this.CreateJobPage_Loaded;
+    }
+
+    private async void CreateJobPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.InitializeAsync();
     }
 
     private async void HandleSaveCompleted(bool isSaved, string message)
