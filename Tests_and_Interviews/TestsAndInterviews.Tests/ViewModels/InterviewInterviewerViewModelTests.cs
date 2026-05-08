@@ -26,8 +26,7 @@ namespace TestsAndInterviews.Tests.ViewModels
 
             var vm = new InterviewInterviewerViewModel(
                 mockSessionService.Object,
-                mockNotificationService.Object,
-                string.Empty);
+                mockNotificationService.Object);
 
             vm.InitializeSession(1);
 
@@ -57,8 +56,7 @@ namespace TestsAndInterviews.Tests.ViewModels
 
             var vm = new InterviewInterviewerViewModel(
                 mockSessionService.Object,
-                mockNotificationService.Object,
-                string.Empty);
+                mockNotificationService.Object);
 
             var propertyChangedRaised = false;
 
@@ -93,8 +91,7 @@ namespace TestsAndInterviews.Tests.ViewModels
 
             var vm = new InterviewInterviewerViewModel(
                 mockSessionService.Object,
-                mockNotificationService.Object,
-                @"Users\Test\Videos\");
+                mockNotificationService.Object);
 
             vm.InitializeSession(1);
 
@@ -121,8 +118,7 @@ namespace TestsAndInterviews.Tests.ViewModels
 
             var vm = new InterviewInterviewerViewModel(
                 mockSessionService.Object,
-                mockNotificationService.Object,
-                "C:\\Users\\Test\\Videos");
+                mockNotificationService.Object);
 
             vm.InitializeSession(1);
 
@@ -143,8 +139,7 @@ namespace TestsAndInterviews.Tests.ViewModels
 
             var vm = new InterviewInterviewerViewModel(
                 mockSessionService.Object,
-                mockNotificationService.Object,
-                "C:\\Users\\Test\\Videos");
+                mockNotificationService.Object);
 
             vm.InitializeSession(1);
 
@@ -171,8 +166,7 @@ namespace TestsAndInterviews.Tests.ViewModels
 
             var vm = new InterviewInterviewerViewModel(
                 mockSessionService.Object,
-                mockNotif.Object,
-                "C:\\Test");
+                mockNotif.Object);
 
             vm.InitializeSession(1);
 
@@ -199,8 +193,7 @@ namespace TestsAndInterviews.Tests.ViewModels
 
             var vm = new InterviewInterviewerViewModel(
                 mockSessionService.Object,
-                mockNotif.Object,
-                "C:\\Test");
+                mockNotif.Object);
 
             vm.InitializeSession(1);
 
@@ -234,8 +227,7 @@ namespace TestsAndInterviews.Tests.ViewModels
 
             var vm = new InterviewInterviewerViewModel(
                 mockSessionService.Object,
-                Mock.Of<INotificationService>(),
-                "C:\\Users\\Test\\Videos");
+                Mock.Of<INotificationService>());
 
             vm.InitializeSession(1);
 

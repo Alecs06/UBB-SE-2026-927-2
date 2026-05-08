@@ -23,7 +23,7 @@
             var attemptRepo = new Mock<ITestAttemptRepository>(MockBehavior.Strict);
             var leaderboardRepo = new Mock<ILeaderboardRepository>(MockBehavior.Strict);
 
-            var leaderboardService = new LeaderboardService(attemptRepo.Object, leaderboardRepo.Object);
+            var leaderboardService = new LeaderboardService();
 
             return (attemptRepo, leaderboardRepo, leaderboardService);
         }

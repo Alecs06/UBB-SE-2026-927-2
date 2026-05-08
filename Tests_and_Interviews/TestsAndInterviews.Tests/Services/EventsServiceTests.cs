@@ -77,7 +77,7 @@ namespace TestsAndInterviews.Tests.Services
         public void Setup()
         {
             fakeEventsRepo = new FakeEventsRepo();
-            eventsService = new EventsService(fakeEventsRepo);
+            eventsService = new EventsService();
         }
 
         [TestMethod]
@@ -139,59 +139,59 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_ReturnsTheCreatedEvent()
+        public async Task AddEvent_ValidData_ReturnsTheCreatedEvent()
         {
-            Event result = eventsService.AddEvent(DefaultPhoto, TitleShort, DescLower,
+            Event result = await eventsService.AddEvent(DefaultPhoto, TitleShort, DescLower,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
             Assert.IsNotNull(result);
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_ReturnedEventHasCorrectTitle()
+        public async Task AddEvent_ValidData_ReturnedEventHasCorrectTitle()
         {
-            Event result = eventsService.AddEvent(DefaultPhoto, TitleSpecific, DescShort,
+            Event result = await eventsService.AddEvent(DefaultPhoto, TitleSpecific, DescShort,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
             Assert.AreEqual(TitleSpecific, result.Title);
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_ReturnedEventHasCorrectDescription()
+        public async Task AddEvent_ValidData_ReturnedEventHasCorrectDescription()
         {
-            Event result = eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescEvent,
+            Event result = await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescEvent,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
             Assert.AreEqual(DescEvent, result.Description);
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_ReturnedEventHasCorrectStartDate()
+        public async Task AddEvent_ValidData_ReturnedEventHasCorrectStartDate()
         {
             DateTime expectedStartDate = new DateTime(Year, MonthJune, Day1);
-            Event result = eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
+            Event result = await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 expectedStartDate, new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
             Assert.AreEqual(expectedStartDate, result.StartDate);
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_ReturnedEventHasCorrectEndDate()
+        public async Task AddEvent_ValidData_ReturnedEventHasCorrectEndDate()
         {
             DateTime expectedEndDate = new DateTime(Year, MonthJune, Day3);
-            Event result = eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
+            Event result = await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), expectedEndDate, LocCluj, DefaultId, new List<Company>());
             Assert.AreEqual(expectedEndDate, result.EndDate);
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_ReturnedEventHasCorrectLocation()
+        public async Task AddEvent_ValidData_ReturnedEventHasCorrectLocation()
         {
-            Event result = eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
+            Event result = await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
             Assert.AreEqual(LocCluj, result.Location);
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_ReturnedEventHasCorrectHostId()
+        public async Task AddEvent_ValidData_ReturnedEventHasCorrectHostId()
         {
-            Event result = eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
+            Event result = await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, ExpectedHostId, new List<Company>());
             Assert.AreEqual(ExpectedHostId, result.HostCompanyId);
         }
@@ -289,42 +289,42 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void GetCurrentEvents_RepoReturnsTwoEvents_ServiceReturnsTwoEvents()
+        public async Task GetCurrentEvents_RepoReturnsTwoEvents_ServiceReturnsTwoEvents()
         {
             fakeEventsRepo.CurrentEventsToReturn = new ObservableCollection<Event>
             {
                 MakeEvent(),
                 MakeEvent()
             };
-            var result = eventsService.GetCurrentEvents(DefaultId);
+            var result = await eventsService.GetCurrentEvents(DefaultId);
             Assert.AreEqual(CountTwo, result.Count);
         }
 
         [TestMethod]
-        public void GetCurrentEvents_RepoReturnsEmptyCollection_ServiceReturnsEmptyCollection()
+        public async Task GetCurrentEvents_RepoReturnsEmptyCollection_ServiceReturnsEmptyCollection()
         {
             fakeEventsRepo.CurrentEventsToReturn = new ObservableCollection<Event>();
-            var result = eventsService.GetCurrentEvents(DefaultId);
+            var result = await eventsService.GetCurrentEvents(DefaultId);
             Assert.AreEqual(CountZero, result.Count);
         }
 
         [TestMethod]
-        public void GetPastEvents_RepoReturnsTwoEvents_ServiceReturnsTwoEvents()
+        public async Task GetPastEvents_RepoReturnsTwoEvents_ServiceReturnsTwoEvents()
         {
             fakeEventsRepo.PastEventsToReturn = new ObservableCollection<Event>
             {
                 MakeEvent(),
                 MakeEvent()
             };
-            var result = eventsService.GetPastEvents(DefaultId);
+            var result = await eventsService.GetPastEvents(DefaultId);
             Assert.AreEqual(CountTwo, result.Count);
         }
 
         [TestMethod]
-        public void GetPastEvents_RepoReturnsEmptyCollection_ServiceReturnsEmptyCollection()
+        public async Task GetPastEvents_RepoReturnsEmptyCollection_ServiceReturnsEmptyCollection()
         {
             fakeEventsRepo.PastEventsToReturn = new ObservableCollection<Event>();
-            var result = eventsService.GetPastEvents(DefaultId);
+            var result = await eventsService.GetPastEvents(DefaultId);
             Assert.AreEqual(CountZero, result.Count);
         }
     }

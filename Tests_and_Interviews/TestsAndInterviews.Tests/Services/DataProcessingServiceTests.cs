@@ -21,7 +21,7 @@
             var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
             var attemptRepo = new Mock<ITestAttemptRepository>(MockBehavior.Strict);
             var testRepo = new Mock<ITestRepository>(MockBehavior.Strict);
-            var dataProcessingService = new DataProcessingService(userRepo.Object, attemptRepo.Object, testRepo.Object);
+            var dataProcessingService = new DataProcessingService();
             return (userRepo, attemptRepo, testRepo, dataProcessingService);
         }
 

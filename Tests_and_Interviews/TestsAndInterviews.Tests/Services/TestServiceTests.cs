@@ -46,9 +46,6 @@ namespace TestsAndInterviews.Tests.Services
         private TestService MakeTestService()
         {
             return new TestService(
-                this.mockTestRepository.Object,
-                this.mockAttemptRepository.Object,
-                this.mockAnswerRepository.Object,
                 this.mockGradingService.Object,
                 this.mockTimerService.Object,
                 this.mockValidationService.Object,

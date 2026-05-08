@@ -45,7 +45,8 @@ namespace TestsAndInterviews.Tests.Services
         public void Setup()
         {
             repo = new FakeGameRepository();
-            service = new GameService(repo);
+            int companyId = 1;
+            service = new GameService(companyId);
         }
 
         private Game CreateTestGame()
@@ -78,10 +79,10 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void GetBuddyId_ReturnsCorrectId()
+        public async Task GetBuddyId_ReturnsCorrectId()
         {
             repo.StoredGame = CreateTestGame();
-            int id = service.GetBuddyId();
+            int id = await service.GetBuddyId();
             Assert.AreEqual(DefaultBuddyId, id);
         }
 
@@ -110,26 +111,26 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void IsPublished_ReturnsTrue()
+        public async Task IsPublished_ReturnsTrue()
         {
             repo.StoredGame = CreateTestGame();
-            var result = service.IsPublished();
+            var result = await service.IsPublished();
             Assert.IsTrue(result);
         }
 
         [TestMethod]
-        public void ShowCoworker_ReturnsIntroduction()
+        public async Task ShowCoworker_ReturnsIntroduction()
         {
             repo.StoredGame = CreateTestGame();
-            var intro = service.ShowCoworker();
+            var intro = await service.ShowCoworker();
             Assert.AreEqual(DefaultBuddyIntro, intro);
         }
 
         [TestMethod]
-        public void ShowScenarioText_ReturnsText()
+        public async Task ShowScenarioText_ReturnsText()
         {
             repo.StoredGame = CreateTestGame();
-            var text = service.ShowScenarioText(ValidIndex);
+            var text = await service.ShowScenarioText(ValidIndex);
             Assert.AreEqual(DefaultScenarioText, text);
         }
 
@@ -142,18 +143,18 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void ShowChoices_ReturnsChoices()
+        public async Task ShowChoices_ReturnsChoices()
         {
             repo.StoredGame = CreateTestGame();
-            var choices = service.ShowChoices(ValidIndex);
+            var choices = await service.ShowChoices(ValidIndex);
             Assert.AreEqual(ExpectedChoicesCount, choices.Count);
         }
 
         [TestMethod]
-        public void ShowConclusion_ReturnsConclusion()
+        public async Task ShowConclusion_ReturnsConclusion()
         {
             repo.StoredGame = CreateTestGame();
-            var result = service.ShowConclusion();
+            var result = await service.ShowConclusion();
             Assert.AreEqual(DefaultConclusion, result);
         }
 
@@ -185,10 +186,10 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void IsPublished_NoGame_ReturnsFalse()
+        public async Task IsPublished_NoGame_ReturnsFalse()
         {
             repo.StoredGame = null;
-            var result = service.IsPublished();
+            var result = await service.IsPublished();
             Assert.IsFalse(result);
         }
 

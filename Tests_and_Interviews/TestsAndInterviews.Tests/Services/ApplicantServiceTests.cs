@@ -264,7 +264,7 @@ namespace TestsAndInterviews.Tests.Services
         public void Setup()
         {
             fakeRepo = new FakeApplicantRepository();
-            sut = new ApplicantService(fakeRepo);
+            sut = new ApplicantService();
         }
 
         private static Applicant MakeApplicant(int id = ValidApplicantId)
@@ -293,21 +293,21 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void GetApplicantsForJob_NullJob_ReturnsEmptyList()
+        public async Task GetApplicantsForJob_NullJob_ReturnsEmptyList()
         {
-            var result = sut.GetApplicantsForJob(null!);
-            Assert.AreEqual(EmptyCount, result.Count());
+            var result = await sut.GetApplicantsForJob(null!);
+            Assert.AreEqual(EmptyCount, result.Count<Applicant>());
         }
 
         [TestMethod]
-        public void GetApplicantsForJob_TwoApplicantsSameJob_ReturnsBoth()
+        public async Task GetApplicantsForJob_TwoApplicantsSameJob_ReturnsBoth()
         {
             var job = new JobPosting { JobId = ValidJobId };
             fakeRepo.AddApplicant(MakeApplicant(ValidApplicantId));
             fakeRepo.AddApplicant(MakeApplicant(SecondApplicantId));
 
-            var result = sut.GetApplicantsForJob(job);
-            Assert.AreEqual(TwoCount, result.Count());
+            var result = await sut.GetApplicantsForJob(job);
+            Assert.AreEqual(TwoCount, result.Count<Applicant>());
         }
 
         [TestMethod]
@@ -444,138 +444,138 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void ScanCvXml_NullCv_ReturnsNull()
+        public async Task ScanCvXml_NullCv_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, null);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_InvalidXml_ReturnsNull()
+        public async Task ScanCvXml_InvalidXml_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, InvalidXmlText);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
 
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvMissingRequiredField_ReturnsNull()
+        public async Task ScanCvXml_CvMissingRequiredField_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingPhone);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_ValidCv_ReturnsGradeGreaterThanZero()
+        public async Task ScanCvXml_ValidCv_ReturnsGradeGreaterThanZero()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsTrue(result > GradeZero);
         }
 
         [TestMethod]
-        public void ScanCvXml_ValidCv_ReturnsGradeNotExceedingTen()
+        public async Task ScanCvXml_ValidCv_ReturnsGradeNotExceedingTen()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsTrue(result <= GradeMax);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithWhitespaceOnlyInterests_ReturnsBaseGrade()
+        public async Task ScanCvXml_CvWithWhitespaceOnlyInterests_ReturnsBaseGrade()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlWhitespaceInterests);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithInvalidEmail_ReturnsNull()
+        public async Task ScanCvXml_CvWithInvalidEmail_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlInvalidEmail);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithNameTooShort_ReturnsNull()
+        public async Task ScanCvXml_CvWithNameTooShort_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortName);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithSummaryTooShort_ReturnsNull()
+        public async Task ScanCvXml_CvWithSummaryTooShort_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortSummary);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithProjectsTooShort_ReturnsNull()
+        public async Task ScanCvXml_CvWithProjectsTooShort_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortProjects);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithPhoneTooFewDigits_ReturnsNull()
+        public async Task ScanCvXml_CvWithPhoneTooFewDigits_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortPhone);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithSkillsTooShort_ReturnsNull()
+        public async Task ScanCvXml_CvWithSkillsTooShort_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortSkills);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithInterestsTooShort_ReturnsNull()
+        public async Task ScanCvXml_CvWithInterestsTooShort_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortInterests);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_ValidCvWithJobSkills_ReturnsGradeGreaterThanZero()
+        public async Task ScanCvXml_ValidCvWithJobSkills_ReturnsGradeGreaterThanZero()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.Job = new JobPosting
@@ -589,63 +589,63 @@ namespace TestsAndInterviews.Tests.Services
             };
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
 
             Assert.IsTrue(result > GradeZero);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithContactNumberInsteadOfPhone_ReturnsGrade()
+        public async Task ScanCvXml_CvWithContactNumberInsteadOfPhone_ReturnsGrade()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlContactNumberTag);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNotNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithEmailMissingDotInDomain_ReturnsNull()
+        public async Task ScanCvXml_CvWithEmailMissingDotInDomain_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlEmailNoDot);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithEmailStartingWithAt_ReturnsNull()
+        public async Task ScanCvXml_CvWithEmailStartingWithAt_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlEmailStartsWithAt);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_ValidCvWithSynonymKeyword_ReturnsGradeGreaterThanZero()
+        public async Task ScanCvXml_ValidCvWithSynonymKeyword_ReturnsGradeGreaterThanZero()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlSynonymKeywords);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsTrue(result > GradeZero);
         }
 
         [TestMethod]
-        public void ScanCvXml_ValidCvWithRepeatedKeywords_ReturnsGradeGreaterThanZero()
+        public async Task ScanCvXml_ValidCvWithRepeatedKeywords_ReturnsGradeGreaterThanZero()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlRepeatedKeywords);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsTrue(result > GradeZero);
         }
 
         [TestMethod]
-        public void ScanCvXml_ValidCvWithManyKeywords_ReturnsGradeCappedAtTen()
+        public async Task ScanCvXml_ValidCvWithManyKeywords_ReturnsGradeCappedAtTen()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.Job = new JobPosting
@@ -662,7 +662,7 @@ namespace TestsAndInterviews.Tests.Services
             };
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlManyKeywords);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.AreEqual(GradeMax, result);
         }
 
@@ -728,7 +728,33 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void ScanCvXml_JobSkillWithNullSkillName_UsesDefaultKeywords()
+        public async Task ScanCvXml_ValidCvWithNullJobSkills_ReturnsGrade()
+        {
+            var applicant = MakeApplicant(ValidApplicantId);
+            applicant.Job = new JobPosting
+            {
+                JobId = ValidJobId,
+                JobSkills = null
+            };
+            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
+
+            var result = await sut.ScanCvXmlAsync(applicant);
+            Assert.IsNotNull(result);
+        }
+
+        [TestMethod]
+        public async Task ScanCvXml_ValidCvWithNullJob_ReturnsGrade()
+        {
+            var applicant = MakeApplicant(ValidApplicantId);
+            applicant.Job = null;
+            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
+
+            var result = await sut.ScanCvXmlAsync(applicant);
+            Assert.IsNotNull(result);
+        }
+
+        [TestMethod]
+        public async Task ScanCvXml_JobSkillWithNullSkillName_UsesDefaultKeywords()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.Job = new JobPosting
@@ -742,94 +768,68 @@ namespace TestsAndInterviews.Tests.Services
             };
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNotNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_ValidCvWithNullJobSkills_ReturnsGrade()
-        {
-            var applicant = MakeApplicant(ValidApplicantId);
-            applicant.Job = new JobPosting
-            {
-                JobId = ValidJobId,
-                JobSkills = null
-            };
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
-
-            var result = sut.ScanCvXml(applicant);
-            Assert.IsNotNull(result);
-        }
-
-        [TestMethod]
-        public void ScanCvXml_CvWithMissingName_ReturnsNull()
+        public async Task ScanCvXml_CvWithMissingName_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingName);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithMissingEmail_ReturnsNull()
+        public async Task ScanCvXml_CvWithMissingEmail_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingEmail);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithMissingSkills_ReturnsNull()
+        public async Task ScanCvXml_CvWithMissingSkills_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingSkills);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithMissingSummary_ReturnsNull()
+        public async Task ScanCvXml_CvWithMissingSummary_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingSummary);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_CvWithMissingProjects_ReturnsNull()
+        public async Task ScanCvXml_CvWithMissingProjects_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingProjects);
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
 
         [TestMethod]
-        public void ScanCvXml_NullUser_ReturnsNull()
+        public async Task ScanCvXml_NullUser_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.User = null;
 
-            var result = sut.ScanCvXml(applicant);
+            var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
-        }
-
-        [TestMethod]
-        public void ScanCvXml_ValidCvWithNullJob_ReturnsGrade()
-        {
-            var applicant = MakeApplicant(ValidApplicantId);
-            applicant.Job = null;
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
-
-            var result = sut.ScanCvXml(applicant);
-            Assert.IsNotNull(result);
         }
     }
 }
