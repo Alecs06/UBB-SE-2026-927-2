@@ -17,16 +17,24 @@ namespace Tests_and_Interviews.Services
     public class GameService : IGameService
     {
         private readonly int companyId;
+        private readonly HttpClient http;
         public SessionService SessionService;
 
         public GameService(int companyId)
         {
             this.companyId = companyId;
+            this.http = ApiClient.Http;
+        }
+
+        public GameService(int companyId, HttpClient httpClient)
+        {
+            this.companyId = companyId;
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         private async Task<GameDto> FetchGameDtoAsync()
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"companies/{this.companyId}/game");
+            HttpResponseMessage response = await this.http.GetAsync($"companies/{this.companyId}/game");
             response.EnsureSuccessStatusCode();
             GameDto? dto = await response.Content.ReadFromJsonAsync<GameDto>();
             if (dto == null)
@@ -103,7 +111,7 @@ namespace Tests_and_Interviews.Services
                 throw new ArgumentNullException(nameof(game));
             }
             GameDto dto = MapGameToDto(game, this.companyId);
-            HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+            HttpResponseMessage response = await this.http.PutAsJsonAsync(
                 $"companies/{this.companyId}/game",
                 dto);
             response.EnsureSuccessStatusCode();
@@ -111,7 +119,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<Game> GetStoredGame()
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"companies/{this.companyId}/game");
+            HttpResponseMessage response = await this.http.GetAsync($"companies/{this.companyId}/game");
             if (!response.IsSuccessStatusCode)
             {
                 return new Game();
@@ -122,7 +130,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<bool> IsPublished()
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"companies/{this.companyId}/game");
+            HttpResponseMessage response = await this.http.GetAsync($"companies/{this.companyId}/game");
             if (!response.IsSuccessStatusCode)
             {
                 return false;

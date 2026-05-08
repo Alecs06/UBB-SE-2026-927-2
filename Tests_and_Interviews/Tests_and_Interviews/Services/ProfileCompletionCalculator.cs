@@ -1,9 +1,14 @@
+// <copyright file="ProfileCompletionCalculator.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 namespace Tests_and_Interviews.Services
 {
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.Design;
     using System.Linq;
+    using System.Net.Http;
+    using Tests_and_Interviews.Api;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
@@ -40,6 +45,7 @@ namespace Tests_and_Interviews.Services
         private const string MessageMoreApplicantsPrefix = "Congrats! You have ";
         private const string MessageMoreApplicantsSuffix = "% more applicants than last week.";
 
+        private readonly HttpClient http;
         private readonly IJobsRepository jobsRepository;
         private readonly IApplicantRepository applicantRepository;
 
@@ -47,6 +53,14 @@ namespace Tests_and_Interviews.Services
         {
             this.jobsRepository = jobsRepository;
             this.applicantRepository = applicantRepository;
+            this.http = ApiClient.Http;
+        }
+
+        public ProfileCompletionCalculator(IJobsRepository jobsRepository, IApplicantRepository applicantRepository, HttpClient httpClient)
+        {
+            this.jobsRepository = jobsRepository;
+            this.applicantRepository = applicantRepository;
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         public (int percentage, List<string> remainingTasks) Calculate(Company company)

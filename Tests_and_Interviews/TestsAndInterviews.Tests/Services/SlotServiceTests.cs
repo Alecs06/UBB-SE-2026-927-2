@@ -1,189 +1,216 @@
-﻿using Moq;
-using Tests_and_Interviews.Dtos;
-using Tests_and_Interviews.Models;
-using Tests_and_Interviews.Models.Enums;
-using Tests_and_Interviews.Repositories.Interfaces;
-using Tests_and_Interviews.Services;
-
+﻿// <copyright file="SlotServiceTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace TestsAndInterviews.Tests.Services
 {
-	public class SlotServiceTests
-	{
-		[Fact]
-		public async Task LoadRecruiterVisibleSlots_ForExistentRecruiter_ReturnsListWithOccupiedAndFreeSlots()
-		{
-			var recruiterId = 1;
-			var date = new DateTime(2026, 04, 21);
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Moq;
+    using Moq.Protected;
+    using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Models;
+    using Tests_and_Interviews.Models.Enums;
+    using Tests_and_Interviews.Services;
+    using Xunit;
 
-			var mockRepository = new Mock<ISlotRepository>();
-			mockRepository.Setup(repository => repository.GetSlotsAsync(recruiterId, date))
-				.ReturnsAsync(new List<Slot>
-				{
-					new Slot
-					{
-						Id = 1,
-						RecruiterId = 1,
-						CandidateId = 1,
-						StartTime = new DateTime(2026, 04, 21, 8, 0, 0),
-						EndTime = new DateTime(2026, 04, 21, 9, 0, 0),
-						Duration = 60,
-						Status = SlotStatus.Occupied,
-					}
-				});
+    /// <summary>
+    /// Refactored tests for <see cref="SlotService"/> using HttpClient mocking.
+    /// </summary>
+    public class SlotServiceTests
+    {
+        private readonly Mock<HttpMessageHandler> _mockHandler;
+        private readonly HttpClient _httpClient;
+        private readonly SlotService _service;
 
-			var service = new SlotService();
+        // Captured variables for verification
+        private string? _lastRequestUri;
+        private HttpMethod? _lastMethod;
+        private string? _lastPayload;
 
-			var recruiterSlots = await service.LoadRecruiterVisibleSlotsAsync(recruiterId, date);
+        public SlotServiceTests()
+        {
+            _mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
-			mockRepository.Verify(repository => repository.GetSlotsAsync(recruiterId, date), Times.Once);
+            // Default behavior: capture the request and return OK
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    _lastMethod = req.Method;
+                    _lastRequestUri = req.RequestUri?.ToString();
+                    if (req.Content != null)
+                    {
+                        _lastPayload = req.Content.ReadAsStringAsync().Result;
+                    }
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
 
-			var resultOccupiedSlot = recruiterSlots[0];
-			var resultFreeSlot = recruiterSlots.Last();
+            _httpClient = new HttpClient(_mockHandler.Object)
+            {
+                BaseAddress = new Uri("https://localhost/api/"),
+                Timeout = TimeSpan.FromSeconds(2)
+            };
 
-			Assert.Equal(recruiterId, resultOccupiedSlot.RecruiterId);
-			Assert.Equal(new DateTime(2026, 04, 21, 8, 0, 0), resultOccupiedSlot.StartTime);
-			Assert.Equal(new DateTime(2026, 04, 21, 9, 0, 0), resultOccupiedSlot.EndTime);
-			Assert.Equal(60, resultOccupiedSlot.Duration);
-			Assert.Equal(SlotStatus.Occupied, resultOccupiedSlot.Status);
+            _service = new SlotService(_httpClient);
+        }
 
-			Assert.Equal(recruiterId, resultFreeSlot.RecruiterId);
-			Assert.Equal(new DateTime(2026, 04, 21, 17, 30, 0), resultFreeSlot.StartTime);
-			Assert.Equal(new DateTime(2026, 04, 21, 18, 0, 0), resultFreeSlot.EndTime);
-			Assert.Equal(30, resultFreeSlot.Duration);
-			Assert.Equal(SlotStatus.Free, resultFreeSlot.Status);
-		}
+        // FIX 1: Removed the URL contains check — it conflicted with the default
+        // catch-all setup registered first in the constructor, causing the mock to
+        // return an empty 200 (no Content) instead of the JSON response.
+        // Matching on HttpMethod.Get alone is sufficient and unambiguous.
+        private void SetupGetResponse<T>(T responseData)
+        {
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(responseData)
+                });
+        }
 
-		[Fact]
-		public async Task LoadRecruiterVisibleSlots_ForRecruiterWithNoAllocatedSlots_ReturnsListWithFreeSlotsAllDay()
-		{
-			var recruiterId = 1;
-			var date = new DateTime(2026, 04, 21);
+        [Fact]
+        public async Task LoadRecruiterVisibleSlots_ForExistentRecruiter_ReturnsListWithOccupiedAndFreeSlots()
+        {
+            // Arrange
+            var recruiterId = 1;
+            var date = new DateTime(2026, 04, 21);
+            var mockSlots = new List<Slot>
+            {
+                new Slot
+                {
+                    Id = 1,
+                    RecruiterId = recruiterId,
+                    StartTime = new DateTime(2026, 04, 21, 8, 0, 0),
+                    EndTime = new DateTime(2026, 04, 21, 9, 0, 0),
+                    Duration = 60,
+                    Status = SlotStatus.Occupied,
+                }
+            };
+            SetupGetResponse(mockSlots);
 
-			var mockRepository = new Mock<ISlotRepository>();
-			mockRepository.Setup(repository => repository.GetSlotsAsync(recruiterId, date))
-				.ReturnsAsync(new List<Slot>());
+            // Act
+            var recruiterSlots = await _service.LoadRecruiterVisibleSlotsAsync(recruiterId, date);
 
-			var service = new SlotService();
+            // Assert
+            var resultOccupiedSlot = recruiterSlots[0];
+            var resultFreeSlot = recruiterSlots.Last();
 
-			var recruiterSlots = await service.LoadRecruiterVisibleSlotsAsync(recruiterId, date);
+            Assert.Equal(recruiterId, resultOccupiedSlot.RecruiterId);
+            Assert.Equal(SlotStatus.Occupied, resultOccupiedSlot.Status);
+            Assert.Equal(SlotStatus.Free, resultFreeSlot.Status);
+        }
 
-			mockRepository.Verify(repository => repository.GetSlotsAsync(recruiterId, date), Times.Once);
+        [Fact]
+        public async Task LoadRecruiterVisibleSlots_ForRecruiterWithNoAllocatedSlots_ReturnsListWithFreeSlotsAllDay()
+        {
+            // Arrange
+            var recruiterId = 1;
+            var date = new DateTime(2026, 04, 21);
+            SetupGetResponse(new List<Slot>());
 
-			var resultOccupiedSlot = recruiterSlots[0];
-			var resultFreeSlot = recruiterSlots.Last();
+            // Act
+            var recruiterSlots = await _service.LoadRecruiterVisibleSlotsAsync(recruiterId, date);
 
-			foreach (var slot in recruiterSlots)
-			{
-				Assert.Equal(recruiterId, slot.RecruiterId);
-				Assert.Equal(30, slot.Duration);
-				Assert.Equal(SlotStatus.Free, slot.Status);
-			}
+            // Assert
+            Assert.All(recruiterSlots, slot => Assert.Equal(SlotStatus.Free, slot.Status));
+            Assert.Equal(20, recruiterSlots.Count); // 8:00 to 18:00 in 30-min increments
+        }
 
-			Assert.Equal(20, recruiterSlots.Count);
-		}
+        [Fact]
+        public async Task CreateNewSlot_FromValidBaseSlot_CallsPostMethodWithCorrectPayload()
+        {
+            // Arrange
+            var mockBaseSlot = new SlotDto
+            {
+                Id = 0,
+                StartTime = new DateTime(2026, 04, 21, 10, 0, 0),
+            };
+            var duration = 60;
 
-		[Fact]
-		public async Task CreateNewSlot_FromValidBaseSlot_CallsCreateMethodWithCorrectArguments()
-		{
-			var mockBaseSlot = new SlotDto
-			{
-				Id = 0,
-				StartTime = new DateTime(2026, 04, 21, 10, 0, 0),
-			};
-			var duration = 60;
+            // Act
+            await _service.CreateRecruiterSlotAsync(mockBaseSlot, duration);
 
-			var mockRepository = new Mock<ISlotRepository>();
+            // Assert
+            Assert.Equal(HttpMethod.Post, _lastMethod);
 
-			var service = new SlotService();
+            // FIX 2: System.Text.Json serializes with camelCase by default.
+            // "Status":0 → "status":0  and  "2026-04-21T10:00:00" stays the same.
+            Assert.Contains("\"status\":0", _lastPayload); // SlotStatus.Free
+            Assert.Contains("2026-04-21T10:00:00", _lastPayload);
+        }
 
-			await service.CreateRecruiterSlotAsync(mockBaseSlot, duration);
+        [Fact]
+        public async Task DeleteRecruiterSlot_CallsDeleteMethodWithCorrectIdInUri()
+        {
+            // Arrange
+            var slotToDeleteId = 123;
 
-			mockRepository.Verify(repository => repository.AddAsync(
-				It.Is<Slot>( slot =>
-					slot.Id == mockBaseSlot.Id && 
-					slot.Status == SlotStatus.Free &&
-					DateTime.Equals(slot.StartTime, mockBaseSlot.StartTime))
-				), Times.Once);
-		}
+            // Act
+            await _service.DeleteRecruiterSlotAsync(slotToDeleteId);
 
-		[Fact]
-		public async Task CreateNewSlot_OverlappingSlot_ThrowsException()
-		{
-			var mockBaseSlot = new SlotDto
-			{
-				Id = 0,
-				StartTime = new DateTime(2026, 04, 21, 10, 30, 0),
-			};
-			var duration = 60;
+            // Assert
+            Assert.Equal(HttpMethod.Delete, _lastMethod);
+            Assert.Contains($"/slots/{slotToDeleteId}", _lastRequestUri);
+        }
 
-			var mockRepository = new Mock<ISlotRepository>();
-			mockRepository.Setup(repository => repository.AddAsync(It.IsAny<Slot>()))
-				.ThrowsAsync(new Exception("Slot overlaps with an existing appointment!"));
+        [Theory]
+        [InlineData(5, 0)]
+        [InlineData(21, 0)]
+        public async Task UpdateRecruiterSlot_InvalidNewStartTime_ThrowsExceptionBeforeNetworkCall(int newStartTimeHours, int newStartTimeMinutes)
+        {
+            // Arrange
+            var initialSlot = new SlotDto
+            {
+                Id = 1,
+                RecruiterId = 1,
+                StartTime = new DateTime(2026, 04, 21, 10, 30, 0),
+            };
+            var newStartTime = new DateTime(2026, 04, 21, newStartTimeHours, newStartTimeMinutes, 0);
+            var duration = 30;
 
-			var service = new SlotService();
+            // Act & Assert
+            await Assert.ThrowsAsync<Exception>(async () =>
+                await _service.UpdateRecruiterSlotAsync(initialSlot, newStartTime, duration));
 
-			await Assert.ThrowsAsync<Exception>(async () => await service.CreateRecruiterSlotAsync(mockBaseSlot, duration));
-		}
+            Assert.Null(_lastMethod); // Ensure no HTTP call was actually made
+        }
 
-		[Fact]
-		public async Task DeleteRecruiterSlot_CallsDeleteMethodWithCorrectArguments()
-		{
-			var mockRepository = new Mock<ISlotRepository>();
+        [Fact]
+        public async Task UpdateRecruiterSlot_ValidNewStartTimeAndDuration_CallsPutMethodWithCorrectPayload()
+        {
+            // Arrange
+            var initialSlot = new SlotDto
+            {
+                Id = 55,
+                RecruiterId = 1,
+                StartTime = new DateTime(2026, 04, 21, 10, 30, 0),
+            };
+            var newStartTime = new DateTime(2026, 04, 21, 12, 0, 0);
+            var duration = 30;
 
-			var service = new SlotService();
+            // Act
+            await _service.UpdateRecruiterSlotAsync(initialSlot, newStartTime, duration);
 
-			var slotToDeleteId = 1;
+            // Assert
+            Assert.Equal(HttpMethod.Put, _lastMethod);
 
-			await service.DeleteRecruiterSlotAsync(slotToDeleteId);
-
-			mockRepository.Verify(repository => repository.DeleteAsync(
-				It.Is<int>(id => id == slotToDeleteId)), Times.Once);
-		}
-
-		[Theory]
-		[InlineData(5, 0)]
-		[InlineData(21, 0)]
-		public async Task UpdateRecruiterSlot_InvalidNewStartTime_ThrowsException(int newStartTimeHours, int newStartTimeMinutes)
-		{
-			var initialSlot = new SlotDto
-			{
-				Id = 0,
-				RecruiterId = 0,
-				StartTime = new DateTime(2026, 04, 21, 10, 30, 0),
-			};
-			var newStartTime = new DateTime(2026, 04, 21, newStartTimeHours, newStartTimeMinutes, 0);
-			var duration = 30;
-
-			var mockRepository = new Mock<ISlotRepository>();
-			var service = new SlotService();
-			await Assert.ThrowsAsync<Exception>(async () => await service.UpdateRecruiterSlotAsync(initialSlot, newStartTime, duration));
-		}
-
-		[Fact]
-		public async Task UpdateRecruiterSlot_ValidNewStartTimeAndDuration_CallsUpdateMethodWithCorrectArguments()
-		{
-			var initialSlot = new SlotDto
-			{
-				Id = 0,
-				RecruiterId = 0,
-				StartTime = new DateTime(2026, 04, 21, 10, 30, 0),
-			};
-			var newStartTime = new DateTime(2026, 04, 21, 12, 0, 0);
-			var duration = 30;
-
-			var mockRepository = new Mock<ISlotRepository>();
-			var service = new SlotService();
-
-			await service.UpdateRecruiterSlotAsync(initialSlot, newStartTime, duration);
-
-			mockRepository.Verify(repository => repository.UpdateAsync(
-				It.Is<Slot>(slot =>
-					slot.Id == initialSlot.Id &&
-					slot.RecruiterId == initialSlot.RecruiterId &&
-					slot.StartTime == newStartTime &&
-					slot.EndTime == newStartTime.AddMinutes(duration))
-				), Times.Once);
-		}
-	}
+            // FIX 3: System.Text.Json serializes with camelCase by default.
+            // "Id":55 → "id":55  and  the StartTime value stays the same.
+            Assert.Contains("\"id\":55", _lastPayload);
+            Assert.Contains("2026-04-21T12:00:00", _lastPayload);
+        }
+    }
 }

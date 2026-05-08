@@ -16,17 +16,29 @@ namespace Tests_and_Interviews.Services
     /// <inheritdoc cref="IDataProcessingService"/>
     public class DataProcessingService : IDataProcessingService
     {
+        private readonly HttpClient http;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DataProcessingService"/> class.
         /// </summary>
         public DataProcessingService()
         {
+            this.http = ApiClient.Http;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DataProcessingService"/> class.
+        /// </summary>
+        /// <param name="httpClient">The HTTP client to use for requests.</param>
+        public DataProcessingService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <inheritdoc/>
         public async Task<bool> ProcessFinalizedAttemptAsync(int attemptId)
         {
-            HttpResponseMessage attemptResponse = await ApiClient.Http.GetAsync($"testattempts/{attemptId}");
+            HttpResponseMessage attemptResponse = await this.http.GetAsync($"testattempts/{attemptId}");
             attemptResponse.EnsureSuccessStatusCode();
             TestAttemptDto? attemptDto = await attemptResponse.Content.ReadFromJsonAsync<TestAttemptDto>();
             if (attemptDto == null)
@@ -42,7 +54,7 @@ namespace Tests_and_Interviews.Services
                 attempt.PercentageScore = null;
                 attempt.RejectionReason = validationError;
                 attempt.RejectedAt = DateTime.UtcNow;
-                HttpResponseMessage rejectResponse = await ApiClient.Http.PutAsJsonAsync(
+                HttpResponseMessage rejectResponse = await this.http.PutAsJsonAsync(
                     $"testattempts/{attempt.Id}",
                     attempt.ToDto());
                 rejectResponse.EnsureSuccessStatusCode();
@@ -53,7 +65,7 @@ namespace Tests_and_Interviews.Services
             attempt.PercentageScore = this.ConvertToPercentageScore(attempt.Score.GetValueOrDefault());
             attempt.RejectionReason = null;
             attempt.RejectedAt = null;
-            HttpResponseMessage updateResponse = await ApiClient.Http.PutAsJsonAsync(
+            HttpResponseMessage updateResponse = await this.http.PutAsJsonAsync(
                 $"testattempts/{attempt.Id}",
                 attempt.ToDto());
             updateResponse.EnsureSuccessStatusCode();
@@ -72,7 +84,7 @@ namespace Tests_and_Interviews.Services
                 return "User does not exist.";
             }
 
-            HttpResponseMessage userResponse = await ApiClient.Http.GetAsync($"users/{attempt.ExternalUserId.Value}");
+            HttpResponseMessage userResponse = await this.http.GetAsync($"users/{attempt.ExternalUserId.Value}");
             if (!userResponse.IsSuccessStatusCode)
             {
                 return "User does not exist.";
@@ -83,7 +95,7 @@ namespace Tests_and_Interviews.Services
                 return "User does not exist.";
             }
 
-            HttpResponseMessage testResponse = await ApiClient.Http.GetAsync($"tests/{attempt.TestId}");
+            HttpResponseMessage testResponse = await this.http.GetAsync($"tests/{attempt.TestId}");
             if (!testResponse.IsSuccessStatusCode)
             {
                 return "Test does not exist.";

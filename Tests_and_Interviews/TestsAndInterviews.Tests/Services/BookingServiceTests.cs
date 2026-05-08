@@ -6,42 +6,73 @@ namespace TestsAndInterviews.Tests.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading;
     using System.Threading.Tasks;
     using Moq;
+    using Moq.Protected;
+    using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Models;
-    using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services;
     using Xunit;
 
     public class BookingServiceTests
     {
-        private readonly Mock<ISlotRepository> mockSlotRepository;
-        private readonly Mock<IInterviewSessionRepository> mockInterviewSessionRepository;
-        private readonly BookingService bookingService;
-
-        public BookingServiceTests()
+        private Mock<HttpMessageHandler> CreateMockHttpMessageHandler(HttpResponseMessage responseMessage)
         {
-            this.mockSlotRepository = new Mock<ISlotRepository>();
-            this.mockInterviewSessionRepository = new Mock<IInterviewSessionRepository>();
-            this.bookingService = new BookingService(); // Adjusted to use parameterless constructor
+            var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            handlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(responseMessage)
+                .Verifiable();
+
+            return handlerMock;
+        }
+
+        private Mock<HttpMessageHandler> CreateMockHttpMessageHandlerForMultipleRequests(HttpStatusCode statusCode)
+        {
+            var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            handlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage(statusCode))
+                .Verifiable();
+
+            return handlerMock;
         }
 
         [Fact]
         public async Task GetAvailableSlots_ReturnsOnlyFreeSlots()
         {
             var date = DateTime.Today;
-            var slots = new List<Slot>
+            var dtos = new List<SlotDto>
             {
-                new Slot { StartTime = date, Status = SlotStatus.Free },
-                new Slot { StartTime = date, Status = SlotStatus.Occupied },
+                new SlotDto { StartTime = date, Status = SlotStatus.Free },
+                new SlotDto { StartTime = date, Status = SlotStatus.Occupied },
             };
-            this.mockSlotRepository
-                .Setup(slotRepository => slotRepository.GetSlotsAsync(1, date))
-                .ReturnsAsync(slots);
 
-            var result = await this.bookingService.GetAvailableSlots(1, date);
+            var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(dtos)
+            };
+
+            var handlerMock = this.CreateMockHttpMessageHandler(responseMessage);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var bookingService = new BookingService(httpClient);
+
+            var result = await bookingService.GetAvailableSlots(1, date);
 
             Assert.Single(result);
             Assert.All(result, slot => Assert.Equal(SlotStatus.Free, slot.Status));
@@ -51,16 +82,22 @@ namespace TestsAndInterviews.Tests.Services
         public async Task GetAvailableSlots_ReturnsSlotsOrderedByStartTime()
         {
             var date = DateTime.Today;
-            var slots = new List<Slot>
+            var dtos = new List<SlotDto>
             {
-                new Slot { StartTime = date.AddHours(3), Status = SlotStatus.Free },
-                new Slot { StartTime = date.AddHours(1), Status = SlotStatus.Free },
+                new SlotDto { StartTime = date.AddHours(3), Status = SlotStatus.Free },
+                new SlotDto { StartTime = date.AddHours(1), Status = SlotStatus.Free },
             };
-            this.mockSlotRepository
-                .Setup(slotRepository => slotRepository.GetSlotsAsync(1, date))
-                .ReturnsAsync(slots);
 
-            var result = await this.bookingService.GetAvailableSlots(1, date);
+            var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(dtos)
+            };
+
+            var handlerMock = this.CreateMockHttpMessageHandler(responseMessage);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var bookingService = new BookingService(httpClient);
+
+            var result = await bookingService.GetAvailableSlots(1, date);
 
             Assert.Equal(date.AddHours(1), result[0].StartTime);
             Assert.Equal(date.AddHours(3), result[1].StartTime);
@@ -69,16 +106,22 @@ namespace TestsAndInterviews.Tests.Services
         [Fact]
         public async Task GetAvailableSlotsByRecruiterId_ReturnsOnlyFreeSlots()
         {
-            var slots = new List<Slot>
+            var dtos = new List<SlotDto>
             {
-                new Slot { StartTime = DateTime.Today, Status = SlotStatus.Free },
-                new Slot { StartTime = DateTime.Today, Status = SlotStatus.Occupied },
+                new SlotDto { StartTime = DateTime.Today, Status = SlotStatus.Free },
+                new SlotDto { StartTime = DateTime.Today, Status = SlotStatus.Occupied },
             };
-            this.mockSlotRepository
-                .Setup(slotRepository => slotRepository.GetAllSlotsAsync(1))
-                .ReturnsAsync(slots);
 
-            var result = await this.bookingService.GetAvailableSlotsByRecruiterId(1);
+            var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(dtos)
+            };
+
+            var handlerMock = this.CreateMockHttpMessageHandler(responseMessage);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var bookingService = new BookingService(httpClient);
+
+            var result = await bookingService.GetAvailableSlotsByRecruiterId(1);
 
             Assert.Single(result);
             Assert.All(result, slot => Assert.Equal(SlotStatus.Free, slot.Status));
@@ -87,16 +130,22 @@ namespace TestsAndInterviews.Tests.Services
         [Fact]
         public async Task GetAvailableSlotsByRecruiterId_ReturnsSlotsOrderedByStartTime()
         {
-            var slots = new List<Slot>
+            var dtos = new List<SlotDto>
             {
-                new Slot { StartTime = DateTime.Today.AddHours(3), Status = SlotStatus.Free },
-                new Slot { StartTime = DateTime.Today.AddHours(1), Status = SlotStatus.Free },
+                new SlotDto { StartTime = DateTime.Today.AddHours(3), Status = SlotStatus.Free },
+                new SlotDto { StartTime = DateTime.Today.AddHours(1), Status = SlotStatus.Free },
             };
-            this.mockSlotRepository
-                .Setup(slotRepository => slotRepository.GetAllSlotsAsync(1))
-                .ReturnsAsync(slots);
 
-            var result = await this.bookingService.GetAvailableSlotsByRecruiterId(1);
+            var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(dtos)
+            };
+
+            var handlerMock = this.CreateMockHttpMessageHandler(responseMessage);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var bookingService = new BookingService(httpClient);
+
+            var result = await bookingService.GetAvailableSlotsByRecruiterId(1);
 
             Assert.Equal(DateTime.Today.AddHours(1), result[0].StartTime);
             Assert.Equal(DateTime.Today.AddHours(3), result[1].StartTime);
@@ -105,26 +154,27 @@ namespace TestsAndInterviews.Tests.Services
         [Fact]
         public async Task ConfirmBooking_WhenSlotIsNull_ThrowsException()
         {
-            var exception = await Record.ExceptionAsync(() => this.bookingService.ConfirmBooking(1, null));
+            // No HTTP calls expected here, so we can use a blank client
+            var httpClient = new HttpClient(new Mock<HttpMessageHandler>().Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var bookingService = new BookingService(httpClient);
+
+            var exception = await Record.ExceptionAsync(() => bookingService.ConfirmBooking(1, null!));
+
             Assert.NotNull(exception);
+            Assert.Equal("Slot not found", exception.Message);
         }
 
         [Fact]
         public async Task ConfirmBooking_WhenSlotIsNotFree_ThrowsException()
         {
             var slot = new Slot { Status = SlotStatus.Occupied };
-            var exceptionThrown = false;
+            var httpClient = new HttpClient(new Mock<HttpMessageHandler>().Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var bookingService = new BookingService(httpClient);
 
-            try
-            {
-                await this.bookingService.ConfirmBooking(1, slot);
-            }
-            catch (Exception)
-            {
-                exceptionThrown = true;
-            }
+            var exception = await Record.ExceptionAsync(() => bookingService.ConfirmBooking(1, slot));
 
-            Assert.True(exceptionThrown, "Expected an Exception to be thrown.");
+            Assert.NotNull(exception);
+            Assert.Equal("This slot is no longer available", exception.Message);
         }
 
         [Fact]
@@ -138,23 +188,35 @@ namespace TestsAndInterviews.Tests.Services
                 Status = SlotStatus.Free,
             };
 
-            var addedSessions = new List<InterviewSession>();
-            this.mockInterviewSessionRepository
-                .Setup(interviewSessionRepository => interviewSessionRepository.Add(It.IsAny<InterviewSession>()))
-                .Callback<InterviewSession>(addedSessions.Add);
+            // Setup a handler that returns HTTP 200 OK for any request (PUT and POST)
+            var handlerMock = this.CreateMockHttpMessageHandlerForMultipleRequests(HttpStatusCode.OK);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var bookingService = new BookingService(httpClient);
 
-            await this.bookingService.ConfirmBooking(1, slot);
+            await bookingService.ConfirmBooking(1, slot);
 
+            // Assert local slot changes
             Assert.Equal(SlotStatus.Occupied, slot.Status);
             Assert.Equal(1, slot.CandidateId);
             Assert.Equal(string.Empty, slot.InterviewType);
-            this.mockSlotRepository.Verify(
-                slotRepository => slotRepository.Update(slot),
-                Times.Once);
-            Assert.Single(addedSessions);
-            Assert.Equal(1, addedSessions[0].ExternalUserId);
-            Assert.Equal(2, addedSessions[0].InterviewerId);
-            Assert.Equal("Scheduled", addedSessions[0].Status);
+
+            // Verify PUT request for updating the slot was made
+            handlerMock.Protected().Verify(
+                "SendAsync",
+                Times.Exactly(1),
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Put &&
+                    req.RequestUri!.ToString().EndsWith("slots/5")),
+                ItExpr.IsAny<CancellationToken>());
+
+            // Verify POST request for creating the interview session was made
+            handlerMock.Protected().Verify(
+                "SendAsync",
+                Times.Exactly(1),
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Post &&
+                    req.RequestUri!.ToString().EndsWith("interviewsessions")),
+                ItExpr.IsAny<CancellationToken>());
         }
     }
 }

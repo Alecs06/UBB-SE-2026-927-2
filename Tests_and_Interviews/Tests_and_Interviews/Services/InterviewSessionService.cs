@@ -24,11 +24,23 @@ namespace Tests_and_Interviews.Services
     /// </summary>
     public class InterviewSessionService : IInterviewSessionService
     {
+        private readonly HttpClient http;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="InterviewSessionService"/> class.
         /// </summary>
         public InterviewSessionService()
         {
+            this.http = ApiClient.Http;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InterviewSessionService"/> class.
+        /// </summary>
+        /// <param name="httpClient">The HTTP client to use for requests.</param>
+        public InterviewSessionService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <summary>
@@ -44,7 +56,7 @@ namespace Tests_and_Interviews.Services
                 session.DateStart = DateTime.UtcNow;
                 await this.UpdateSessionViaApiAsync(session);
             }
-            HttpResponseMessage questionsResponse = await ApiClient.Http.GetAsync($"questions/byposition/{session.PositionId}");
+            HttpResponseMessage questionsResponse = await this.http.GetAsync($"questions/byposition/{session.PositionId}");
             questionsResponse.EnsureSuccessStatusCode();
             List<QuestionDto>? dtos = await questionsResponse.Content.ReadFromJsonAsync<List<QuestionDto>>();
             List<Question> questions = dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Question>();
@@ -66,7 +78,7 @@ namespace Tests_and_Interviews.Services
             using Stream stream = randomAccessStream.AsStreamForRead();
             MultipartFormDataContent content = new MultipartFormDataContent();
             content.Add(new StreamContent(stream), "file", file.Name);
-            HttpResponseMessage response = await ApiClient.Http.PostAsync(
+            HttpResponseMessage response = await this.http.PostAsync(
                 $"interviewsessions/{session.Id}/video",
                 content);
             response.EnsureSuccessStatusCode();
@@ -96,7 +108,7 @@ namespace Tests_and_Interviews.Services
         /// <returns>The interview session corresponding to the specified ID.</returns>
         public async Task<InterviewSession> GetSessionAsync(int sessionId)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"interviewsessions/{sessionId}");
+            HttpResponseMessage response = await this.http.GetAsync($"interviewsessions/{sessionId}");
             response.EnsureSuccessStatusCode();
             InterviewSessionDto? dto = await response.Content.ReadFromJsonAsync<InterviewSessionDto>();
             return dto!.ToEntity();
@@ -109,7 +121,7 @@ namespace Tests_and_Interviews.Services
         /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task UpdateSessionViaApiAsync(InterviewSession session)
         {
-            HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+            HttpResponseMessage response = await this.http.PutAsJsonAsync(
                 $"interviewsessions/{session.Id}",
                 session.ToDto());
             response.EnsureSuccessStatusCode();
