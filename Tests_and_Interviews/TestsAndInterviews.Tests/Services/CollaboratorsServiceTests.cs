@@ -48,7 +48,7 @@ namespace TestsAndInterviews.Tests.Services
         public void Setup()
         {
             fakeCollaboratorsRepo = new FakeCollaboratorsRepo();
-            collaboratorsService = new CollaboratorsService(fakeCollaboratorsRepo);
+            collaboratorsService = new CollaboratorsService();
         }
 
         private static Event MakeEvent()
@@ -137,7 +137,7 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void GetAllCollaborators_RepoReturnsTwoCompanies_ServiceReturnsTwoCompanies()
+        public async Task GetAllCollaborators_RepoReturnsTwoCompanies_ServiceReturnsTwoCompanies()
         {
             fakeCollaboratorsRepo.CollaboratorsToReturn = new List<Company>
             {
@@ -145,30 +145,29 @@ namespace TestsAndInterviews.Tests.Services
                 new Company(Company2Name, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, Company2Id)
             };
 
-            List<Company> result = collaboratorsService.GetAllCollaborators(DefaultId);
+            List<Company> result = await collaboratorsService.GetAllCollaborators(DefaultId);
 
             Assert.AreEqual(CountTwo, result.Count);
         }
 
         [TestMethod]
-        public void GetAllCollaborators_RepoReturnsEmptyList_ServiceReturnsEmptyList()
+        public async Task GetAllCollaborators_RepoReturnsEmptyList_ServiceReturnsEmptyList()
         {
             fakeCollaboratorsRepo.CollaboratorsToReturn = new List<Company>();
 
-            List<Company> result = collaboratorsService.GetAllCollaborators(DefaultId);
-
+            List<Company> result = await collaboratorsService.GetAllCollaborators(DefaultId);
             Assert.AreEqual(CountZero, result.Count);
         }
 
         [TestMethod]
-        public void GetAllCollaborators_RepoReturnsOneCompany_ServiceReturnsCorrectCompanyName()
+        public async Task GetAllCollaborators_RepoReturnsOneCompany_ServiceReturnsCorrectCompanyName()
         {
             fakeCollaboratorsRepo.CollaboratorsToReturn = new List<Company>
             {
                 new Company(SingleCompanyName, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, DefaultId)
             };
 
-            List<Company> result = collaboratorsService.GetAllCollaborators(DefaultId);
+            List<Company> result = await collaboratorsService.GetAllCollaborators(DefaultId);
 
             Assert.AreEqual(SingleCompanyName, result[0].Name);
         }

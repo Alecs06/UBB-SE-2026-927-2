@@ -56,7 +56,7 @@ namespace TestsAndInterviews.Tests.Services
         {
             fakeRepository = new FakePaymentRepository();
             validator = new PaymentValidator();
-            service = new PaymentService(fakeRepository, validator);
+            service = new PaymentService(validator);
         }
 
         [TestMethod]
@@ -101,7 +101,7 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void GetPaidJobsInfo_ReturnsRepositoryData()
+        public async Task GetPaidJobsInfo_ReturnsRepositoryData()
         {
             fakeRepository.PaidJobsToReturn.Add(new JobPaymentInfo
             {
@@ -110,7 +110,7 @@ namespace TestsAndInterviews.Tests.Services
                 AmountPayed = Amount250
             });
 
-            var result = service.GetPaidJobsInfo(JobTypeFullTime, ExpLevelEntry);
+            var result = await service.GetPaidJobsInfo(JobTypeFullTime, ExpLevelEntry);
 
             Assert.AreEqual(CountOne, result.Count);
             Assert.IsTrue(string.Equals(
@@ -125,7 +125,7 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void GetPaidJobsInfo_ReturnsSameNumberOfItemsAsRepository()
+        public async Task GetPaidJobsInfo_ReturnsSameNumberOfItemsAsRepository()
         {
             fakeRepository.PaidJobsToReturn.Add(new JobPaymentInfo
             {
@@ -140,7 +140,7 @@ namespace TestsAndInterviews.Tests.Services
                 AmountPayed = ValidAmount
             });
 
-            var result = service.GetPaidJobsInfo(JobTypeFullTime, ExpLevelEntry);
+            var result = await service.GetPaidJobsInfo(JobTypeFullTime, ExpLevelEntry);
 
             Assert.AreEqual(CountTwo, result.Count);
         }

@@ -6,6 +6,7 @@ namespace TestsAndInterviews.Tests.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
     using Moq;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Models.Core;
@@ -24,13 +25,11 @@ namespace TestsAndInterviews.Tests.Services
         {
             this.mockSlotRepository = new Mock<ISlotRepository>();
             this.mockInterviewSessionRepository = new Mock<IInterviewSessionRepository>();
-            this.bookingService = new BookingService(
-                this.mockSlotRepository.Object,
-                this.mockInterviewSessionRepository.Object);
+            this.bookingService = new BookingService(); // Adjusted to use parameterless constructor
         }
 
         [Fact]
-        public void GetAvailableSlots_ReturnsOnlyFreeSlots()
+        public async Task GetAvailableSlots_ReturnsOnlyFreeSlots()
         {
             var date = DateTime.Today;
             var slots = new List<Slot>
@@ -39,17 +38,17 @@ namespace TestsAndInterviews.Tests.Services
                 new Slot { StartTime = date, Status = SlotStatus.Occupied },
             };
             this.mockSlotRepository
-                .Setup(slotRepository => slotRepository.GetSlots(1, date))
-                .Returns(slots);
+                .Setup(slotRepository => slotRepository.GetSlotsAsync(1, date))
+                .ReturnsAsync(slots);
 
-            var result = this.bookingService.GetAvailableSlots(1, date);
+            var result = await this.bookingService.GetAvailableSlots(1, date);
 
             Assert.Single(result);
             Assert.All(result, slot => Assert.Equal(SlotStatus.Free, slot.Status));
         }
 
         [Fact]
-        public void GetAvailableSlots_ReturnsSlotsOrderedByStartTime()
+        public async Task GetAvailableSlots_ReturnsSlotsOrderedByStartTime()
         {
             var date = DateTime.Today;
             var slots = new List<Slot>
@@ -58,17 +57,17 @@ namespace TestsAndInterviews.Tests.Services
                 new Slot { StartTime = date.AddHours(1), Status = SlotStatus.Free },
             };
             this.mockSlotRepository
-                .Setup(slotRepository => slotRepository.GetSlots(1, date))
-                .Returns(slots);
+                .Setup(slotRepository => slotRepository.GetSlotsAsync(1, date))
+                .ReturnsAsync(slots);
 
-            var result = this.bookingService.GetAvailableSlots(1, date);
+            var result = await this.bookingService.GetAvailableSlots(1, date);
 
             Assert.Equal(date.AddHours(1), result[0].StartTime);
             Assert.Equal(date.AddHours(3), result[1].StartTime);
         }
 
         [Fact]
-        public void GetAvailableSlotsByRecruiterId_ReturnsOnlyFreeSlots()
+        public async Task GetAvailableSlotsByRecruiterId_ReturnsOnlyFreeSlots()
         {
             var slots = new List<Slot>
             {
@@ -76,17 +75,17 @@ namespace TestsAndInterviews.Tests.Services
                 new Slot { StartTime = DateTime.Today, Status = SlotStatus.Occupied },
             };
             this.mockSlotRepository
-                .Setup(slotRepository => slotRepository.GetAllSlots(1))
-                .Returns(slots);
+                .Setup(slotRepository => slotRepository.GetAllSlotsAsync(1))
+                .ReturnsAsync(slots);
 
-            var result = this.bookingService.GetAvailableSlotsByRecruiterId(1);
+            var result = await this.bookingService.GetAvailableSlotsByRecruiterId(1);
 
             Assert.Single(result);
             Assert.All(result, slot => Assert.Equal(SlotStatus.Free, slot.Status));
         }
 
         [Fact]
-        public void GetAvailableSlotsByRecruiterId_ReturnsSlotsOrderedByStartTime()
+        public async Task GetAvailableSlotsByRecruiterId_ReturnsSlotsOrderedByStartTime()
         {
             var slots = new List<Slot>
             {
@@ -94,31 +93,31 @@ namespace TestsAndInterviews.Tests.Services
                 new Slot { StartTime = DateTime.Today.AddHours(1), Status = SlotStatus.Free },
             };
             this.mockSlotRepository
-                .Setup(slotRepository => slotRepository.GetAllSlots(1))
-                .Returns(slots);
+                .Setup(slotRepository => slotRepository.GetAllSlotsAsync(1))
+                .ReturnsAsync(slots);
 
-            var result = this.bookingService.GetAvailableSlotsByRecruiterId(1);
+            var result = await this.bookingService.GetAvailableSlotsByRecruiterId(1);
 
             Assert.Equal(DateTime.Today.AddHours(1), result[0].StartTime);
             Assert.Equal(DateTime.Today.AddHours(3), result[1].StartTime);
         }
 
         [Fact]
-        public void ConfirmBooking_WhenSlotIsNull_ThrowsException()
+        public async Task ConfirmBooking_WhenSlotIsNull_ThrowsException()
         {
-            var exception = Record.Exception(() => this.bookingService.ConfirmBooking(1, null));
+            var exception = await Record.ExceptionAsync(() => this.bookingService.ConfirmBooking(1, null));
             Assert.NotNull(exception);
         }
 
         [Fact]
-        public void ConfirmBooking_WhenSlotIsNotFree_ThrowsException()
+        public async Task ConfirmBooking_WhenSlotIsNotFree_ThrowsException()
         {
             var slot = new Slot { Status = SlotStatus.Occupied };
             var exceptionThrown = false;
 
             try
             {
-                this.bookingService.ConfirmBooking(1, slot);
+                await this.bookingService.ConfirmBooking(1, slot);
             }
             catch (Exception)
             {
@@ -129,7 +128,7 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [Fact]
-        public void ConfirmBooking_WhenSlotIsFree_UpdatesSlotAndCreatesSession()
+        public async Task ConfirmBooking_WhenSlotIsFree_UpdatesSlotAndCreatesSession()
         {
             var slot = new Slot
             {
@@ -144,7 +143,7 @@ namespace TestsAndInterviews.Tests.Services
                 .Setup(interviewSessionRepository => interviewSessionRepository.Add(It.IsAny<InterviewSession>()))
                 .Callback<InterviewSession>(addedSessions.Add);
 
-            this.bookingService.ConfirmBooking(1, slot);
+            await this.bookingService.ConfirmBooking(1, slot);
 
             Assert.Equal(SlotStatus.Occupied, slot.Status);
             Assert.Equal(1, slot.CandidateId);

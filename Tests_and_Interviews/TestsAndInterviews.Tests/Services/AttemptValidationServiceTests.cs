@@ -20,7 +20,7 @@ namespace TestsAndInterviews.Tests.Services
     {
         private static AttemptValidationService MakeAttemptValidationService(ITestAttemptRepository attemptRepository)
         {
-            return new AttemptValidationService(attemptRepository);
+            return new AttemptValidationService();
         }
 
         private static TestAttempt MakeTestAttempt()

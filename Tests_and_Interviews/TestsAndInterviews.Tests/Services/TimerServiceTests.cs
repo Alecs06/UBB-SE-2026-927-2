@@ -22,7 +22,7 @@ namespace TestsAndInterviews.Tests.Services
     {
         private static TimerService MakeTimerService(ITestAttemptRepository attemptRepository)
         {
-            return new TimerService(attemptRepository);
+            return new TimerService();
         }
 
         [Fact]

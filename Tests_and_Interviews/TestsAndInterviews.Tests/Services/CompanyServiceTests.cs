@@ -34,7 +34,7 @@ namespace TestsAndInterviews.Tests.Services
         public void Setup()
         {
             fakeRepo = new FakeCompanyRepository();
-            service = new CompanyService(fakeRepo);
+            service = new CompanyService();
         }
 
         [TestMethod]
@@ -55,13 +55,13 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void GetCompanyById_ExistingCompany_ReturnsCompany()
+        public async Task GetCompanyById_ExistingCompany_ReturnsCompany()
         {
             Company company = new Company(ShortTestName, string.Empty, string.Empty, ValidLogo, string.Empty, string.Empty);
             company.CompanyId = ValidCompanyId;
             fakeRepo.StoredCompany = company;
 
-            Company result = service.GetCompanyById(ValidCompanyId);
+            Company result = await service.GetCompanyById(ValidCompanyId);
 
             Assert.IsNotNull(result);
             Assert.AreEqual(ValidCompanyId, result.CompanyId);
@@ -83,22 +83,17 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void GetCompanyByName_ReturnsCompanyFromRepository()
+        public async Task GetCompanyByName_ReturnsCompanyFromRepository()
         {
             Company company = new Company(SpecificCompanyName, string.Empty, string.Empty, ValidLogo, string.Empty, string.Empty);
             fakeRepo.StoredCompany = company;
 
-            Company result = service.GetCompanyByName(SpecificCompanyName);
+            Company result = await service.GetCompanyByName(SpecificCompanyName);
 
             Assert.IsNotNull(result);
             Assert.AreEqual(SpecificCompanyName, result.Name);
         }
 
-        [TestMethod]
-        public void PrintAll_CallsRepositoryPrintAll()
-        {
-            service.PrintAll();
-            Assert.IsTrue(fakeRepo.PrintAllCalled);
-        }
+       
     }
 }

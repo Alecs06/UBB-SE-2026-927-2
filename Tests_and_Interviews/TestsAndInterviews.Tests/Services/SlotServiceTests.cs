@@ -32,7 +32,7 @@ namespace TestsAndInterviews.Tests.Services
 					}
 				});
 
-			var service = new SlotService(mockRepository.Object);
+			var service = new SlotService();
 
 			var recruiterSlots = await service.LoadRecruiterVisibleSlotsAsync(recruiterId, date);
 
@@ -64,7 +64,7 @@ namespace TestsAndInterviews.Tests.Services
 			mockRepository.Setup(repository => repository.GetSlotsAsync(recruiterId, date))
 				.ReturnsAsync(new List<Slot>());
 
-			var service = new SlotService(mockRepository.Object);
+			var service = new SlotService();
 
 			var recruiterSlots = await service.LoadRecruiterVisibleSlotsAsync(recruiterId, date);
 
@@ -95,7 +95,7 @@ namespace TestsAndInterviews.Tests.Services
 
 			var mockRepository = new Mock<ISlotRepository>();
 
-			var service = new SlotService(mockRepository.Object);
+			var service = new SlotService();
 
 			await service.CreateRecruiterSlotAsync(mockBaseSlot, duration);
 
@@ -121,7 +121,7 @@ namespace TestsAndInterviews.Tests.Services
 			mockRepository.Setup(repository => repository.AddAsync(It.IsAny<Slot>()))
 				.ThrowsAsync(new Exception("Slot overlaps with an existing appointment!"));
 
-			var service = new SlotService(mockRepository.Object);
+			var service = new SlotService();
 
 			await Assert.ThrowsAsync<Exception>(async () => await service.CreateRecruiterSlotAsync(mockBaseSlot, duration));
 		}
@@ -131,7 +131,7 @@ namespace TestsAndInterviews.Tests.Services
 		{
 			var mockRepository = new Mock<ISlotRepository>();
 
-			var service = new SlotService(mockRepository.Object);
+			var service = new SlotService();
 
 			var slotToDeleteId = 1;
 
@@ -156,7 +156,7 @@ namespace TestsAndInterviews.Tests.Services
 			var duration = 30;
 
 			var mockRepository = new Mock<ISlotRepository>();
-			var service = new SlotService(mockRepository.Object);
+			var service = new SlotService();
 			await Assert.ThrowsAsync<Exception>(async () => await service.UpdateRecruiterSlotAsync(initialSlot, newStartTime, duration));
 		}
 
@@ -173,7 +173,7 @@ namespace TestsAndInterviews.Tests.Services
 			var duration = 30;
 
 			var mockRepository = new Mock<ISlotRepository>();
-			var service = new SlotService(mockRepository.Object);
+			var service = new SlotService();
 
 			await service.UpdateRecruiterSlotAsync(initialSlot, newStartTime, duration);
 
