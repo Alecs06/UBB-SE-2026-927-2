@@ -51,7 +51,7 @@ namespace Tests_and_Interviews.Services
         /// <returns> A list of available slots for the specified recruiter and date.</returns>
         public async Task<List<Slot>> GetAvailableSlots(int recruiterId, DateTime date)
         {
-            HttpResponseMessage response = await this.http.GetAsync($"recruiter/{recruiterId}/date?date={date:O}");
+            HttpResponseMessage response = await this.http.GetAsync($"slots/recruiter/{recruiterId}/date?date={date:O}");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -74,7 +74,7 @@ namespace Tests_and_Interviews.Services
         /// <returns> A list of all available slots for the specified recruiter.</returns>
         public async Task<List<Slot>> GetAvailableSlotsByRecruiterId(int recruiterId)
         {
-            HttpResponseMessage response = await this.http.GetAsync($"recruiter/{recruiterId}");
+            HttpResponseMessage response = await this.http.GetAsync($"slots/recruiter/{recruiterId}");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
