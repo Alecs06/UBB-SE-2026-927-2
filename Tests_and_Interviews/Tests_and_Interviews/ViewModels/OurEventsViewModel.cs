@@ -1,4 +1,6 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Tests_and_Interviews.Models;
 using Tests_and_Interviews.Services;
@@ -13,7 +15,8 @@ namespace Tests_and_Interviews.ViewModels
         private readonly IEventsService eventsService;
         private readonly SessionService sessionService;
 
-        public ObservableCollection<Event> CurrentEventsCollection { get; }
+        [ObservableProperty]
+        private ObservableCollection<Event> currentEventsCollection = new();
 
         /// <summary>
         /// Our Events View Model constructor
@@ -24,8 +27,26 @@ namespace Tests_and_Interviews.ViewModels
         {
             this.eventsService = eventsService;
             this.sessionService = sessionService;
+        }
 
-            CurrentEventsCollection = this.eventsService.GetCurrentEvents(this.sessionService.LoggedInUser.CompanyId).Result;
+        /// <summary>
+        /// Loads the current events asynchronously.
+        /// </summary>
+        public async Task LoadEventsAsync()
+        {
+            try
+            {
+                var events = await this.eventsService.GetCurrentEvents(this.sessionService.LoggedInUser.CompanyId);
+                this.CurrentEventsCollection.Clear();
+                foreach (var eventItem in events)
+                {
+                    this.CurrentEventsCollection.Add(eventItem);
+                }
+            }
+            catch
+            {
+                // Handle error silently for now
+            }
         }
     }
 }

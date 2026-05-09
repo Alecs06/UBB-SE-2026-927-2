@@ -14,6 +14,8 @@ namespace Tests_and_Interviews.Services
     using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
     using Tests_and_Interviews.Validators;
+    using System.Diagnostics;
+    using Tests_and_Interviews.Dtos;
 
     public class ProfileCompletionCalculator : IProfileCompletionCalculator
     {
@@ -109,6 +111,58 @@ namespace Tests_and_Interviews.Services
         private static bool IsMiniGameComplete(Game game)
         {
             return game != null && game.IsPublished;
+        }
+
+        public async Task<(List<string> skillNames, List<int> percents)> GetSkillsTop3Async(int companyId)
+        {
+            var allJobs = await jobsService.GetAllJobsAsync();
+            var companyJobsList = allJobs
+                .Where(job => job.CompanyId == companyId)
+                .ToList();
+
+            var skillCountsDictionary = new Dictionary<string, int>();
+            int totalRequiredPercentage = EmptyCount;
+
+            foreach (var job in companyJobsList)
+            {
+                if (job.JobSkills == null || job.JobSkills.Count == 0)
+                {
+                    continue;
+                }
+                foreach (var jobSkill in job.JobSkills)
+                {
+                    var skillName = jobSkill.Skill?.SkillName;
+                    if (string.IsNullOrEmpty(skillName))
+                    {
+                        continue;
+                    }
+                    if (!skillCountsDictionary.ContainsKey(skillName))
+                    {
+                        skillCountsDictionary[skillName] = EmptyCount;
+                    }
+                    skillCountsDictionary[skillName] += jobSkill.RequiredPercentage;
+                    totalRequiredPercentage += jobSkill.RequiredPercentage;
+                }
+            }
+
+            var topSkillNamesList = new List<string>();
+            var topSkillPercentagesList = new List<int>();
+
+            if (totalRequiredPercentage == EmptyCount)
+            {
+                return (topSkillNamesList, topSkillPercentagesList);
+            }
+            var topThreeSkills = skillCountsDictionary
+                .OrderByDescending(skillEntry => skillEntry.Value)
+                .Take(TopSkillsLimit);
+
+            foreach (var skillEntry in topThreeSkills)
+            {
+                topSkillNamesList.Add(skillEntry.Key);
+                topSkillPercentagesList.Add((int)Math.Round((double)skillEntry.Value * PercentageMultiplier / totalRequiredPercentage));
+            }
+
+            return (topSkillNamesList, topSkillPercentagesList);
         }
 
         public (List<string> skillNames, List<int> percents) GetSkillsTop3(int companyId)

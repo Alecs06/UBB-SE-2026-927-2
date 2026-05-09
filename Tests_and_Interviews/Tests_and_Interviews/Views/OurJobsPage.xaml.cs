@@ -17,13 +17,10 @@ namespace Tests_and_Interviews.Views
             ViewModel = new OurJobsViewModel(mainWindow.JobsService);
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            if (e.NavigationMode == NavigationMode.Back)
-            {
-                ViewModel.ReloadJobs();
-            }
+            await ViewModel.LoadJobsAsync();
         }
 
         private void CreateJobButton_Click(object sender, RoutedEventArgs e)

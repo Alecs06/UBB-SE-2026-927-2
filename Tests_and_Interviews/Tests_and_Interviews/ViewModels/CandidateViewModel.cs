@@ -64,13 +64,13 @@ namespace Tests_and_Interviews.ViewModels
             this.interviewSessions = new ObservableCollection<InterviewSession>();
             this.matchedCompanies = new ObservableCollection<CompanyPosting>();
 
-            this.LoadAvailableSlotsCommand = new RelayCommand(execute: this.LoadAvailableSlotsCommandExecute);
-            this.ScheduleInterviewCommand = new RelayCommand(execute: this.ScheduleInterviewCommandExecute);
+            this.LoadAvailableSlotsCommand = new AsyncRelayCommand(execute: this.LoadAvailableSlotsCommandExecute);
+            this.ScheduleInterviewCommand = new AsyncRelayCommand(execute: this.ScheduleInterviewCommandExecute);
             this.JoinInterviewCommand = new RelayCommand(execute: this.JoinInterviewCommandExecute);
-            this.CancelInterviewCommand = new RelayCommand(execute: this.CancelInterviewCommandExecute);
+            this.CancelInterviewCommand = new AsyncRelayCommand(execute: this.CancelInterviewCommandExecute);
             this.SelectDayForInterviewCommand = new RelayCommand(execute: this.SelectDayForInterviewCommandExecute);
             this.SelectSlotForInterviewCommand = new RelayCommand(execute: this.SelectSlotForInterviewCommandExecute);
-            this.ConfirmInterviewCommand = new RelayCommand(execute: this.ConfirmInterviewCommandExecute);
+            this.ConfirmInterviewCommand = new AsyncRelayCommand(execute: this.ConfirmInterviewCommandExecute);
             this.LoadNextDaysCommand = new RelayCommand(execute: this.LoadNextDaysCommandExecute);
             this.LoadPreviousDaysCommand = new RelayCommand(execute: this.LoadPreviousDaysCommandExecute);
 
@@ -240,7 +240,7 @@ namespace Tests_and_Interviews.ViewModels
             {
                 this.selectedDay = value;
                 this.OnPropertyChanged();
-                this.LoadSlotsForSelectedDay();
+                _ = this.LoadSlotsForSelectedDay();
             }
         }
 
@@ -327,7 +327,7 @@ namespace Tests_and_Interviews.ViewModels
             ];
         }
 
-        private async void ScheduleInterview(CompanyPosting company)
+        private async Task ScheduleInterview(CompanyPosting company)
         {
             this.IsBookingVisible = true;
             this.SelectedCompany = company;
@@ -341,7 +341,7 @@ namespace Tests_and_Interviews.ViewModels
             this.SelectedDay = this.AvailableDays.FirstOrDefault()?.StartTime.Date ?? DateTime.Today;
         }
 
-        private async void LoadSlotsForSelectedDay()
+        private async Task LoadSlotsForSelectedDay()
         {
             if (this.SelectedCompany == null)
             {
@@ -354,7 +354,7 @@ namespace Tests_and_Interviews.ViewModels
                 .ToList();
         }
 
-        private async void ConfirmInterviewCommandExecute(object? obj)
+        private async Task ConfirmInterviewCommandExecute(object? obj)
         {
             if (this.SelectedSlot == null)
             {
@@ -366,7 +366,7 @@ namespace Tests_and_Interviews.ViewModels
                 return;
             }
 
-            this.bookingService.ConfirmBooking(Env.USER_ID, this.SelectedSlot);
+            await this.bookingService.ConfirmBooking(Env.USER_ID, this.SelectedSlot);
             await this.LoadInterviewSessionsAsync();
 
             try
@@ -411,7 +411,7 @@ namespace Tests_and_Interviews.ViewModels
             this.LoadInterviewSessionsAsync().ConfigureAwait(false);
         }
 
-        private async void CancelInterviewCommandExecute(object? obj)
+        private async Task CancelInterviewCommandExecute(object? obj)
         {
             if (obj is not InterviewSession session)
             {
@@ -434,19 +434,19 @@ namespace Tests_and_Interviews.ViewModels
             }
         }
 
-        private void LoadAvailableSlotsCommandExecute(object? obj)
+        private async Task LoadAvailableSlotsCommandExecute(object? obj)
         {
             this.LoadAvailableSlots();
         }
 
-        private void ScheduleInterviewCommandExecute(object? obj)
+        private async Task ScheduleInterviewCommandExecute(object? obj)
         {
             if (obj is not CompanyPosting company)
             {
                 return;
             }
 
-            this.ScheduleInterview(company);
+            await this.ScheduleInterview(company);
         }
 
         private void JoinInterviewCommandExecute(object? obj)

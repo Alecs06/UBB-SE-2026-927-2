@@ -23,19 +23,19 @@ namespace TestsAndInterviews.Tests.ViewModels
     {
         private readonly Mock<ISlotService> mockSlotService;
 
-        private readonly Mock<IInterviewSessionRepository> mockSessionRepository;
+        private readonly Mock<IInterviewSessionService> mockSessionService;
 
         public RecruiterViewModelTests()
         {
             this.mockSlotService = new Mock<ISlotService>();
-            this.mockSessionRepository = new Mock<IInterviewSessionRepository>();
+            this.mockSessionService = new Mock<IInterviewSessionService>();
 
             this.mockSlotService
                 .Setup(slotService => slotService.LoadRecruiterVisibleSlotsAsync(It.IsAny<int>(), It.IsAny<DateTime>()))
                 .ReturnsAsync(new List<SlotDto>());
 
-            this.mockSessionRepository
-                .Setup(sessionRepository => sessionRepository.GetSessionsByStatusAsync(It.IsAny<string>()))
+            this.mockSessionService
+                .Setup(sessionService => sessionService.GetSessionsByStatusAsync(It.IsAny<string>()))
                 .ReturnsAsync(new List<InterviewSession>());
         }
 
@@ -76,8 +76,8 @@ namespace TestsAndInterviews.Tests.ViewModels
                 new InterviewSession { Id = 2 },
             };
 
-            this.mockSessionRepository
-                .Setup(sessionRepository => sessionRepository.GetSessionsByStatusAsync(It.IsAny<string>()))
+            this.mockSessionService
+                .Setup(sessionService => sessionService.GetSessionsByStatusAsync(It.IsAny<string>()))
                 .ReturnsAsync(sessions);
 
             var viewModel = this.CreateViewModel();
@@ -90,8 +90,8 @@ namespace TestsAndInterviews.Tests.ViewModels
         [Fact]
         public async Task LoadPendingReviewsAsync_WhenRepositoryThrows_LeavesPendingReviewsEmpty()
         {
-            this.mockSessionRepository
-                .Setup(sessionRepository => sessionRepository.GetSessionsByStatusAsync(It.IsAny<string>()))
+            this.mockSessionService
+                .Setup(sessionService => sessionService.GetSessionsByStatusAsync(It.IsAny<string>()))
                 .ThrowsAsync(new Exception("Database error"));
 
             var viewModel = this.CreateViewModel();
@@ -212,7 +212,7 @@ namespace TestsAndInterviews.Tests.ViewModels
         {
             return new RecruiterViewModel(
                 this.mockSlotService.Object,
-                this.mockSessionRepository.Object);
+                this.mockSessionService.Object);
         }
     }
 }

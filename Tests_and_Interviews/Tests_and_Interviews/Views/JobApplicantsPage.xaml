@@ -10,7 +10,6 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Page.Resources>
-        <local:EmptyStringToPendingConverter x:Key="StatusConverter" />
     </Page.Resources>
 
     <Grid Padding="20">

@@ -1,5 +1,6 @@
 ﻿namespace Tests_and_Interviews.Mappers
 {
+    using System.Linq;
     using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Models;
 
@@ -33,6 +34,7 @@
                 Salary = entity.Salary,
                 AmountPayed = entity.AmountPayed,
                 Deadline = entity.Deadline,
+                JobSkills = entity.JobSkills.Select(js => js.ToDto()).ToList(),
             };
         }
 
@@ -61,6 +63,7 @@
                 Salary = dto.Salary,
                 AmountPayed = dto.AmountPayed,
                 Deadline = dto.Deadline,
+                JobSkills = dto.JobSkills.Select(js => js.ToEntity()).ToList(),
             };
         }
     }

@@ -36,6 +36,12 @@ namespace Tests_and_Interviews.Views
             this.DataContext = ViewModel;
         }
 
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+            await ViewModel.LoadCollaboratorsAsync();
+        }
+
         /// <summary>
         /// Function that navigates back to "Our Events" page when pressing the button "Back"
         /// </summary>

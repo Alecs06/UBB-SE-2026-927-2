@@ -156,7 +156,7 @@ namespace Tests_and_Interviews.ViewModels
         /// Function that sends the invitations to all the selected companies,
         /// after the user creates the event.
         /// </summary>
-        private void SendInvitations()
+        private async Task SendInvitations()
         {
             foreach (Company invitedCompany in this.SelectedCollaborators)
             {
@@ -195,7 +195,7 @@ namespace Tests_and_Interviews.ViewModels
                 this.EventCreatedSuccessfully = true;
 
                 this.AddAllCollaboratorsWhenEventCreated(createdEvent);
-                this.SendInvitations();
+                await this.SendInvitations();
             }
             catch (Exception exception)
             {

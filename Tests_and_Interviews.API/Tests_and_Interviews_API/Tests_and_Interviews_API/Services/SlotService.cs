@@ -94,7 +94,10 @@
             {
                 throw new KeyNotFoundException("Slot to update not found.");
             }
-
+            else
+            {
+                await _repository.UpdateAsync(slot);
+            }
             slot.Id = id;
 
             return slot;

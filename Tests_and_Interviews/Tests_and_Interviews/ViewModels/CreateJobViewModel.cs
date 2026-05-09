@@ -116,7 +116,7 @@ namespace Tests_and_Interviews.ViewModels
         /// Saves the job to the database if the inputs are valid.
         /// </summary>
         [RelayCommand]
-        public void SaveJob()
+        public async Task SaveJobAsync()
         {
             if (this.sessionService?.LoggedInUser == null)
             {
@@ -237,8 +237,8 @@ namespace Tests_and_Interviews.ViewModels
 
             try
             {
-                var newId = this.jobsService.AddJob(job, companyId, links);
-                this.OnSaveCompleted?.Invoke(true, $"Job created with id {newId}.");
+                var newId = await this.jobsService.AddJob(job, companyId, links);
+                this.OnSaveCompleted?.Invoke(true, $"Job created successfully.");
             }
             catch (Exception ex)
             {
