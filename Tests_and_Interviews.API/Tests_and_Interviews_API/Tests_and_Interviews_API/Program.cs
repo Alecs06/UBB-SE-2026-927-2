@@ -50,6 +50,7 @@ builder.Services.AddScoped<ITestAttemptService, TestAttemptService>();
 builder.Services.AddScoped<ITestService, TestService>();
 builder.Services.AddScoped<ITimerService, TimerService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IQuestionService, QuestionService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
