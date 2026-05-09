@@ -102,6 +102,8 @@
             }
 
             session.Id = initialSession.Id;
+            session.Video = initialSession.Video;
+
             await this._repository.UpdateInterviewSessionAsync(session);
 
             return session;
