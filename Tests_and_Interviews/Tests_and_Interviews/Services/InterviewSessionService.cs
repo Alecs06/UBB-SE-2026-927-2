@@ -130,7 +130,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<List<InterviewSession>> GetScheduledSessionsAsync()
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"interviewsessions/scheduled");
+            HttpResponseMessage response = await this.http.GetAsync($"interviewsessions/scheduled");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -144,13 +144,13 @@ namespace Tests_and_Interviews.Services
 
         public async Task DeleteSessionAsync(int sessionId)
         {
-            HttpResponseMessage response = await ApiClient.Http.DeleteAsync($"interviewsessions/{sessionId}");
+            HttpResponseMessage response = await this.http.DeleteAsync($"interviewsessions/{sessionId}");
             response.EnsureSuccessStatusCode();
         }
 
         public async Task<List<InterviewSession>> GetSessionsByStatusAsync(string status)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"interviewsessions/status/{status}");
+            HttpResponseMessage response = await this.http.GetAsync($"interviewsessions/status/{status}");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
