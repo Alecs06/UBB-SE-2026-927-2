@@ -15,9 +15,21 @@ namespace Tests_and_Interviews.Services
 {
     public class QuestionService: IQuestionService
     {
+        private readonly HttpClient http;
+
+        public QuestionService()
+        {
+            this.http = ApiClient.Http;
+        }
+
+        public QuestionService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
+        }
+
         public async Task<List<Question>> FindByTestIdAsync(int testId)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"questions/bytest/{testId}");
+            HttpResponseMessage response = await this.http.GetAsync($"questions/bytest/{testId}");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
