@@ -32,6 +32,26 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [Fact]
+        public void Constructor_WithoutArgs_DoesNotThrow()
+        {
+            // Act
+            var service = new InterviewSessionService();
+
+            // Assert
+            Assert.NotNull(service);
+        }
+
+        [Fact]
+        public void Constructor_WithNullHttpClient_DoesNotThrow()
+        {
+            // Act
+            var service = new InterviewSessionService(null!);
+
+            // Assert
+            Assert.NotNull(service);
+        }
+
+        [Fact]
         public async Task GetSessionAsync_WhenSuccessful_ReturnsSession()
         {
             // Arrange

@@ -32,6 +32,26 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [Fact]
+        public void Constructor_WithoutArgs_DoesNotThrow()
+        {
+            // Act
+            var service = new JobsService();
+
+            // Assert
+            Assert.NotNull(service);
+        }
+
+        [Fact]
+        public void Constructor_WithNullHttpClient_DoesNotThrow()
+        {
+            // Act
+            var service = new JobsService(null!);
+
+            // Assert
+            Assert.NotNull(service);
+        }
+
+        [Fact]
         public async Task GetAllJobsAsync_WhenSuccessful_ReturnsJobs()
         {
             // Arrange

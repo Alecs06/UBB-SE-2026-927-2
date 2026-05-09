@@ -105,5 +105,17 @@ namespace TestsAndInterviews.Tests.Services
             // Act & Assert
             await Assert.ThrowsAsync<HttpRequestException>(() => _service.FindByTestIdAsync(testId));
         }
+
+        [Fact]
+        public void DefaultConstructor_InitializesHttpClient()
+        {
+            // Act
+            var service = new QuestionService();
+
+            // Assert
+            var httpField = typeof(QuestionService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.NotNull(httpField);
+            Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
     }
 }

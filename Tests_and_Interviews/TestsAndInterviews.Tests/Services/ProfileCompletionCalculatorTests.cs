@@ -306,5 +306,37 @@ namespace TestsAndInterviews.Tests.Services
 
             Assert.AreEqual(0, result.skillNames.Count);
         }
+
+        [TestMethod]
+        public void GetSkillsTop3_Sync_NoJobs_ReturnsEmptyLists()
+        {
+            var result = calculator.GetSkillsTop3(CompanyIdValue);
+            Assert.AreEqual(EmptyCount, result.skillNames.Count);
+            Assert.AreEqual(EmptyCount, result.percents.Count);
+        }
+
+        [TestMethod]
+        public void GetSkillsTop3_Sync_ReturnsTopSkills()
+        {
+            var company = CreateCompany();
+
+            var job = new JobPosting
+            {
+                Company = company,
+                CompanyId = company.CompanyId,
+                JobSkills = new List<JobSkill>
+                {
+                    new JobSkill { Skill = new Skill { SkillName = SkillCSharp }, RequiredPercentage = SkillValHigh },
+                    new JobSkill { Skill = new Skill { SkillName = SkillSql }, RequiredPercentage = SkillValMed },
+                    new JobSkill { Skill = new Skill { SkillName = SkillReact }, RequiredPercentage = SkillValLow }
+                }
+            };
+
+            jobsService.AddJobDirectly(job);
+
+            var result = calculator.GetSkillsTop3(company.CompanyId);
+            Assert.AreEqual(ExpectedTopSkillsCount, result.skillNames.Count);
+            Assert.AreEqual(SkillCSharp, result.skillNames[0]);
+        }
     }
 }

@@ -220,5 +220,32 @@ namespace TestsAndInterviews.Tests.Services
             Assert.AreEqual(SpecificCompanyName, result.Name);
             Assert.AreEqual(ValidCompanyId, result.CompanyId);
         }
+
+        [TestMethod]
+        public void DefaultConstructor_InitializesFields()
+        {
+            // Act
+            var service = new CompanyService();
+
+            // Assert
+            var validatorField = typeof(CompanyService).GetField("companyValidator", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var httpField = typeof(CompanyService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            Assert.IsNotNull(validatorField);
+            Assert.IsNotNull(httpField);
+            Assert.AreSame(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
+
+        [TestMethod]
+        public void ParametrizedConstructor_WithNull_InitializesWithDefault()
+        {
+            // Act
+            var service = new CompanyService(null!);
+
+            // Assert
+            var httpField = typeof(CompanyService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.IsNotNull(httpField);
+            Assert.AreSame(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
     }
 }

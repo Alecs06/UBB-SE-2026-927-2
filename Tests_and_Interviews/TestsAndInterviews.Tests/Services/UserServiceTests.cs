@@ -102,5 +102,29 @@ namespace TestsAndInterviews.Tests.Services
             // Act & Assert
             await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetAllAsync());
         }
+
+        [Fact]
+        public void DefaultConstructor_InitializesHttpClient()
+        {
+            // Act
+            var service = new UserService();
+
+            // Assert
+            var httpField = typeof(UserService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.NotNull(httpField);
+            Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
+
+        [Fact]
+        public void ParametrizedConstructor_WithNull_InitializesWithDefault()
+        {
+            // Act
+            var service = new UserService(null!);
+
+            // Assert
+            var httpField = typeof(UserService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.NotNull(httpField);
+            Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
     }
 }

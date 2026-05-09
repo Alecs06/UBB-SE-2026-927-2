@@ -292,5 +292,26 @@ namespace TestsAndInterviews.Tests.Services
             // Assert
             Assert.AreEqual(string.Empty, result);
         }
+
+        [TestMethod]
+        public void Constructor_SingleParam_InitializesProperties()
+        {
+            // Arrange
+            var mockValidator = new Mock<IPaymentValidator>();
+
+            // Act
+            var service = new PaymentService(mockValidator.Object);
+
+            // Assert
+            // We use reflection to verify the private fields are set as expected
+            var validatorField = typeof(PaymentService).GetField("validator", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var httpField = typeof(PaymentService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            Assert.IsNotNull(validatorField, "Field 'validator' not found");
+            Assert.IsNotNull(httpField, "Field 'http' not found");
+
+            Assert.AreSame(mockValidator.Object, validatorField.GetValue(service));
+            Assert.AreSame(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
     }
 }
