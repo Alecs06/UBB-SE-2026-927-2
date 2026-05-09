@@ -1,6 +1,7 @@
 ﻿namespace Tests_and_Interviews.ViewModels
 {
     using System.Collections.Generic;
+    using System.Threading.Tasks;
     using CommunityToolkit.Mvvm.ComponentModel;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Services;
@@ -15,10 +16,8 @@
 
         private readonly SessionService sessionService;
 
-        /// <summary>
-        /// Gets the list of all collaborators for the current session's company.
-        /// </summary>
-        public List<Company> AllCollaborators { get; }
+        [ObservableProperty]
+        private List<Company> allCollaborators = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CollaboratorsViewModel"/> class.
@@ -30,8 +29,24 @@
         {
             this.collaboratorsService = collaboratorsService;
             this.sessionService = sessionService;
+        }
 
-            this.AllCollaborators = collaboratorsService.GetAllCollaborators(sessionService.LoggedInUser.CompanyId).Result;
+        /// <summary>
+        /// Loads all collaborators asynchronously.
+        /// </summary>
+        public async Task LoadCollaboratorsAsync()
+        {
+            try
+            {
+                var collaborators = await this.collaboratorsService.GetAllCollaborators(this.sessionService.LoggedInUser.CompanyId);
+                this.AllCollaborators = collaborators ?? new List<Company>();
+            }
+            catch
+            {
+                // Handle error silently for now
+                this.AllCollaborators = new List<Company>();
+            }
         }
     }
 }
+

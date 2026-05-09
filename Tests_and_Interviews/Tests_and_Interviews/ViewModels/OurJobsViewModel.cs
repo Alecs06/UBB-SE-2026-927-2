@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Tests_and_Interviews.Models;
@@ -24,10 +25,9 @@ namespace Tests_and_Interviews.ViewModels
         public OurJobsViewModel(IJobsService jobsService)
         {
             this.jobsService = jobsService;
-            ReloadJobs();
         }
 
-        public async void ReloadJobs()
+        public async Task LoadJobsAsync()
         {
             Jobs.Clear();
             try
@@ -42,6 +42,11 @@ namespace Tests_and_Interviews.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"{ErrorMessagePrefix}{exception.Message}");
             }
+        }
+
+        public async Task ReloadJobsAsync()
+        {
+            await LoadJobsAsync();
         }
     }
 }

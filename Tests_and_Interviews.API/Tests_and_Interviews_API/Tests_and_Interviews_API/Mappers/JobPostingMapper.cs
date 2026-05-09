@@ -33,6 +33,7 @@
                 Salary = entity.Salary,
                 AmountPayed = entity.AmountPayed,
                 Deadline = entity.Deadline,
+                JobSkills = entity.JobSkills.Select(skill => skill.ToDto()).ToList(),
             };
         }
 
@@ -61,6 +62,7 @@
                 Salary = dto.Salary,
                 AmountPayed = dto.AmountPayed,
                 Deadline = dto.Deadline,
+                JobSkills = dto.JobSkills.Select(skillDto => skillDto.ToEntity()).ToList(),
             };
         }
     }

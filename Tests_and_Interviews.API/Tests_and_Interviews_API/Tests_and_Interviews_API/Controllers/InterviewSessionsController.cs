@@ -40,7 +40,7 @@
             }
         }
 
-        [HttpGet("/status/{status}")]
+        [HttpGet("status/{status}")]
         public async Task<ActionResult<List<InterviewSessionDto>>> GetByStatus(string status)
         {
             List<InterviewSession> sessions = await this._service.GetInterviewsByStatusAsync(status);

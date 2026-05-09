@@ -183,5 +183,121 @@
             Assert.NotNull(result);
             Assert.Equal(1, result.Id);
         }
+
+        [Fact]
+        public async Task SubmitAttemptAsync_WhenCalled_ReturnsScore()
+        {
+            // Arrange
+            int userId = 1;
+            int testId = 10;
+            int attemptId = 99;
+            float expectedScore = 85.5f;
+
+            var attemptDto = new TestAttempt { Id = attemptId }.ToDto();
+            var finalAttemptDto = new TestAttempt { Id = attemptId, Score = (decimal)expectedScore }.ToDto();
+            var answers = new List<AnswerDto>
+            {
+                new AnswerDto { QuestionId = 1, Value = "Ans1" }
+            };
+
+            // Setup multi-step responses
+            // 1. Initial GetAsync in SubmitAttemptAsync
+            // 2. SubmitTestAsync calling GetAsync for attempt
+            // 3. SubmitTestAsync calling GetAsync for answers
+            // 4. Final GetAsync in SubmitAttemptAsync for result
+            
+            // We use SetupSequence for the repeating URL
+            this._mockHandler.Protected()
+                .SetupSequence<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri!.ToString().Contains($"testattempts/byuser/{userId}/bytest/{testId}")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(attemptDto) })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(finalAttemptDto) });
+
+            SetupGetRequest($"testattempts/{attemptId}", attemptDto);
+            SetupGetRequest($"answers/byattempt/{attemptId}", new List<AnswerDto>());
+
+            var testService = this.MakeTestService();
+
+            // Act
+            var result = await testService.SubmitAttemptAsync(userId, testId, answers);
+
+            // Assert
+            Assert.Equal(expectedScore, result);
+            this.mockDataProcessingService.Verify(d => d.ProcessFinalizedAttemptAsync(attemptId), Times.Once);
+        }
+
+        [Fact]
+        public async Task FindTestsByCategoryAsync_WhenTestsExist_ReturnsList()
+        {
+            // Arrange
+            string category = "Programming";
+            var tests = new List<TestDto>
+            {
+                new Test { Id = 1, Title = "Test 1" }.ToDto(),
+                new Test { Id = 2, Title = "Test 2" }.ToDto()
+            };
+
+            SetupGetRequest($"tests/bycategory/{category}", tests);
+            var testService = this.MakeTestService();
+
+            // Act
+            var result = await testService.FindTestsByCategoryAsync(category);
+
+            // Assert
+            Assert.Equal(2, result.Count);
+            Assert.Equal(1, result[0].Id);
+        }
+
+        [Fact]
+        public async Task FindByIdAsync_WhenCalled_ReturnsTest()
+        {
+            // Arrange
+            int testId = 123;
+            var testDto = new Test { Id = testId, Title = "Specific Test" }.ToDto();
+
+            SetupGetRequest($"tests/{testId}", testDto);
+            var testService = this.MakeTestService();
+
+            // Act
+            var result = await testService.FindByIdAsync(testId);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(testId, result.Id);
+        }
+
+        [Fact]
+        public void Constructor_FourParams_InitializesProperties()
+        {
+            // Arrange
+            var grading = new Mock<IGradingService>();
+            var timer = new Mock<ITimerService>();
+            var validation = new Mock<IAttemptValidationService>();
+            var dataProcessing = new Mock<IDataProcessingService>();
+
+            // Act
+            var service = new TestService(grading.Object, timer.Object, validation.Object, dataProcessing.Object);
+
+            // Assert
+            var gradingField = typeof(TestService).GetField("gradingService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var timerField = typeof(TestService).GetField("timerService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var validationField = typeof(TestService).GetField("validationService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var dataProcessingField = typeof(TestService).GetField("dataProcessingService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var httpField = typeof(TestService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            Assert.NotNull(gradingField);
+            Assert.NotNull(timerField);
+            Assert.NotNull(validationField);
+            Assert.NotNull(dataProcessingField);
+            Assert.NotNull(httpField);
+
+            Assert.Same(grading.Object, gradingField.GetValue(service));
+            Assert.Same(timer.Object, timerField.GetValue(service));
+            Assert.Same(validation.Object, validationField.GetValue(service));
+            Assert.Same(dataProcessing.Object, dataProcessingField.GetValue(service));
+            Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
     }
 }

@@ -103,39 +103,42 @@ namespace Tests_and_Interviews.Services
             TestAttempt attempt = attemptDto.ToEntity();
 
             HttpResponseMessage answersResponse = await this.http.GetAsync($"answers/byattempt/{attemptId}");
-            answersResponse.EnsureSuccessStatusCode();
-            List<AnswerDto>? answerDtos = await answersResponse.Content.ReadFromJsonAsync<List<AnswerDto>>();
-            List<Answer> answers = answerDtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Answer>();
-
-            foreach (var answer in answers)
+            if(answersResponse.IsSuccessStatusCode)
             {
-                if (answer.Question == null)
-                {
-                    continue;
-                }
-                switch (answer.Question.Type)
-                {
-                    case QuestionType.SINGLE_CHOICE:
-                        this.gradingService.GradeSingleChoice(answer.Question, answer);
-                        break;
-                    case QuestionType.MULTIPLE_CHOICE:
-                        this.gradingService.GradeMultipleChoice(answer.Question, answer);
-                        break;
-                    case QuestionType.TEXT:
-                        this.gradingService.GradeText(answer.Question, answer);
-                        break;
-                    case QuestionType.TRUE_FALSE:
-                        this.gradingService.GradeTrueFalse(answer.Question, answer);
-                        break;
-                }
-            }
+                List<AnswerDto>? answerDtos = await answersResponse.Content.ReadFromJsonAsync<List<AnswerDto>>();
+                List<Answer> answers = answerDtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Answer>();
 
-            this.gradingService.CalculateFinalScore(attempt);
-            attempt.Submit();
-            HttpResponseMessage updateResponse = await this.http.PutAsJsonAsync(
-                $"testattempts/{attempt.Id}",
-                attempt.ToDto());
-            updateResponse.EnsureSuccessStatusCode();
+                foreach (var answer in answers)
+                {
+                    if (answer.Question == null)
+                    {
+                        continue;
+                    }
+                    switch (answer.Question.Type)
+                    {
+                        case QuestionType.SINGLE_CHOICE:
+                            this.gradingService.GradeSingleChoice(answer.Question, answer);
+                            break;
+                        case QuestionType.MULTIPLE_CHOICE:
+                            this.gradingService.GradeMultipleChoice(answer.Question, answer);
+                            break;
+                        case QuestionType.TEXT:
+                            this.gradingService.GradeText(answer.Question, answer);
+                            break;
+                        case QuestionType.TRUE_FALSE:
+                            this.gradingService.GradeTrueFalse(answer.Question, answer);
+                            break;
+                    }
+                }
+
+                this.gradingService.CalculateFinalScore(attempt);
+                attempt.Submit();
+                HttpResponseMessage updateResponse = await this.http.PutAsJsonAsync(
+                    $"testattempts/{attempt.Id}",
+                    attempt.ToDto());
+                updateResponse.EnsureSuccessStatusCode();
+            }
+            
         }
 
         /// <summary>
@@ -207,7 +210,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<List<Test>> FindTestsByCategoryAsync(string category)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"tests/bycategory/{category}");
+            HttpResponseMessage response = await this.http.GetAsync($"tests/bycategory/{category}");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -221,7 +224,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<Test> FindByIdAsync(int id)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"tests/{id}");
+            HttpResponseMessage response = await this.http.GetAsync($"tests/{id}");
             response.EnsureSuccessStatusCode();
             TestDto? testDto = await response.Content.ReadFromJsonAsync<TestDto>();
             return testDto!.ToEntity();

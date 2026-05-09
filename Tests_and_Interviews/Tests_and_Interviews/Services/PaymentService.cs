@@ -61,13 +61,21 @@ namespace Tests_and_Interviews.Services
                     new { });
                 updateResponse.EnsureSuccessStatusCode();
 
-                // 2. Fetch emails to notify
+                // 2. Fetch emails to notify (don't fail if this returns 404)
                 HttpResponseMessage notifyResponse = await this.http.GetAsync(
                     $"payment/notify/{jobId}?newPaymentAmount={amount}");
-                notifyResponse.EnsureSuccessStatusCode();
-                List<string>? emailsToNotify = await notifyResponse.Content.ReadFromJsonAsync<List<string>>();
 
-                // 3. Send Emails
+                List<string>? emailsToNotify = null;
+                if (notifyResponse.IsSuccessStatusCode)
+                {
+                    emailsToNotify = await notifyResponse.Content.ReadFromJsonAsync<List<string>>();
+                }
+                else if (notifyResponse.StatusCode != System.Net.HttpStatusCode.NotFound)
+                {
+                    notifyResponse.EnsureSuccessStatusCode();
+                }
+
+                // 3. Send Emails if we got any
                 if (emailsToNotify != null && emailsToNotify.Count > EmptyCollectionCount)
                 {
                     await this.SendNotificationEmailsAsync(emailsToNotify, amount);

@@ -21,7 +21,8 @@
                 QuestionText = entity.QuestionText,
                 QuestionType = entity.QuestionTypeString,
                 QuestionScore = entity.QuestionScore,
-                QuestionAnswer = entity.QuestionAnswer
+                QuestionAnswer = entity.QuestionAnswer,
+                OptionsJson = entity.OptionsJson,
             };
         }
 
@@ -38,7 +39,8 @@
                 QuestionText = dto.QuestionText,
                 QuestionTypeString = dto.QuestionType,
                 QuestionScore = dto.QuestionScore,
-                QuestionAnswer = dto.QuestionAnswer
+                QuestionAnswer = dto.QuestionAnswer,
+                OptionsJson = dto.OptionsJson,
             };
         }
     }

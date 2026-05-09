@@ -5,6 +5,7 @@ namespace Tests_and_Interviews.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Net.Http;
     using System.Net.Http.Json;
@@ -47,8 +48,7 @@ namespace Tests_and_Interviews.Services
         /// recruiter and date.</returns>
         public async Task<List<SlotDto>> LoadRecruiterVisibleSlotsAsync(int recruitedId, DateTime date)
         {
-            HttpResponseMessage response = await this.http.GetAsync($"recruiter/{recruitedId}/date?date={date:O}");
-
+            HttpResponseMessage response = await this.http.GetAsync($"slots/recruiter/{recruitedId}/date?date={date:O}");
 
             List<Slot> existing = new List<Slot>();
 

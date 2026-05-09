@@ -156,5 +156,29 @@ namespace TestsAndInterviews.Tests.Services
                 ItExpr.IsAny<CancellationToken>()
             );
         }
+
+        [Fact]
+        public void DefaultConstructor_InitializesHttpClient()
+        {
+            // Act
+            var service = new AttemptValidationService();
+
+            // Assert
+            var httpField = typeof(AttemptValidationService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.NotNull(httpField);
+            Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
+
+        [Fact]
+        public void ParametrizedConstructor_WithNull_InitializesWithDefault()
+        {
+            // Act
+            var service = new AttemptValidationService(null!);
+
+            // Assert
+            var httpField = typeof(AttemptValidationService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.NotNull(httpField);
+            Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
     }
 }

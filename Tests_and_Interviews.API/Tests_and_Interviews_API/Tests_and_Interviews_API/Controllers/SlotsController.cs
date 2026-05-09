@@ -31,7 +31,7 @@
             }
         }
 
-        [HttpGet("/recruiter/{recruiterId}")]
+        [HttpGet("recruiter/{recruiterId}")]
         public async Task<ActionResult<List<SlotDto>>> GetAllByRecruiter(int recruiterId)
         {
             List<Slot> slots = await this._service.GetAllSlotsAsync(recruiterId);
@@ -39,7 +39,7 @@
             return Ok(slots.Select(slot => slot.ToDto()).ToList());
         }
 
-        [HttpGet("/recruiter/{recruiterId}/date")]
+        [HttpGet("recruiter/{recruiterId}/date")]
         public async Task<ActionResult<List<SlotDto>>> GetByRecruiter(int recruiterId, [FromQuery] DateTime date)
         {
             List<Slot> slots = await this._service.GetSlotsAsync(recruiterId, date);
@@ -50,10 +50,16 @@
         [HttpPost()]
         public async Task<ActionResult<SlotDto>> Create([FromBody] SlotDto dto)
         {
-
-            Slot created = await this._service.AddSlotAsync(dto.ToEntity());
-
-            return Ok(created);
+            try
+            {
+                Slot created = await this._service.AddSlotAsync(dto.ToEntity());
+                return Ok(created);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+            
         }
 
         [HttpPut("{id}")]
@@ -62,9 +68,8 @@
             try
             {
                 Slot updated = await this._service.UpdateSlotAsync(id, dto.ToEntity());
-
                 return Ok(updated);
-            } catch (KeyNotFoundException e)
+            } catch (Exception e)
             {
                 return NotFound(e.Message);
             }

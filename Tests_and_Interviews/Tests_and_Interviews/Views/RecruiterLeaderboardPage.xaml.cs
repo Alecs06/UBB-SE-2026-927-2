@@ -3,12 +3,16 @@ namespace Tests_and_Interviews.Views
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net.Http.Json;
     using Microsoft.UI.Xaml;
     using Microsoft.UI.Xaml.Controls;
     using Microsoft.UI.Xaml.Media;
     using Microsoft.UI.Xaml.Navigation;
+    using Tests_and_Interviews.Api;
+    using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Mappers;
     using Tests_and_Interviews.Models.Core;
-    using Tests_and_Interviews.Repositories;
+    using Tests_and_Interviews.Services;
 
     /// <summary>
     /// Represents the page that displays a paginated leaderboard of test attempts for recruiters.
@@ -41,17 +45,35 @@ namespace Tests_and_Interviews.Views
                 this.testId = testId;
             }
 
-            var testRepo = new TestRepository();
-            var attemptRepo = new TestAttemptRepository();
-
-            var test = await testRepo.FindByIdAsync(this.testId);
-            if (test != null)
+            try
             {
-                this.PageTitleText.Text = test.Title;
-                this.PageSubtitleText.Text = "Detailed recruiter leaderboard view";
-            }
+                var testResponse = await ApiClient.Http.GetAsync($"tests/{this.testId}");
+                testResponse.EnsureSuccessStatusCode();
+                var testDto = await testResponse.Content.ReadFromJsonAsync<TestDto>();
+                if (testDto != null)
+                {
+                    var test = testDto.ToEntity();
+                    if (test != null)
+                    {
+                        this.PageTitleText.Text = test.Title;
+                        this.PageSubtitleText.Text = "Detailed recruiter leaderboard view";
+                    }
+                }
 
-            this.entries = await attemptRepo.FindValidAttemptsByTestIdAsync(this.testId);
+                var attemptsResponse = await ApiClient.Http.GetAsync($"testattempts/valid/bytest/{this.testId}");
+                if (attemptsResponse.IsSuccessStatusCode)
+                {
+                    var attemptDtos = await attemptsResponse.Content.ReadFromJsonAsync<List<TestAttemptDto>>();
+                    if (attemptDtos != null)
+                    {
+                        this.entries = attemptDtos.Select(dto => dto.ToEntity()).ToList();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading leaderboard data: {ex.Message}");
+            }
 
             this.RenderPage();
         }

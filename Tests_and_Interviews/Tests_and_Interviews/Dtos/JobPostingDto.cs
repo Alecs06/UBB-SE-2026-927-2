@@ -1,6 +1,7 @@
 ﻿namespace Tests_and_Interviews.Dtos
 {
     using System;
+    using Tests_and_Interviews.Models;
 
     /// <summary>
     /// Represents a job posting created by a company.
@@ -86,5 +87,12 @@
         /// Gets or sets the deadline for the job posting.
         /// </summary>
         public DateTime? Deadline { get; set; }
+
+        /// <summary>
+        /// Gets or sets the job skills fot the job posting.
+        /// *Required skills: checkboxes with different skills options (Python, Java, C++, etc.) and a corresponding percentage representing the minimum required knowledge for the job;
+        /// </summary>
+        public System.Collections.Generic.ICollection<JobSkillDto> JobSkills { get; set; } = new System.Collections.Generic.List<JobSkillDto>();
+
     }
 }

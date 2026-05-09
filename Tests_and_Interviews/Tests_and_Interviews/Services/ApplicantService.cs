@@ -99,7 +99,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<IEnumerable<Applicant>> GetApplicantsByCompany(int companyId)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"applicants/bycompany/{companyId}");
+            HttpResponseMessage response = await this.http.GetAsync($"applicants/bycompany/{companyId}");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {

@@ -7,7 +7,7 @@
     Background="#C9BEFF">
 
 	<Page.Resources>
-		<converters:IdToColorConverter x:Key="StatusToColorConverter"/>
+		<converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
 		<converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
 		<converters:DurationToHeightConverter x:Key="DurationToHeightConverter"/>
 		<converters:DateTimeToStringConverter x:Key="DateTimeToStringConverter"/>

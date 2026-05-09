@@ -174,6 +174,20 @@ namespace TestsAndInterviews.Tests.Services
             eventsService = new EventsService(_httpClient);
         }
 
+        [TestMethod]
+        public void Constructor_WithoutArgs_DoesNotThrow()
+        {
+            var service = new EventsService();
+            Assert.IsNotNull(service);
+        }
+
+        [TestMethod]
+        public void Constructor_WithNullHttpClient_DoesNotThrow()
+        {
+            var service = new EventsService(null!);
+            Assert.IsNotNull(service);
+        }
+
         private void SetupGetEventsResponse(string uriFragment, List<EventDto> dtos)
         {
             _mockHandler.Protected()

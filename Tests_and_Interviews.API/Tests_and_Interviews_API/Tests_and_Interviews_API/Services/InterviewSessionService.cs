@@ -15,7 +15,7 @@
     public class InterviewSessionService: IInterviewSessionService
     {
         private readonly IInterviewSessionRepository _repository;
-        private readonly string storageFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "InterviewSessions");
+        private readonly string storageFolderPath = Path.Combine(@"C:\Users\Administrator\Documents", "InterviewSessions");
         private readonly string videosFolderName = "Videos";
 
         /// <summary>
@@ -102,6 +102,8 @@
             }
 
             session.Id = initialSession.Id;
+            session.Video = initialSession.Video;
+
             await this._repository.UpdateInterviewSessionAsync(session);
 
             return session;

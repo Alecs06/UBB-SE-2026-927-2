@@ -100,6 +100,10 @@ public partial class CompanyProfileViewModel : ObservableObject
     private readonly IProfileCompletionCalculator calculator;
 
     private int currentScenarioIndex;
+    private ObservableCollection<CompanyProfileListRow> top3JobPreviews = new();
+    private ObservableCollection<CompanyProfileListRow> top3EventPreviews = new();
+    private ObservableCollection<CompanyCollabListRow> top3CollabsPreviews = new();
+    private string buddyImagePath = string.Empty;
 
     /// <summary>
     /// Gets or sets the action to perform when the profile image is successfully decoded.
@@ -154,7 +158,7 @@ public partial class CompanyProfileViewModel : ObservableObject
     /// <summary>
     /// Gets the image path for the buddy based on the current game buddy ID.
     /// </summary>
-    public string BuddyImagePath => BuddyImageProvider.GetImagePathById(this.gameService.GetBuddyId().Result);
+    public string BuddyImagePath => this.buddyImagePath;
 
     /// <summary>
     /// Gets or sets the welcome message from the buddy interacting in the game.
@@ -213,40 +217,17 @@ public partial class CompanyProfileViewModel : ObservableObject
     /// <summary>
     /// Gets the top 3 previews of jobs posted by the company.
     /// </summary>
-    public IEnumerable<CompanyProfileListRow> Top3JobPreviews =>
-        this.jobsService
-            .GetAllJobsAsync().Result
-            .Take(MaximumTopJobsCount)
-            .Select(job => new CompanyProfileListRow
-            {
-                Title = job.JobTitle,
-                Subtitle = job.JobDescription,
-            });
+    public ObservableCollection<CompanyProfileListRow> Top3JobPreviews => this.top3JobPreviews;
 
     /// <summary>
     /// Gets the top 3 previews of upcoming events for the company.
     /// </summary>
-    public IEnumerable<CompanyProfileListRow> Top3EventPreviews =>
-        this.eventsService
-            .GetCurrentEvents(this.sessionService.LoggedInUser.CompanyId).Result
-            .Take<Event>(MaximumTopEventsCount)
-            .Select(eventItem => new CompanyProfileListRow
-            {
-                Title = eventItem.Title,
-                Subtitle = eventItem.Description,
-            });
+    public ObservableCollection<CompanyProfileListRow> Top3EventPreviews => this.top3EventPreviews;
 
     /// <summary>
     /// Gets the top 3 previews of collaborators associated with the company.
     /// </summary>
-    public IEnumerable<CompanyCollabListRow> Top3CollabsPreviews =>
-        this.collaboratorsService
-            .GetAllCollaborators(this.sessionService.LoggedInUser.CompanyId).Result
-            .Take<Company>(MaximumTopCollaboratorsCount)
-            .Select(collaborator => new CompanyCollabListRow
-            {
-                Name = collaborator.Name,
-            });
+    public ObservableCollection<CompanyCollabListRow> Top3CollabsPreviews => this.top3CollabsPreviews;
 
     /// <summary>
     /// Event triggered when navigation to all collaborators is requested.
@@ -322,7 +303,7 @@ public partial class CompanyProfileViewModel : ObservableObject
 
         this.LoadMessage = string.Empty;
         this.RefreshProfileStatistics();
-        this.FillPreviewSections();
+        await this.FillPreviewSectionsAsync();
         this.ProcessImages();
         await this.GamePreview();
     }
@@ -427,7 +408,7 @@ public partial class CompanyProfileViewModel : ObservableObject
         }
     }
 
-    private void FillPreviewSections()
+    private async Task FillPreviewSectionsAsync()
     {
         if (this.Company is null)
         {
@@ -435,7 +416,7 @@ public partial class CompanyProfileViewModel : ObservableObject
         }
 
         this.TrendingSkills.Clear();
-        var (skillNames, percents) = this.calculator.GetSkillsTop3(this.Company.CompanyId);
+        var (skillNames, percents) = await this.calculator.GetSkillsTop3Async(this.Company.CompanyId);
 
         for (int index = 0; index < MaximumTrendingSkillsCount; index++)
         {
@@ -450,9 +431,64 @@ public partial class CompanyProfileViewModel : ObservableObject
             });
         }
 
-        this.OnPropertyChanged(nameof(this.Top3JobPreviews));
-        this.OnPropertyChanged(nameof(this.Top3EventPreviews));
-        this.OnPropertyChanged(nameof(this.Top3CollabsPreviews));
+        // Load jobs asynchronously
+        try
+        {
+            var jobs = await this.jobsService.GetAllJobsAsync();
+            this.top3JobPreviews.Clear();
+            foreach (var job in jobs.Take(MaximumTopJobsCount))
+            {
+                this.top3JobPreviews.Add(new CompanyProfileListRow
+                {
+                    Title = job.JobTitle,
+                    Subtitle = job.JobDescription,
+                });
+            }
+            this.OnPropertyChanged(nameof(this.Top3JobPreviews));
+        }
+        catch
+        {
+            // Handle error silently
+        }
+
+        // Load events asynchronously
+        try
+        {
+            var events = await this.eventsService.GetCurrentEvents(this.sessionService.LoggedInUser.CompanyId);
+            this.top3EventPreviews.Clear();
+            foreach (var eventItem in events.Take(MaximumTopEventsCount))
+            {
+                this.top3EventPreviews.Add(new CompanyProfileListRow
+                {
+                    Title = eventItem.Title,
+                    Subtitle = eventItem.Description,
+                });
+            }
+            this.OnPropertyChanged(nameof(this.Top3EventPreviews));
+        }
+        catch
+        {
+            // Handle error silently
+        }
+
+        // Load collaborators asynchronously
+        try
+        {
+            var collaborators = await this.collaboratorsService.GetAllCollaborators(this.sessionService.LoggedInUser.CompanyId);
+            this.top3CollabsPreviews.Clear();
+            foreach (var collaborator in collaborators.Take(MaximumTopCollaboratorsCount))
+            {
+                this.top3CollabsPreviews.Add(new CompanyCollabListRow
+                {
+                    Name = collaborator.Name,
+                });
+            }
+            this.OnPropertyChanged(nameof(this.Top3CollabsPreviews));
+        }
+        catch
+        {
+            // Handle error silently
+        }
     }
 
     [RelayCommand]
@@ -559,6 +595,18 @@ public partial class CompanyProfileViewModel : ObservableObject
     {
         if (await this.gameService.IsPublished())
         {
+            // Load buddy image asynchronously
+            try
+            {
+                var buddyId = await this.gameService.GetBuddyId();
+                this.buddyImagePath = BuddyImageProvider.GetImagePathById(buddyId);
+                this.OnPropertyChanged(nameof(this.BuddyImagePath));
+            }
+            catch
+            {
+                // Handle error silently
+            }
+
             this.WelcomeMessage = await this.gameService.ShowCoworker();
             this.CurrentState = GameState.Start;
             this.currentScenarioIndex = InitialScenarioIndex;
