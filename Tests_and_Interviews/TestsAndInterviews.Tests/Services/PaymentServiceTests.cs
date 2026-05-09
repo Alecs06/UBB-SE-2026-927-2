@@ -170,5 +170,127 @@ namespace TestsAndInterviews.Tests.Services
             Assert.IsNotNull(result);
             Assert.AreEqual(0, result.Count);
         }
+
+        [TestMethod]
+        public async Task ProcessPaymentAsync_WhenSuccessfulAndNotificationFails_ReturnsEmptyString()
+        {
+            // Arrange
+            _mockValidator.Setup(v => v.ValidatePaymentDetails(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                          .Returns(string.Empty);
+
+            // Mock PUT payment
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Put && req.RequestUri.PathAndQuery.Contains("payment/")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // Mock GET notify - returns one email
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri.PathAndQuery.Contains("payment/notify/")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(new List<string> { "notify@test.com" })
+                });
+
+            // Act
+            // This will trigger SendNotificationEmailsAsync, which will hit the catch block when SmtpClient fails to connect.
+            var result = await _service.ProcessPaymentAsync(ValidJobId, ValidAmount, ValidName, ValidCard, ValidExp, ValidCvv);
+
+            // Assert
+            Assert.AreEqual(string.Empty, result);
+        }
+
+        [TestMethod]
+        public async Task ProcessPaymentAsync_WhenNotifyReturnsNotFound_ReturnsEmptyString()
+        {
+            // Arrange
+            _mockValidator.Setup(v => v.ValidatePaymentDetails(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                          .Returns(string.Empty);
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Put),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri.ToString().Contains("notify")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            // Act
+            var result = await _service.ProcessPaymentAsync(ValidJobId, ValidAmount, ValidName, ValidCard, ValidExp, ValidCvv);
+
+            // Assert
+            Assert.AreEqual(string.Empty, result);
+        }
+
+        [TestMethod]
+        public async Task ProcessPaymentAsync_WhenNotifyFails_ReturnsDatabaseError()
+        {
+            // Arrange
+            _mockValidator.Setup(v => v.ValidatePaymentDetails(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                          .Returns(string.Empty);
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Put),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri.ToString().Contains("notify")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+
+            // Act
+            var result = await _service.ProcessPaymentAsync(ValidJobId, ValidAmount, ValidName, ValidCard, ValidExp, ValidCvv);
+
+            // Assert
+            Assert.IsTrue(result.StartsWith(DbErrorPrefix));
+        }
+
+        [TestMethod]
+        public async Task ProcessPaymentAsync_WhenNoEmailsToNotify_DoesNotCallSendNotificationEmailsAsync()
+        {
+            // Arrange
+            _mockValidator.Setup(v => v.ValidatePaymentDetails(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                          .Returns(string.Empty);
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Put),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // Mock GET notify - returns empty list
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri.ToString().Contains("notify")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(new List<string>())
+                });
+
+            // Act
+            var result = await _service.ProcessPaymentAsync(ValidJobId, ValidAmount, ValidName, ValidCard, ValidExp, ValidCvv);
+
+            // Assert
+            Assert.AreEqual(string.Empty, result);
+        }
     }
 }
