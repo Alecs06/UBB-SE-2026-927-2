@@ -26,5 +26,11 @@ namespace Tests_and_Interviews.Dtos
         /// Gets or sets the unique identifier of the attempt in which this answer was given.
         /// </summary>
         public int AttemptId { get; set; }
+
+        /// <summary>
+        /// Optional nested question payload. Some endpoints return question details inline with the answer.
+        /// Including this allows tests to round-trip an Answer containing a Question via the DTOs.
+        /// </summary>
+        public QuestionDto? Question { get; set; }
     }
 }

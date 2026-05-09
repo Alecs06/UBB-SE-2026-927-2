@@ -26,6 +26,7 @@ namespace Tests_and_Interviews.Services
         private readonly ITimerService timerService;
         private readonly IAttemptValidationService validationService;
         private readonly IDataProcessingService dataProcessingService;
+        private readonly HttpClient http;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TestService"/> class with the specified dependencies.
@@ -44,6 +45,21 @@ namespace Tests_and_Interviews.Services
             this.timerService = timerService;
             this.validationService = validationService;
             this.dataProcessingService = dataProcessingService;
+            this.http = ApiClient.Http;
+        }
+
+        public TestService(
+            IGradingService gradingService,
+            ITimerService timerService,
+            IAttemptValidationService validationService,
+            IDataProcessingService dataProcessingService,
+            HttpClient httpClient)
+        {
+            this.gradingService = gradingService;
+            this.timerService = timerService;
+            this.validationService = validationService;
+            this.dataProcessingService = dataProcessingService;
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <summary>
@@ -63,7 +79,7 @@ namespace Tests_and_Interviews.Services
                 StartedAt = DateTime.UtcNow,
             };
             attempt.Start();
-            HttpResponseMessage saveResponse = await ApiClient.Http.PostAsJsonAsync("testattempts", attempt.ToDto());
+            HttpResponseMessage saveResponse = await this.http.PostAsJsonAsync("testattempts", attempt.ToDto());
             saveResponse.EnsureSuccessStatusCode();
             TestAttemptDto? savedDto = await saveResponse.Content.ReadFromJsonAsync<TestAttemptDto>();
             int attemptId = savedDto!.ToEntity().Id;
@@ -77,7 +93,7 @@ namespace Tests_and_Interviews.Services
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task SubmitTestAsync(int attemptId)
         {
-            HttpResponseMessage attemptResponse = await ApiClient.Http.GetAsync($"testattempts/{attemptId}");
+            HttpResponseMessage attemptResponse = await this.http.GetAsync($"testattempts/{attemptId}");
             attemptResponse.EnsureSuccessStatusCode();
             TestAttemptDto? attemptDto = await attemptResponse.Content.ReadFromJsonAsync<TestAttemptDto>();
             if (attemptDto == null)
@@ -86,7 +102,7 @@ namespace Tests_and_Interviews.Services
             }
             TestAttempt attempt = attemptDto.ToEntity();
 
-            HttpResponseMessage answersResponse = await ApiClient.Http.GetAsync($"answers/byattempt/{attemptId}");
+            HttpResponseMessage answersResponse = await this.http.GetAsync($"answers/byattempt/{attemptId}");
             answersResponse.EnsureSuccessStatusCode();
             List<AnswerDto>? answerDtos = await answersResponse.Content.ReadFromJsonAsync<List<AnswerDto>>();
             List<Answer> answers = answerDtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Answer>();
@@ -116,7 +132,7 @@ namespace Tests_and_Interviews.Services
 
             this.gradingService.CalculateFinalScore(attempt);
             attempt.Submit();
-            HttpResponseMessage updateResponse = await ApiClient.Http.PutAsJsonAsync(
+            HttpResponseMessage updateResponse = await this.http.PutAsJsonAsync(
                 $"testattempts/{attempt.Id}",
                 attempt.ToDto());
             updateResponse.EnsureSuccessStatusCode();
@@ -129,7 +145,7 @@ namespace Tests_and_Interviews.Services
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task<Test?> GetNextAvailableTestAsync(string category)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"tests/bycategory/{category}");
+            HttpResponseMessage response = await this.http.GetAsync($"tests/bycategory/{category}");
             response.EnsureSuccessStatusCode();
             List<TestDto>? dtos = await response.Content.ReadFromJsonAsync<List<TestDto>>();
             if (dtos == null || dtos.Count == 0)
@@ -149,7 +165,7 @@ namespace Tests_and_Interviews.Services
         /// <returns>The final score as a float.</returns>
         public async Task<float> SubmitAttemptAsync(int userId, int testId, IEnumerable<AnswerDto> answers)
         {
-            HttpResponseMessage attemptResponse = await ApiClient.Http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
+            HttpResponseMessage attemptResponse = await this.http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
             if (!attemptResponse.IsSuccessStatusCode)
             {
                 return 0f;
@@ -173,14 +189,14 @@ namespace Tests_and_Interviews.Services
                     QuestionId = answerDto.QuestionId,
                     Value = answerDto.Value,
                 };
-                HttpResponseMessage saveResponse = await ApiClient.Http.PostAsJsonAsync("answers", answer.ToDto());
+                HttpResponseMessage saveResponse = await this.http.PostAsJsonAsync("answers", answer.ToDto());
                 saveResponse.EnsureSuccessStatusCode();
             }
 
             await this.SubmitTestAsync(attemptId);
             await this.dataProcessingService.ProcessFinalizedAttemptAsync(attemptId);
 
-            HttpResponseMessage finalResponse = await ApiClient.Http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
+            HttpResponseMessage finalResponse = await this.http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
             if (!finalResponse.IsSuccessStatusCode)
             {
                 return 0f;

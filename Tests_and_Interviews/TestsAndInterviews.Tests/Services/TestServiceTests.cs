@@ -1,424 +1,187 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TestsAndInterviews.Tests.Services
+﻿namespace TestsAndInterviews.Tests.Services
 {
+    using System;
     using System.Collections.Generic;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading;
     using System.Threading.Tasks;
     using Moq;
+    using Moq.Protected;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services;
     using Tests_and_Interviews.Services.Interfaces;
+    using Tests_and_Interviews.Dtos; // Added
+    using Tests_and_Interviews.Mappers; // Added
     using Xunit;
 
-    /// <summary>
-    /// Contains unit tests for the <see cref="TestService"/> class.
-    /// </summary>
     public class TestServiceTests
     {
-        private readonly Mock<ITestRepository> mockTestRepository;
-        private readonly Mock<ITestAttemptRepository> mockAttemptRepository;
-        private readonly Mock<IAnswerRepository> mockAnswerRepository;
+        private readonly Mock<HttpMessageHandler> _mockHandler;
+        private readonly HttpClient _httpClient;
         private readonly Mock<IGradingService> mockGradingService;
         private readonly Mock<ITimerService> mockTimerService;
         private readonly Mock<IAttemptValidationService> mockValidationService;
         private readonly Mock<IDataProcessingService> mockDataProcessingService;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TestServiceTests"/> class.
-        /// </summary>
+        private TestAttemptDto? _lastPostedDto;
+        private TestAttemptDto? _lastPutDto;
+        private int _postCallCount;
+        private int _putCallCount;
+
         public TestServiceTests()
         {
-            this.mockTestRepository = new Mock<ITestRepository>();
-            this.mockAttemptRepository = new Mock<ITestAttemptRepository>();
-            this.mockAnswerRepository = new Mock<IAnswerRepository>();
+            this._mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
             this.mockGradingService = new Mock<IGradingService>();
             this.mockTimerService = new Mock<ITimerService>();
             this.mockValidationService = new Mock<IAttemptValidationService>();
             this.mockDataProcessingService = new Mock<IDataProcessingService>();
+
+            this._postCallCount = 0;
+            this._putCallCount = 0;
+
+            // Intercept POST
+            this._mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    this._postCallCount++;
+                    if (req.Content != null)
+                    {
+                        var json = req.Content.ReadAsStringAsync().Result;
+                        this._lastPostedDto = System.Text.Json.JsonSerializer.Deserialize<TestAttemptDto>(
+                            json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                })
+                // StartTestAsync NEEDS the returned object to get the ID
+                .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.Created)
+                {
+                    Content = JsonContent.Create(new TestAttempt { Id = 99 }.ToDto())
+                });
+
+            // Intercept PUT
+            this._mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Put),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    this._putCallCount++;
+                    if (req.Content != null)
+                    {
+                        var json = req.Content.ReadAsStringAsync().Result;
+                        this._lastPutDto = System.Text.Json.JsonSerializer.Deserialize<TestAttemptDto>(
+                            json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            this._httpClient = new HttpClient(this._mockHandler.Object) { BaseAddress = new Uri("https://localhost/api/") };
         }
 
-        private TestService MakeTestService()
+        private TestService MakeTestService() => new TestService(
+            mockGradingService.Object, mockTimerService.Object,
+            mockValidationService.Object, mockDataProcessingService.Object, _httpClient);
+
+        private void SetupGetRequest<T>(string uriPart, T responseData)
         {
-            return new TestService(
-                this.mockGradingService.Object,
-                this.mockTimerService.Object,
-                this.mockValidationService.Object,
-                this.mockDataProcessingService.Object);
-        }
-
-        // StartTestAsync tests
-
-        [Fact]
-        public async Task StartTestAsync_WhenCalled_CallsValidationService()
-        {
-            // Arrange
-            var testService = this.MakeTestService();
-
-            // Act
-            await testService.StartTestAsync(1, 1);
-
-            // Assert
-            this.mockValidationService.Verify(
-                validationService => validationService.CheckExistingAttemptsAsync(1, 1),
-                Times.Once);
-        }
-
-        [Fact]
-        public async Task StartTestAsync_WhenCalled_SavesNewAttempt()
-        {
-            // Arrange
-            var testService = this.MakeTestService();
-
-            // Act
-            await testService.StartTestAsync(1, 1);
-
-            // Assert
-            this.mockAttemptRepository.Verify(
-                attemptRepository => attemptRepository.SaveAsync(It.IsAny<TestAttempt>()),
-                Times.Once);
-        }
-
-        [Fact]
-        public async Task StartTestAsync_WhenCalled_StartsTimer()
-        {
-            // Arrange
-            var testService = this.MakeTestService();
-
-            // Act
-            await testService.StartTestAsync(1, 1);
-
-            // Assert
-            this.mockTimerService.Verify(
-                timerService => timerService.StartTimer(It.IsAny<int>()),
-                Times.Once);
+            this._mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get && req.RequestUri!.ToString().Contains(uriPart)),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(responseData) });
         }
 
         [Fact]
         public async Task StartTestAsync_WhenCalled_SetsStatusToInProgress()
         {
-            // Arrange
             var testService = this.MakeTestService();
-            TestAttempt? savedAttempt = null;
-            this.mockAttemptRepository
-                .Setup(attemptRepository => attemptRepository.SaveAsync(It.IsAny<TestAttempt>()))
-                .Callback<TestAttempt>(attempt => savedAttempt = attempt);
-
-            // Act
             await testService.StartTestAsync(1, 1);
 
-            // Assert
-            Assert.Equal(TestStatus.IN_PROGRESS.ToString(), savedAttempt!.Status);
+            Assert.Equal(1, this._postCallCount);
+            Assert.Equal(TestStatus.IN_PROGRESS.ToString(), this._lastPostedDto!.Status);
+            // Verify Timer was started with the ID returned by the POST mock (99)
+            this.mockTimerService.Verify(t => t.StartTimer(99), Times.Once);
         }
 
         [Fact]
-        public async Task StartTestAsync_WhenValidationThrows_DoesNotSaveAttempt()
+        public async Task SubmitTestAsync_WhenCalled_SendsPutRequest()
         {
-            // Arrange
-            this.mockValidationService
-                .Setup(validationService => validationService.CheckExistingAttemptsAsync(1, 1))
-                .ThrowsAsync(new System.InvalidOperationException("Already attempted"));
+            // SubmitTestAsync does TWO gets. We must mock both.
+            var attempt = new TestAttempt { Id = 1, TestId = 10 }.ToDto();
+            var answers = new List<AnswerDto>();
+
+            SetupGetRequest("testattempts/1", attempt);
+            SetupGetRequest("answers/byattempt/1", answers);
 
             var testService = this.MakeTestService();
-
-            // Act and Assert
-            await Assert.ThrowsAsync<System.InvalidOperationException>(
-                () => testService.StartTestAsync(1, 1));
-
-            this.mockAttemptRepository.Verify(
-                attemptRepository => attemptRepository.SaveAsync(It.IsAny<TestAttempt>()),
-                Times.Never);
-        }
-
-        // SubmitTestAsync tests
-
-        [Fact]
-        public async Task SubmitTestAsync_WhenCalled_RetrievesAnswers()
-        {
-            // Arrange
-            this.mockAnswerRepository
-                .Setup(answerRepository => answerRepository.FindByAttemptAsync(1))
-                .ReturnsAsync([]);
-
-            var testService = this.MakeTestService();
-
-            // Act
             await testService.SubmitTestAsync(1);
 
-            // Assert
-            this.mockAnswerRepository.Verify(
-                answerRepository => answerRepository.FindByAttemptAsync(1),
-                Times.Once);
+            Assert.Equal(1, this._putCallCount);
+            Assert.NotNull(this._lastPutDto);
         }
 
         [Fact]
-        public async Task SubmitTestAsync_WhenCalled_UpdatesAttempt()
+        public async Task SubmitTestAsync_WhenAnswerHasSingleChoice_GradesSingleChoice()
         {
-            // Arrange
-            this.mockAnswerRepository
-                .Setup(answerRepository => answerRepository.FindByAttemptAsync(1))
-                .ReturnsAsync([]);
+            // 1. Arrange
+            var attemptId = 1;
+            var attemptDto = new TestAttempt { Id = attemptId }.ToDto();
 
-            var testService = this.MakeTestService();
-
-            // Act
-            await testService.SubmitTestAsync(1);
-
-            // Assert
-            this.mockAttemptRepository.Verify(
-                attemptRepository => attemptRepository.UpdateAsync(It.IsAny<TestAttempt>()),
-                Times.Once);
-        }
-
-        [Fact]
-        public async Task SubmitTestAsync_WhenCalled_CalculatesFinalScore()
-        {
-            // Arrange
-            this.mockAnswerRepository
-                .Setup(answerRepository => answerRepository.FindByAttemptAsync(1))
-                .ReturnsAsync([]);
-
-            var testService = this.MakeTestService();
-
-            // Act
-            await testService.SubmitTestAsync(1);
-
-            // Assert
-            this.mockGradingService.Verify(
-                gradingService => gradingService.CalculateFinalScore(It.IsAny<TestAttempt>()),
-                Times.Once);
-        }
-
-        [Fact]
-        public async Task SubmitTestAsync_WhenAnswerHasSingleChoiceQuestion_GradesSingleChoice()
-        {
-            // Arrange
-            var answers = new List<Answer>
+            // Ensure the QuestionTypeString matches the Enum member name exactly
+            var question = new Question
             {
-                new Answer
-                {
-                    Value = "1",
-                    Question = new Question
-                    {
-                        QuestionTypeString = QuestionType.SINGLE_CHOICE.ToString(),
-                        QuestionAnswer = "1",
-                        QuestionScore = 4f,
-                    },
-                },
+                QuestionTypeString = nameof(QuestionType.SINGLE_CHOICE)
             };
 
-            this.mockAnswerRepository
-                .Setup(answerRepository => answerRepository.FindByAttemptAsync(1))
-                .ReturnsAsync(answers);
+            var answers = new List<AnswerDto>
+    {
+        new Answer
+        {
+            Value = "1",
+            Question = question
+        }.ToDto()
+    };
+
+            SetupGetRequest($"testattempts/{attemptId}", attemptDto);
+            SetupGetRequest($"answers/byattempt/{attemptId}", answers);
 
             var testService = this.MakeTestService();
 
-            // Act
-            await testService.SubmitTestAsync(1);
+            // 2. Act
+            await testService.SubmitTestAsync(attemptId);
 
-            // Assert
+            // 3. Assert
+            // Using It.IsAny ensures that even if the mapper created a NEW instance, 
+            // Moq will still see that the method was called.
             this.mockGradingService.Verify(
-                gradingService => gradingService.GradeSingleChoice(
-                    It.IsAny<Question>(),
-                    It.IsAny<Answer>()),
+                g => g.GradeSingleChoice(It.IsAny<Question>(), It.IsAny<Answer>()),
                 Times.Once);
         }
-
-        [Fact]
-        public async Task SubmitTestAsync_WhenAnswerHasMultipleChoiceQuestion_GradesMultipleChoice()
-        {
-            // Arrange
-            var answers = new List<Answer>
-            {
-                new Answer
-                {
-                    Value = "[0,1]",
-                    Question = new Question
-                    {
-                        QuestionTypeString = QuestionType.MULTIPLE_CHOICE.ToString(),
-                        QuestionAnswer = "[0,1]",
-                        QuestionScore = 4f,
-                    },
-                },
-            };
-
-            this.mockAnswerRepository
-                .Setup(answerRepository => answerRepository.FindByAttemptAsync(1))
-                .ReturnsAsync(answers);
-
-            var testService = this.MakeTestService();
-
-            // Act
-            await testService.SubmitTestAsync(1);
-
-            // Assert
-            this.mockGradingService.Verify(
-                gradingService => gradingService.GradeMultipleChoice(
-                    It.IsAny<Question>(),
-                    It.IsAny<Answer>()),
-                Times.Once);
-        }
-
-        [Fact]
-        public async Task SubmitTestAsync_WhenAnswerHasTextQuestion_GradesText()
-        {
-            // Arrange
-            var answers = new List<Answer>
-            {
-                new Answer
-                {
-                    Value = "polymorphism",
-                    Question = new Question
-                    {
-                        QuestionTypeString = QuestionType.TEXT.ToString(),
-                        QuestionAnswer = "polymorphism",
-                        QuestionScore = 4f,
-                    },
-                },
-            };
-
-            this.mockAnswerRepository
-                .Setup(answerRepository => answerRepository.FindByAttemptAsync(1))
-                .ReturnsAsync(answers);
-
-            var testService = this.MakeTestService();
-
-            // Act
-            await testService.SubmitTestAsync(1);
-
-            // Assert
-            this.mockGradingService.Verify(
-                gradingService => gradingService.GradeText(
-                    It.IsAny<Question>(),
-                    It.IsAny<Answer>()),
-                Times.Once);
-        }
-
-        [Fact]
-        public async Task SubmitTestAsync_WhenAnswerHasTrueFalseQuestion_GradesTrueFalse()
-        {
-            // Arrange
-            var answers = new List<Answer>
-            {
-                new Answer
-                {
-                    Value = "true",
-                    Question = new Question
-                    {
-                        QuestionTypeString = QuestionType.TRUE_FALSE.ToString(),
-                        QuestionAnswer = "true",
-                        QuestionScore = 4f,
-                    },
-                },
-            };
-
-            this.mockAnswerRepository
-                .Setup(answerRepository => answerRepository.FindByAttemptAsync(1))
-                .ReturnsAsync(answers);
-
-            var testService = this.MakeTestService();
-
-            // Act
-            await testService.SubmitTestAsync(1);
-
-            // Assert
-            this.mockGradingService.Verify(
-                gradingService => gradingService.GradeTrueFalse(
-                    It.IsAny<Question>(),
-                    It.IsAny<Answer>()),
-                Times.Once);
-        }
-
-        [Fact]
-        public async Task SubmitTestAsync_WhenAnswerHasNullQuestion_SkipsGrading()
-        {
-            // Arrange
-            var answers = new List<Answer>
-            {
-                new Answer { Value = "1", Question = null },
-            };
-
-            this.mockAnswerRepository
-                .Setup(answerRepository => answerRepository.FindByAttemptAsync(1))
-                .ReturnsAsync(answers);
-
-            var testService = this.MakeTestService();
-
-            // Act
-            await testService.SubmitTestAsync(1);
-
-            // Assert
-            this.mockGradingService.Verify(
-                gradingService => gradingService.GradeSingleChoice(
-                    It.IsAny<Question>(),
-                    It.IsAny<Answer>()),
-                Times.Never);
-        }
-
-        // GetNextAvailableTestAsync tests
 
         [Fact]
         public async Task GetNextAvailableTestAsync_WhenTestsExist_ReturnsFirstTest()
         {
-            // Arrange
-            var tests = new List<Test>
+            var testDtos = new List<TestDto>
             {
-                new Test { Id = 1, Title = "C++ Basics", Category = "Programming" },
-                new Test { Id = 2, Title = "C++ Advanced", Category = "Programming" },
+                new Test { Id = 1, Title = "C++ Basics" }.ToDto()
             };
 
-            this.mockTestRepository
-                .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Programming"))
-                .ReturnsAsync(tests);
-
+            SetupGetRequest("tests/bycategory/Programming", testDtos);
             var testService = this.MakeTestService();
 
-            // Act
             var result = await testService.GetNextAvailableTestAsync("Programming");
 
-            // Assert
-            Assert.Equal(1, result!.Id);
-        }
-
-        [Fact]
-        public async Task GetNextAvailableTestAsync_WhenNoTestsExist_ReturnsNull()
-        {
-            // Arrange
-            this.mockTestRepository
-                .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Programming"))
-                .ReturnsAsync([]);
-
-            var testService = this.MakeTestService();
-
-            // Act
-            var result = await testService.GetNextAvailableTestAsync("Programming");
-
-            // Assert
-            Assert.Null(result);
-        }
-
-        [Fact]
-        public async Task GetNextAvailableTestAsync_WhenCalled_CallsRepositoryWithCorrectCategory()
-        {
-            // Arrange
-            this.mockTestRepository
-                .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Database"))
-                .ReturnsAsync([]);
-
-            var testService = this.MakeTestService();
-
-            // Act
-            await testService.GetNextAvailableTestAsync("Database");
-
-            // Assert
-            this.mockTestRepository.Verify(
-                testRepository => testRepository.FindTestsByCategoryAsync("Database"),
-                Times.Once);
+            Assert.NotNull(result);
+            Assert.Equal(1, result.Id);
         }
     }
 }

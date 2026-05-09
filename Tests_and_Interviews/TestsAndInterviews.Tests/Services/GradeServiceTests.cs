@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// <copyright file="GradingServiceTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace TestsAndInterviews.Tests.Services
 {
-    using System.Collections.Generic;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
     using Tests_and_Interviews.Services;
@@ -19,10 +16,12 @@ namespace TestsAndInterviews.Tests.Services
     {
         private static GradingService MakeGradingService()
         {
+            // GradingService handles pure logic and does not rely on repositories or HttpClient,
+            // therefore it can be instantiated directly.
             return new GradingService();
         }
 
-        private static Question MakeQuestion(QuestionType type, string correctAnswer, float score = 4f)
+        private static Question MakeQuestion(QuestionType type, string? correctAnswer, float score = 4f)
         {
             return new Question
             {
@@ -32,7 +31,7 @@ namespace TestsAndInterviews.Tests.Services
             };
         }
 
-        private static Answer MakeAnswer(string value)
+        private static Answer MakeAnswer(string? value)
         {
             return new Answer { Value = value };
         }
@@ -51,7 +50,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeSingleChoice(question, answer);
 
             // Assert
-            Assert.StartsWith("CORRECT:", answer.Value);
+            Assert.StartsWith("CORRECT:", answer.Value!);
         }
 
         [Fact]
@@ -81,7 +80,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeSingleChoice(question, answer);
 
             // Assert
-            Assert.DoesNotContain("CORRECT:", answer.Value);
+            Assert.DoesNotContain("CORRECT:", answer.Value!);
         }
 
         [Fact]
@@ -126,7 +125,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeSingleChoice(question, answer);
 
             // Assert
-            Assert.StartsWith("CORRECT:", answer.Value);
+            Assert.StartsWith("CORRECT:", answer.Value!);
         }
 
         // GradeTrueFalse tests
@@ -143,7 +142,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeTrueFalse(question, answer);
 
             // Assert
-            Assert.StartsWith("CORRECT:", answer.Value);
+            Assert.StartsWith("CORRECT:", answer.Value!);
         }
 
         [Fact]
@@ -158,7 +157,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeTrueFalse(question, answer);
 
             // Assert
-            Assert.DoesNotContain("CORRECT:", answer.Value);
+            Assert.DoesNotContain("CORRECT:", answer.Value!);
         }
 
         [Fact]
@@ -173,7 +172,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeTrueFalse(question, answer);
 
             // Assert
-            Assert.StartsWith("CORRECT:", answer.Value);
+            Assert.StartsWith("CORRECT:", answer.Value!);
         }
 
         [Fact]
@@ -205,7 +204,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeText(question, answer);
 
             // Assert
-            Assert.StartsWith("CORRECT:", answer.Value);
+            Assert.StartsWith("CORRECT:", answer.Value!);
         }
 
         [Fact]
@@ -220,7 +219,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeText(question, answer);
 
             // Assert
-            Assert.StartsWith("CORRECT:", answer.Value);
+            Assert.StartsWith("CORRECT:", answer.Value!);
         }
 
         [Fact]
@@ -235,7 +234,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeText(question, answer);
 
             // Assert
-            Assert.DoesNotContain("CORRECT:", answer.Value);
+            Assert.DoesNotContain("CORRECT:", answer.Value!);
         }
 
         [Fact]
@@ -250,7 +249,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeText(question, answer);
 
             // Assert
-            Assert.StartsWith("CORRECT:", answer.Value);
+            Assert.StartsWith("CORRECT:", answer.Value!);
         }
 
         [Fact]
@@ -282,7 +281,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeMultipleChoice(question, answer);
 
             // Assert
-            Assert.StartsWith("PARTIAL:", answer.Value);
+            Assert.StartsWith("PARTIAL:", answer.Value!);
         }
 
         [Fact]
@@ -468,7 +467,7 @@ namespace TestsAndInterviews.Tests.Services
             gradingService.GradeMultipleChoice(question, answer);
 
             // Assert
-            Assert.StartsWith("PARTIAL:", answer.Value);
+            Assert.StartsWith("PARTIAL:", answer.Value!);
         }
     }
 }

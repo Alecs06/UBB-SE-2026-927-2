@@ -16,10 +16,18 @@ namespace Tests_and_Interviews.Services
     public class CompanyService : ICompanyService
     {
         private readonly ICompanyValidator companyValidator;
+        private readonly HttpClient http;
 
         public CompanyService()
         {
             this.companyValidator = new CompanyValidator();
+            this.http = ApiClient.Http;
+        }
+
+        public CompanyService(HttpClient httpClient)
+        {
+            this.companyValidator = new CompanyValidator();
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         private void ValidateCompany(Company company)
@@ -36,13 +44,13 @@ namespace Tests_and_Interviews.Services
         {
             Company companyToBeAdded = new Company(companyName, aboutUs, pfpUrl, logoUrl, location, email);
             this.ValidateCompany(companyToBeAdded);
-            HttpResponseMessage response = await ApiClient.Http.PostAsJsonAsync("companies", companyToBeAdded.ToDto());
+            HttpResponseMessage response = await this.http.PostAsJsonAsync("companies", companyToBeAdded.ToDto());
             response.EnsureSuccessStatusCode();
         }
 
         public async Task<Company?> GetCompanyById(int companyId)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"companies/{companyId}");
+            HttpResponseMessage response = await this.http.GetAsync($"companies/{companyId}");
             if (!response.IsSuccessStatusCode)
             {
                 return null;
@@ -54,7 +62,7 @@ namespace Tests_and_Interviews.Services
         public async Task UpdateCompany(Company company)
         {
             this.ValidateCompany(company);
-            HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+            HttpResponseMessage response = await this.http.PutAsJsonAsync(
                 $"companies/{company.CompanyId}",
                 company.ToDto());
             response.EnsureSuccessStatusCode();
@@ -62,7 +70,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task RemoveCompany(int companyId)
         {
-            HttpResponseMessage response = await ApiClient.Http.DeleteAsync($"companies/{companyId}");
+            HttpResponseMessage response = await this.http.DeleteAsync($"companies/{companyId}");
             response.EnsureSuccessStatusCode();
         }
 
@@ -75,7 +83,7 @@ namespace Tests_and_Interviews.Services
         /// <returns> the company if found, else null </returns>
         public async Task<Company?> GetCompanyByName(string companyName)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"companies/byname/{companyName}");
+            HttpResponseMessage response = await this.http.GetAsync($"companies/byname/{companyName}");
             if (!response.IsSuccessStatusCode)
             {
                 return null;

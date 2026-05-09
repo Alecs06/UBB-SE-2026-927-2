@@ -8,6 +8,8 @@ namespace Tests_and_Interviews.Services
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
+    using System.Net.Http;
+    using Tests_and_Interviews.Api;
     using Tests_and_Interviews.Helpers;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Services.Interfaces;
@@ -17,6 +19,25 @@ namespace Tests_and_Interviews.Services
     /// </summary>
     public class GradingService : IGradingService
     {
+        private readonly HttpClient http;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GradingService"/> class.
+        /// </summary>
+        public GradingService()
+        {
+            this.http = ApiClient.Http;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GradingService"/> class.
+        /// </summary>
+        /// <param name="httpClient">The HTTP client to use for requests.</param>
+        public GradingService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
+        }
+
         /// <summary>
         /// Grades a single choice question by comparing the provided answer with the correct answer.
         /// If the answer is correct, it updates the answer value to indicate correctness and the score awarded.

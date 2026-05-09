@@ -22,11 +22,19 @@ namespace Tests_and_Interviews.Services
     /// </summary>
     public class SlotService : ISlotService
     {
+        private readonly HttpClient http;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="SlotService"/> class.
         /// </summary>
         public SlotService()
         {
+            this.http = ApiClient.Http;
+        }
+
+        public SlotService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <summary>
@@ -39,7 +47,7 @@ namespace Tests_and_Interviews.Services
         /// recruiter and date.</returns>
         public async Task<List<SlotDto>> LoadRecruiterVisibleSlotsAsync(int recruitedId, DateTime date)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"recruiter/{recruitedId}/date?date={date:O}");
+            HttpResponseMessage response = await this.http.GetAsync($"recruiter/{recruitedId}/date?date={date:O}");
 
 
             List<Slot> existing = new List<Slot>();
@@ -97,7 +105,7 @@ namespace Tests_and_Interviews.Services
                 Status = SlotStatus.Free,
                 InterviewType = "Available",
             };
-            HttpResponseMessage response = await ApiClient.Http.PostAsJsonAsync("slots", newSlot.ToDto());
+            HttpResponseMessage response = await this.http.PostAsJsonAsync("slots", newSlot.ToDto());
             response.EnsureSuccessStatusCode();
         }
 
@@ -108,7 +116,7 @@ namespace Tests_and_Interviews.Services
         /// <returns>A task that represents the asynchronous delete operation.</returns>
         public async Task DeleteRecruiterSlotAsync(int id)
         {
-            HttpResponseMessage response = await ApiClient.Http.DeleteAsync($"slots/{id}");
+            HttpResponseMessage response = await this.http.DeleteAsync($"slots/{id}");
             response.EnsureSuccessStatusCode();
         }
 
@@ -133,7 +141,7 @@ namespace Tests_and_Interviews.Services
                 StartTime = startTime,
                 EndTime = startTime.AddMinutes(duration),
             };
-            HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+            HttpResponseMessage response = await this.http.PutAsJsonAsync(
                 $"slots/{newSlot.Id}",
                 newSlot.ToDto());
             response.EnsureSuccessStatusCode();

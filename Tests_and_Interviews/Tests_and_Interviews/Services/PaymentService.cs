@@ -32,10 +32,18 @@ namespace Tests_and_Interviews.Services
         private const string EmailSentDebugMessagePrefix = "Email sent to ";
         private const string EmailFailedDebugMessagePrefix = "Failed to send email: ";
         private readonly IPaymentValidator validator;
+        private readonly HttpClient http;
 
         public PaymentService(IPaymentValidator paymentValidator)
         {
             this.validator = paymentValidator;
+            this.http = ApiClient.Http;
+        }
+
+        public PaymentService(IPaymentValidator paymentValidator, HttpClient httpClient)
+        {
+            this.validator = paymentValidator;
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         public async Task<string> ProcessPaymentAsync(int jobId, int amount, string name, string cardNum, string exp, string cvv)
@@ -48,13 +56,13 @@ namespace Tests_and_Interviews.Services
             try
             {
                 // 1. Save to database
-                HttpResponseMessage updateResponse = await ApiClient.Http.PutAsJsonAsync(
+                HttpResponseMessage updateResponse = await this.http.PutAsJsonAsync(
                     $"payment/{jobId}?paymentAmount={amount}",
                     new { });
                 updateResponse.EnsureSuccessStatusCode();
 
                 // 2. Fetch emails to notify
-                HttpResponseMessage notifyResponse = await ApiClient.Http.GetAsync(
+                HttpResponseMessage notifyResponse = await this.http.GetAsync(
                     $"payment/notify/{jobId}?newPaymentAmount={amount}");
                 notifyResponse.EnsureSuccessStatusCode();
                 List<string>? emailsToNotify = await notifyResponse.Content.ReadFromJsonAsync<List<string>>();
@@ -74,7 +82,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<List<JobPaymentInfo>> GetPaidJobsInfo(string jobType, string expLevel)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync(
+            HttpResponseMessage response = await this.http.GetAsync(
                 $"payment/paid?jobType={jobType}&experienceLevel={expLevel}");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)

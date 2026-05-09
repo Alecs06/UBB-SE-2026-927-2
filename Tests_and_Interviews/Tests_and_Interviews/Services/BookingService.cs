@@ -24,12 +24,23 @@ namespace Tests_and_Interviews.Services
     {
         private const int MINIMUMPOSITIONID = 0;
         private const int MINIMUMINTERVIEWSCORE = 0;
+        private readonly HttpClient http;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BookingService"/> class.
         /// </summary>
         public BookingService()
         {
+            this.http = ApiClient.Http;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BookingService"/> class.
+        /// </summary>
+        /// <param name="httpClient">The HTTP client to use for requests.</param>
+        public BookingService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <summary>
@@ -40,7 +51,7 @@ namespace Tests_and_Interviews.Services
         /// <returns> A list of available slots for the specified recruiter and date.</returns>
         public async Task<List<Slot>> GetAvailableSlots(int recruiterId, DateTime date)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"recruiter/{recruiterId}/date?date={date:O}");
+            HttpResponseMessage response = await this.http.GetAsync($"recruiter/{recruiterId}/date?date={date:O}");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -63,7 +74,7 @@ namespace Tests_and_Interviews.Services
         /// <returns> A list of all available slots for the specified recruiter.</returns>
         public async Task<List<Slot>> GetAvailableSlotsByRecruiterId(int recruiterId)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"recruiter/{recruiterId}");
+            HttpResponseMessage response = await this.http.GetAsync($"recruiter/{recruiterId}");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -100,7 +111,7 @@ namespace Tests_and_Interviews.Services
             slot.CandidateId = candidateId;
             slot.InterviewType = string.Empty;
 
-            HttpResponseMessage slotResponse = await ApiClient.Http.PutAsJsonAsync(
+            HttpResponseMessage slotResponse = await this.http.PutAsJsonAsync(
                 $"slots/{slot.Id}",
                 slot.ToDto());
             slotResponse.EnsureSuccessStatusCode();
@@ -116,7 +127,7 @@ namespace Tests_and_Interviews.Services
                 Score = MINIMUMINTERVIEWSCORE,
             };
 
-            HttpResponseMessage sessionResponse = await ApiClient.Http.PostAsJsonAsync(
+            HttpResponseMessage sessionResponse = await this.http.PostAsJsonAsync(
                 "interviewsessions",
                 newInterviewSession.ToDto());
             sessionResponse.EnsureSuccessStatusCode();

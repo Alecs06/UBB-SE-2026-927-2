@@ -1,15 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// <copyright file="AttemptValidationServiceTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace TestsAndInterviews.Tests.Services
 {
+    using System;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading;
     using System.Threading.Tasks;
     using Moq;
-    using Tests_and_Interviews.Models.Core;
-    using Tests_and_Interviews.Repositories.Interfaces;
+    using Moq.Protected;
+    using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Services;
     using Xunit;
 
@@ -18,14 +21,25 @@ namespace TestsAndInterviews.Tests.Services
     /// </summary>
     public class AttemptValidationServiceTests
     {
-        private static AttemptValidationService MakeAttemptValidationService(ITestAttemptRepository attemptRepository)
+        private Mock<HttpMessageHandler> CreateMockHttpMessageHandler(HttpResponseMessage responseMessage)
         {
-            return new AttemptValidationService();
+            var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            handlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(responseMessage)
+                .Verifiable();
+
+            return handlerMock;
         }
 
-        private static TestAttempt MakeTestAttempt()
+        private static TestAttemptDto MakeTestAttemptDto()
         {
-            return new TestAttempt
+            return new TestAttemptDto
             {
                 Id = 1,
                 TestId = 1,
@@ -36,13 +50,11 @@ namespace TestsAndInterviews.Tests.Services
         [Fact]
         public async Task CanStartTestAsync_WhenNoExistingAttempt_ReturnsTrue()
         {
-            // Arrange
-            var mockRepository = new Mock<ITestAttemptRepository>();
-            mockRepository
-                .Setup(repository => repository.FindByUserAndTestAsync(1, 1))
-                .ReturnsAsync((TestAttempt?)null);
-
-            var validationService = MakeAttemptValidationService(mockRepository.Object);
+            // Arrange - Returning 404 Not Found simulates no existing attempt
+            var responseMessage = new HttpResponseMessage(HttpStatusCode.NotFound);
+            var handlerMock = this.CreateMockHttpMessageHandler(responseMessage);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var validationService = new AttemptValidationService(httpClient);
 
             // Act
             bool result = await validationService.CanStartTestAsync(1, 1);
@@ -54,13 +66,14 @@ namespace TestsAndInterviews.Tests.Services
         [Fact]
         public async Task CanStartTestAsync_WhenExistingAttemptFound_ReturnsFalse()
         {
-            // Arrange
-            var mockRepository = new Mock<ITestAttemptRepository>();
-            mockRepository
-                .Setup(repository => repository.FindByUserAndTestAsync(1, 1))
-                .ReturnsAsync(MakeTestAttempt());
-
-            var validationService = MakeAttemptValidationService(mockRepository.Object);
+            // Arrange - Returning 200 OK with Dto simulates an existing attempt
+            var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(MakeTestAttemptDto())
+            };
+            var handlerMock = this.CreateMockHttpMessageHandler(responseMessage);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var validationService = new AttemptValidationService(httpClient);
 
             // Act
             bool result = await validationService.CanStartTestAsync(1, 1);
@@ -73,12 +86,10 @@ namespace TestsAndInterviews.Tests.Services
         public async Task CheckExistingAttemptsAsync_WhenNoExistingAttempt_DoesNotThrow()
         {
             // Arrange
-            var mockRepository = new Mock<ITestAttemptRepository>();
-            mockRepository
-                .Setup(repository => repository.FindByUserAndTestAsync(1, 1))
-                .ReturnsAsync((TestAttempt?)null);
-
-            var validationService = MakeAttemptValidationService(mockRepository.Object);
+            var responseMessage = new HttpResponseMessage(HttpStatusCode.NotFound);
+            var handlerMock = this.CreateMockHttpMessageHandler(responseMessage);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var validationService = new AttemptValidationService(httpClient);
 
             // Act
             var exception = await Record.ExceptionAsync(() => validationService.CheckExistingAttemptsAsync(1, 1));
@@ -91,15 +102,16 @@ namespace TestsAndInterviews.Tests.Services
         public async Task CheckExistingAttemptsAsync_WhenExistingAttemptFound_ThrowsInvalidOperationException()
         {
             // Arrange
-            var mockRepository = new Mock<ITestAttemptRepository>();
-            mockRepository
-                .Setup(repository => repository.FindByUserAndTestAsync(1, 1))
-                .ReturnsAsync(MakeTestAttempt());
-
-            var validationService = MakeAttemptValidationService(mockRepository.Object);
+            var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(MakeTestAttemptDto())
+            };
+            var handlerMock = this.CreateMockHttpMessageHandler(responseMessage);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var validationService = new AttemptValidationService(httpClient);
 
             // Act and Assert
-            await Assert.ThrowsAsync<System.InvalidOperationException>(
+            await Assert.ThrowsAsync<InvalidOperationException>(
                 () => validationService.CheckExistingAttemptsAsync(1, 1));
         }
 
@@ -107,12 +119,13 @@ namespace TestsAndInterviews.Tests.Services
         public async Task CheckExistingAttemptsAsync_WhenExistingAttemptFound_ExceptionMessageContainsUserId()
         {
             // Arrange
-            var mockRepository = new Mock<ITestAttemptRepository>();
-            mockRepository
-                .Setup(repository => repository.FindByUserAndTestAsync(1, 1))
-                .ReturnsAsync(MakeTestAttempt());
-
-            var validationService = MakeAttemptValidationService(mockRepository.Object);
+            var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(MakeTestAttemptDto())
+            };
+            var handlerMock = this.CreateMockHttpMessageHandler(responseMessage);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var validationService = new AttemptValidationService(httpClient);
 
             // Act
             var exception = await Record.ExceptionAsync(() => validationService.CheckExistingAttemptsAsync(1, 1));
@@ -122,23 +135,26 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [Fact]
-        public async Task CanStartTestAsync_WhenCalled_CallsRepositoryOnce()
+        public async Task CanStartTestAsync_WhenCalled_CallsHttpClientOnce()
         {
             // Arrange
-            var mockRepository = new Mock<ITestAttemptRepository>();
-            mockRepository
-                .Setup(repository => repository.FindByUserAndTestAsync(1, 1))
-                .ReturnsAsync((TestAttempt?)null);
-
-            var validationService = MakeAttemptValidationService(mockRepository.Object);
+            var responseMessage = new HttpResponseMessage(HttpStatusCode.NotFound);
+            var handlerMock = this.CreateMockHttpMessageHandler(responseMessage);
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost/api/") };
+            var validationService = new AttemptValidationService(httpClient);
 
             // Act
             await validationService.CanStartTestAsync(1, 1);
 
             // Assert
-            mockRepository.Verify(
-                repository => repository.FindByUserAndTestAsync(1, 1),
-                Times.Once);
+            handlerMock.Protected().Verify(
+                "SendAsync",
+                Times.Once(),
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Get &&
+                    req.RequestUri!.ToString().EndsWith("testattempts/byuser/1/bytest/1")),
+                ItExpr.IsAny<CancellationToken>()
+            );
         }
     }
 }

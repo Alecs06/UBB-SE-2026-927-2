@@ -6,6 +6,7 @@ namespace Tests_and_Interviews.Services
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Net.Http;
     using System.Net.Http.Json;
     using System.Threading.Tasks;
     using Tests_and_Interviews.Api;
@@ -25,12 +26,19 @@ namespace Tests_and_Interviews.Services
     {
         private static readonly ConcurrentDictionary<int, DateTime> Timers = new();
         private static readonly TimeSpan TestDuration = TimeSpan.FromMinutes(TestConstants.TestDurationInMinutes);
+        private readonly HttpClient http;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TimerService"/> class.
         /// </summary>
         public TimerService()
         {
+            this.http = ApiClient.Http;
+        }
+
+        public TimerService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <summary>
@@ -89,7 +97,7 @@ namespace Tests_and_Interviews.Services
                 Status = TestStatus.COMPLETED.ToString(),
                 CompletedAt = DateTime.UtcNow,
             };
-            System.Net.Http.HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+            System.Net.Http.HttpResponseMessage response = await this.http.PutAsJsonAsync(
                 $"testattempts/{attemptId}",
                 expiredAttempt.ToDto());
             response.EnsureSuccessStatusCode();

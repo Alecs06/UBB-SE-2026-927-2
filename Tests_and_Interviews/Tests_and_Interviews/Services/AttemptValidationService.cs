@@ -3,6 +3,7 @@
 // </copyright>
 namespace Tests_and_Interviews.Services
 {
+    using System;
     using System.Net.Http;
     using System.Net.Http.Json;
     using System.Threading.Tasks;
@@ -15,11 +16,23 @@ namespace Tests_and_Interviews.Services
     /// </summary>
     public class AttemptValidationService : IAttemptValidationService
     {
+        private readonly HttpClient http;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="AttemptValidationService"/> class.
         /// </summary>
         public AttemptValidationService()
         {
+            this.http = ApiClient.Http;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AttemptValidationService"/> class.
+        /// </summary>
+        /// <param name="httpClient">The HTTP client to use for requests.</param>
+        public AttemptValidationService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <summary>
@@ -28,14 +41,15 @@ namespace Tests_and_Interviews.Services
         /// </summary>
         /// <param name="userId">The ID of the user attempting to start the test.</param>
         /// <param name="testId">The ID of the test the user is attempting to start.</param>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation. The task result contains a boolean indicating if the test can be started.</returns>
         public async Task<bool> CanStartTestAsync(int userId, int testId)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
+            HttpResponseMessage response = await this.http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
             if (!response.IsSuccessStatusCode)
             {
                 return true;
             }
+
             TestAttemptDto? dto = await response.Content.ReadFromJsonAsync<TestAttemptDto>();
             return dto == null;
         }
@@ -47,20 +61,22 @@ namespace Tests_and_Interviews.Services
         /// <param name="userId">The ID of the user attempting to start the test.</param>
         /// <param name="testId">The ID of the test the user is attempting to start.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        /// <exception cref="System.InvalidOperationException">Thrown when an existing attempt is found for the user and test.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when an existing attempt is found for the user and test.</exception>
         public async Task CheckExistingAttemptsAsync(int userId, int testId)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
+            HttpResponseMessage response = await this.http.GetAsync($"testattempts/byuser/{userId}/bytest/{testId}");
             if (!response.IsSuccessStatusCode)
             {
                 return;
             }
+
             TestAttemptDto? dto = await response.Content.ReadFromJsonAsync<TestAttemptDto>();
             if (dto == null)
             {
                 return;
             }
-            throw new System.InvalidOperationException(
+
+            throw new InvalidOperationException(
                 $"User {userId} has already attempted test {testId}.");
         }
     }

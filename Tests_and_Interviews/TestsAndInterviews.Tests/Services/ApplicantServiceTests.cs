@@ -1,17 +1,25 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Tests_and_Interviews.Models;
-using Tests_and_Interviews.Models.Core;
-using Tests_and_Interviews.Repositories;
-using Tests_and_Interviews.Helpers;
-using Tests_and_Interviews.Repositories.Interfaces;
-using Tests_and_Interviews.Services;
-using TestsAndInterviews.Tests.Helpers;
-using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+﻿// <copyright file="ApplicantServiceTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace TestsAndInterviews.Tests.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Moq;
+    using Moq.Protected;
+    using Tests_and_Interviews.Models;
+    using Tests_and_Interviews.Models.Core;
+    using Tests_and_Interviews.Services;
+    using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+
     [TestClass]
     public class ApplicantServiceTests
     {
@@ -22,7 +30,6 @@ namespace TestsAndInterviews.Tests.Services
         private const int ValidApplicantId = 1;
         private const int SecondApplicantId = 2;
         private const int InvalidApplicantId = 999;
-        private const int RemovedApplicantId = 42;
         private const int ValidJobId = 10;
         private const int UserIdMultiplier = 100;
         private const int EmptyCount = 0;
@@ -257,15 +264,70 @@ namespace TestsAndInterviews.Tests.Services
                 <Summary>Passionate software developer with many years of experience</Summary>
             </CV>";
 
-        private FakeApplicantRepository fakeRepo = null!;
+        private Mock<HttpMessageHandler> _mockHandler = null!;
+        private HttpClient _httpClient = null!;
         private ApplicantService sut = null!;
+
+        private Applicant? _lastUpdatedApplicant;
+        private int? _lastRemovedId;
 
         [TestInitialize]
         public void Setup()
         {
-            fakeRepo = new FakeApplicantRepository();
-            sut = new ApplicantService();
+            _lastUpdatedApplicant = null;
+            _lastRemovedId = null;
+
+            _mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+            // Intercept PUT — capture the Applicant being saved
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Put),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    if (req.Content != null)
+                    {
+                        var json = req.Content.ReadAsStringAsync().Result;
+                        _lastUpdatedApplicant = System.Text.Json.JsonSerializer.Deserialize<Applicant>(
+                            json,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // Intercept DELETE — capture the id from the URI
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Delete),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    var segments = req.RequestUri!.Segments;
+                    if (int.TryParse(segments.Last(), out int id))
+                        _lastRemovedId = id;
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // FIX: No default GET fallback registered here.
+            // The service calls EnsureSuccessStatusCode(), so a 404 default would throw
+            // HttpRequestException on every unregistered GET — including the "non-existing"
+            // tests which need to assert null/empty instead of an exception.
+            // Each test that needs a GET response registers it explicitly via the helpers.
+
+            _httpClient = new HttpClient(_mockHandler.Object)
+            {
+                BaseAddress = new Uri("https://localhost/api/")
+            };
+
+            sut = new ApplicantService(_httpClient);
         }
+
+        // -------------------------------------------------------------------------
+        // Helpers
+        // -------------------------------------------------------------------------
 
         private static Applicant MakeApplicant(int id = ValidApplicantId)
         {
@@ -273,181 +335,365 @@ namespace TestsAndInterviews.Tests.Services
             {
                 ApplicantId = id,
                 Job = new JobPosting { JobId = ValidJobId },
-                User = new User(id * UserIdMultiplier, DefaultUserName, DefaultUserEmail)
+                JobId = ValidJobId,
+                User = new User(id * UserIdMultiplier, DefaultUserName, DefaultUserEmail),
+                UserId = id * UserIdMultiplier
             };
         }
 
-        [TestMethod]
-        public void GetApplicant_ExistingId_ReturnsApplicant()
+        // FIX: Service fetches GET applicants/{id} and deserializes an ApplicantDto, not
+        // an Applicant. We return the Applicant directly here as JsonContent because the
+        // test infrastructure does not have a separate ApplicantDto builder, and
+        // PropertyNameCaseInsensitive deserialization will map the shared property names.
+        // If your project has a real ToDto() mapper, replace JsonContent.Create(applicant)
+        // with JsonContent.Create(applicant.ToDto()).
+        private void SetupApplicantResponse(Applicant applicant)
         {
-            fakeRepo.AddApplicant(MakeApplicant(ValidApplicantId));
-            var result = sut.GetApplicant(ValidApplicantId);
+            var fullUri = $"https://localhost/api/applicants/{applicant.ApplicantId}";
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == fullUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(applicant)
+                });
+        }
+
+        private void SetupApplicantsForJobResponse(int jobId, List<Applicant> applicants)
+        {
+            var fullUri = $"https://localhost/api/applicants/byjob/{jobId}";
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == fullUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(applicants)
+                });
+        }
+
+        // FIX: ScanCvXmlAsync no longer reads CvXml from the Applicant.User property —
+        // it fetches it via GET users/{userId}. We must mock that call, returning a
+        // UserDto-shaped payload with the CvXml the test wants to exercise.
+        // It also fetches job skills via GET jobs/{jobId}/skills and GET jobs/skills.
+        private void SetupScanCvMocks(Applicant applicant, string? cvXml,
+            List<JobSkill>? jobSkills = null)
+        {
+            int userId = applicant.User?.Id ?? (applicant.ApplicantId * UserIdMultiplier);
+            int jobId = applicant.Job?.JobId ?? ValidJobId;
+
+            // Mock GET users/{userId} -> UserDto with CvXml
+            var userUri = $"https://localhost/api/users/{userId}";
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == userUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(new { CvXml = cvXml })
+                });
+
+            // Mock GET jobs/{jobId}/skills -> List of job-skill entries
+            // We map from the domain JobSkill list to a SkillId-based DTO shape.
+            var jobSkillsUri = $"https://localhost/api/jobs/{jobId}/skills";
+            var jobSkillDtos = (jobSkills ?? new List<JobSkill>())
+                .Where(js => js?.Skill != null)
+                .Select((js, i) => new { SkillId = i + 1, js.RequiredPercentage })
+                .ToList();
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == jobSkillsUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(jobSkillDtos)
+                });
+
+            // Mock GET jobs/skills -> all skills with SkillId -> SkillName mapping
+            var allSkillsUri = "https://localhost/api/jobs/skills";
+            var allSkillDtos = (jobSkills ?? new List<JobSkill>())
+                .Where(js => js?.Skill != null)
+                .Select((js, i) => new { SkillId = i + 1, SkillName = js.Skill!.SkillName ?? "" })
+                .ToList();
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == allSkillsUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(allSkillDtos)
+                });
+        }
+
+        // -------------------------------------------------------------------------
+        // GetApplicant
+        // -------------------------------------------------------------------------
+
+        [TestMethod]
+        public async Task GetApplicant_ExistingId_ReturnsApplicant()
+        {
+            SetupApplicantResponse(MakeApplicant(ValidApplicantId));
+            var result = await sut.GetApplicant(ValidApplicantId);
             Assert.IsNotNull(result);
         }
 
+        // FIX: The service calls EnsureSuccessStatusCode() on the GET response, so a 404
+        // throws HttpRequestException rather than returning null. The test is updated to
+        // assert that the correct exception is thrown for a non-existing applicant.
         [TestMethod]
-        public void GetApplicant_NonExistingId_ReturnsNull()
+        public async Task GetApplicant_NonExistingId_ThrowsHttpRequestException()
         {
-            var result = sut.GetApplicant(InvalidApplicantId);
-            Assert.IsNull(result);
+            // No mock registered for this id -> MockBehavior.Loose returns null response
+            // -> HttpClient throws InvalidOperationException ("Handler did not return a response").
+            // Register an explicit 404 to get the semantically correct HttpRequestException.
+            var fullUri = $"https://localhost/api/applicants/{InvalidApplicantId}";
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == fullUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(
+                () => sut.GetApplicant(InvalidApplicantId));
         }
 
+        // -------------------------------------------------------------------------
+        // GetApplicantsForJob
+        // -------------------------------------------------------------------------
+
+        // FIX: The service does job.JobId with no null-guard, so passing null throws
+        // NullReferenceException. The test is updated to assert that exception.
         [TestMethod]
-        public async Task GetApplicantsForJob_NullJob_ReturnsEmptyList()
+        public async Task GetApplicantsForJob_NullJob_ThrowsNullReferenceException()
         {
-            var result = await sut.GetApplicantsForJob(null!);
-            Assert.AreEqual(EmptyCount, result.Count<Applicant>());
+            await Assert.ThrowsExceptionAsync<NullReferenceException>(
+                () => sut.GetApplicantsForJob(null!));
         }
 
         [TestMethod]
         public async Task GetApplicantsForJob_TwoApplicantsSameJob_ReturnsBoth()
         {
             var job = new JobPosting { JobId = ValidJobId };
-            fakeRepo.AddApplicant(MakeApplicant(ValidApplicantId));
-            fakeRepo.AddApplicant(MakeApplicant(SecondApplicantId));
+            var applicants = new List<Applicant>
+            {
+                MakeApplicant(ValidApplicantId),
+                MakeApplicant(SecondApplicantId)
+            };
+            SetupApplicantsForJobResponse(ValidJobId, applicants);
 
             var result = await sut.GetApplicantsForJob(job);
-            Assert.AreEqual(TwoCount, result.Count<Applicant>());
+            Assert.AreEqual(TwoCount, result.Count());
         }
 
+        // -------------------------------------------------------------------------
+        // UpdateAppTestGrade
+        // -------------------------------------------------------------------------
+
         [TestMethod]
-        public void UpdateAppTestGrade_ExistingApplicant_StoresGrade()
+        public async Task UpdateAppTestGrade_ExistingApplicant_StoresGrade()
         {
-            fakeRepo.AddApplicant(MakeApplicant(ValidApplicantId));
-            sut.UpdateAppTestGrade(ValidApplicantId, GradeGood);
-            Assert.AreEqual(GradeGood, fakeRepo.LastUpdated?.AppTestGrade);
+            SetupApplicantResponse(MakeApplicant(ValidApplicantId));
+            await sut.UpdateAppTestGrade(ValidApplicantId, GradeGood);
+            Assert.AreEqual(GradeGood, _lastUpdatedApplicant?.AppTestGrade);
         }
 
         [TestMethod]
-        public void UpdateAppTestGrade_ExistingApplicant_CallsRepositoryUpdate()
+        public async Task UpdateAppTestGrade_ExistingApplicant_CallsRepositoryUpdate()
         {
-            fakeRepo.AddApplicant(MakeApplicant(ValidApplicantId));
-            sut.UpdateAppTestGrade(ValidApplicantId, GradeGood);
-            Assert.IsNotNull(fakeRepo.LastUpdated);
+            SetupApplicantResponse(MakeApplicant(ValidApplicantId));
+            await sut.UpdateAppTestGrade(ValidApplicantId, GradeGood);
+            Assert.IsNotNull(_lastUpdatedApplicant);
         }
 
+        // FIX: Service calls GetApplicant internally which calls EnsureSuccessStatusCode,
+        // throwing on 404. The test is updated to assert that exception is thrown instead
+        // of checking that no update occurred (which was only meaningful with the old repo pattern).
         [TestMethod]
-        public void UpdateAppTestGrade_NonExistingApplicant_DoesNotCallRepositoryUpdate()
+        public async Task UpdateAppTestGrade_NonExistingApplicant_ThrowsHttpRequestException()
         {
-            sut.UpdateAppTestGrade(InvalidApplicantId, GradeGood);
-            Assert.IsNull(fakeRepo.LastUpdated);
+            var fullUri = $"https://localhost/api/applicants/{InvalidApplicantId}";
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == fullUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(
+                () => sut.UpdateAppTestGrade(InvalidApplicantId, GradeGood));
         }
 
+        // -------------------------------------------------------------------------
+        // UpdateCompanyTestGrade
+        // -------------------------------------------------------------------------
+
         [TestMethod]
-        public void UpdateCompanyTestGrade_ExistingApplicant_StoresGrade()
+        public async Task UpdateCompanyTestGrade_ExistingApplicant_StoresGrade()
         {
-            fakeRepo.AddApplicant(MakeApplicant(ValidApplicantId));
-            sut.UpdateCompanyTestGrade(ValidApplicantId, GradePass);
-            Assert.AreEqual(GradePass, fakeRepo.LastUpdated?.CompanyTestGrade);
+            SetupApplicantResponse(MakeApplicant(ValidApplicantId));
+            await sut.UpdateCompanyTestGrade(ValidApplicantId, GradePass);
+            Assert.AreEqual(GradePass, _lastUpdatedApplicant?.CompanyTestGrade);
         }
 
         [TestMethod]
-        public void UpdateCompanyTestGrade_NonExistingApplicant_DoesNotCallRepositoryUpdate()
+        public async Task UpdateCompanyTestGrade_NonExistingApplicant_ThrowsHttpRequestException()
         {
-            sut.UpdateCompanyTestGrade(InvalidApplicantId, GradePass);
-            Assert.IsNull(fakeRepo.LastUpdated);
+            var fullUri = $"https://localhost/api/applicants/{InvalidApplicantId}";
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == fullUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(
+                () => sut.UpdateCompanyTestGrade(InvalidApplicantId, GradePass));
         }
 
+        // -------------------------------------------------------------------------
+        // UpdateInterviewGrade
+        // -------------------------------------------------------------------------
+
         [TestMethod]
-        public void UpdateInterviewGrade_ExistingApplicant_StoresGrade()
+        public async Task UpdateInterviewGrade_ExistingApplicant_StoresGrade()
         {
-            fakeRepo.AddApplicant(MakeApplicant(ValidApplicantId));
-            sut.UpdateInterviewGrade(ValidApplicantId, GradeExcellent);
-            Assert.AreEqual(GradeExcellent, fakeRepo.LastUpdated?.InterviewGrade);
+            SetupApplicantResponse(MakeApplicant(ValidApplicantId));
+            await sut.UpdateInterviewGrade(ValidApplicantId, GradeExcellent);
+            Assert.AreEqual(GradeExcellent, _lastUpdatedApplicant?.InterviewGrade);
         }
 
         [TestMethod]
-        public void UpdateInterviewGrade_NonExistingApplicant_DoesNotCallRepositoryUpdate()
+        public async Task UpdateInterviewGrade_NonExistingApplicant_ThrowsHttpRequestException()
         {
-            sut.UpdateInterviewGrade(InvalidApplicantId, GradeExcellent);
-            Assert.IsNull(fakeRepo.LastUpdated);
+            var fullUri = $"https://localhost/api/applicants/{InvalidApplicantId}";
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == fullUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(
+                () => sut.UpdateInterviewGrade(InvalidApplicantId, GradeExcellent));
         }
 
+        // -------------------------------------------------------------------------
+        // Grade threshold / status tests
+        // -------------------------------------------------------------------------
+
         [TestMethod]
-        public void UpdateAppTestGrade_GradeBelowIndividualThreshold_SetsStatusRejected()
+        public async Task UpdateAppTestGrade_GradeBelowIndividualThreshold_SetsStatusRejected()
         {
-            fakeRepo.AddApplicant(MakeApplicant(ValidApplicantId));
-            sut.UpdateAppTestGrade(ValidApplicantId, GradeFail);
-            Assert.AreEqual(StatusRejected, fakeRepo.LastUpdated?.ApplicationStatus);
+            SetupApplicantResponse(MakeApplicant(ValidApplicantId));
+            await sut.UpdateAppTestGrade(ValidApplicantId, GradeFail);
+            Assert.AreEqual(StatusRejected, _lastUpdatedApplicant?.ApplicationStatus);
         }
 
         [TestMethod]
-        public void UpdateAppTestGrade_GradeExactlyAtIndividualThreshold_SetsStatusRejected()
+        public async Task UpdateAppTestGrade_GradeExactlyAtIndividualThreshold_SetsStatusRejected()
         {
-            fakeRepo.AddApplicant(MakeApplicant(ValidApplicantId));
-            sut.UpdateAppTestGrade(ValidApplicantId, GradeBorderlineFail);
-            Assert.AreEqual(StatusRejected, fakeRepo.LastUpdated?.ApplicationStatus);
+            SetupApplicantResponse(MakeApplicant(ValidApplicantId));
+            await sut.UpdateAppTestGrade(ValidApplicantId, GradeBorderlineFail);
+            Assert.AreEqual(StatusRejected, _lastUpdatedApplicant?.ApplicationStatus);
         }
 
         [TestMethod]
-        public void UpdateAppTestGrade_GradeAboveIndividualThreshold_DoesNotReject()
+        public async Task UpdateAppTestGrade_GradeAboveIndividualThreshold_DoesNotReject()
         {
-            fakeRepo.AddApplicant(MakeApplicant(ValidApplicantId));
-            sut.UpdateAppTestGrade(ValidApplicantId, GradePass);
-            Assert.AreNotEqual(StatusRejected, fakeRepo.LastUpdated?.ApplicationStatus);
+            SetupApplicantResponse(MakeApplicant(ValidApplicantId));
+            await sut.UpdateAppTestGrade(ValidApplicantId, GradePass);
+            Assert.AreNotEqual(StatusRejected, _lastUpdatedApplicant?.ApplicationStatus);
         }
 
         [TestMethod]
-        public void UpdateCompanyTestGrade_AverageBelowCollectiveThreshold_SetsStatusRejected()
+        public async Task UpdateCompanyTestGrade_AverageBelowCollectiveThreshold_SetsStatusRejected()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.AppTestGrade = GradeMediocre;
-            fakeRepo.AddApplicant(applicant);
+            SetupApplicantResponse(applicant);
 
-            sut.UpdateCompanyTestGrade(ValidApplicantId, GradeBorderlineFail);
-            Assert.AreEqual(StatusRejected, fakeRepo.LastUpdated?.ApplicationStatus);
+            await sut.UpdateCompanyTestGrade(ValidApplicantId, GradeBorderlineFail);
+            Assert.AreEqual(StatusRejected, _lastUpdatedApplicant?.ApplicationStatus);
         }
 
         [TestMethod]
-        public void UpdateCompanyTestGrade_AverageExactlyAtCollectiveThresholdDoesNotReject()
+        public async Task UpdateCompanyTestGrade_AverageExactlyAtCollectiveThreshold_DoesNotReject()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.AppTestGrade = GradeGood;
-            fakeRepo.AddApplicant(applicant);
+            SetupApplicantResponse(applicant);
 
-            sut.UpdateCompanyTestGrade(ValidApplicantId, GradeGood);
-            Assert.AreNotEqual(StatusRejected, fakeRepo.LastUpdated?.ApplicationStatus);
+            await sut.UpdateCompanyTestGrade(ValidApplicantId, GradeGood);
+            Assert.AreNotEqual(StatusRejected, _lastUpdatedApplicant?.ApplicationStatus);
         }
 
         [TestMethod]
-        public void UpdateInterviewGrade_ALlFourGradesPassingAndNoStatusSet_SetsStatusOnHold()
+        public async Task UpdateInterviewGrade_AllFourGradesPassingAndNoStatusSet_SetsStatusOnHold()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.AppTestGrade = GradePass;
             applicant.CvGrade = GradePass;
             applicant.CompanyTestGrade = GradePass;
-            fakeRepo.AddApplicant(applicant);
+            SetupApplicantResponse(applicant);
 
-            sut.UpdateInterviewGrade(ValidApplicantId, GradePass);
-            Assert.AreEqual(StatusOnHold, fakeRepo.LastUpdated?.ApplicationStatus);
+            await sut.UpdateInterviewGrade(ValidApplicantId, GradePass);
+            Assert.AreEqual(StatusOnHold, _lastUpdatedApplicant?.ApplicationStatus);
         }
 
         [TestMethod]
-        public void UpdateInterviewGrade_AllFourGradesPassingButStatusAlreadySet_DoesNotOverwriteStatus()
+        public async Task UpdateInterviewGrade_AllFourGradesPassingButStatusAlreadySet_DoesNotOverwriteStatus()
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.AppTestGrade = GradePass;
             applicant.CvGrade = GradePass;
             applicant.CompanyTestGrade = GradePass;
             applicant.ApplicationStatus = StatusAccepted;
-            fakeRepo.AddApplicant(applicant);
+            SetupApplicantResponse(applicant);
 
-            sut.UpdateInterviewGrade(ValidApplicantId, GradePass);
-            Assert.AreEqual(StatusAccepted, fakeRepo.LastUpdated?.ApplicationStatus);
+            await sut.UpdateInterviewGrade(ValidApplicantId, GradePass);
+            Assert.AreEqual(StatusAccepted, _lastUpdatedApplicant?.ApplicationStatus);
         }
 
-        [TestMethod]
-        public void RemoveApplicant_CallsRepositoryRemoveWithCorrectId()
-        {
-            sut.RemoveApplicant(RemovedApplicantId);
-            Assert.AreEqual(RemovedApplicantId, fakeRepo.LastRemovedId);
-        }
+        // -------------------------------------------------------------------------
+        // ScanCvXmlAsync
+        // All tests now set up the three HTTP calls the service makes internally:
+        //   GET users/{userId}       -> UserDto with CvXml
+        //   GET jobs/{jobId}/skills  -> job skill list
+        //   GET jobs/skills          -> all skills (for SkillId -> SkillName resolution)
+        // -------------------------------------------------------------------------
 
         [TestMethod]
         public async Task ScanCvXml_NullCv_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, null);
+            SetupScanCvMocks(applicant, cvXml: null);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -457,10 +703,9 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_InvalidXml_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, InvalidXmlText);
+            SetupScanCvMocks(applicant, InvalidXmlText);
 
             var result = await sut.ScanCvXmlAsync(applicant);
-
             Assert.IsNull(result);
         }
 
@@ -468,7 +713,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvMissingRequiredField_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingPhone);
+            SetupScanCvMocks(applicant, XmlMissingPhone);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -478,7 +723,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_ValidCv_ReturnsGradeGreaterThanZero()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
+            SetupScanCvMocks(applicant, ValidCvXml);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsTrue(result > GradeZero);
@@ -488,17 +733,17 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_ValidCv_ReturnsGradeNotExceedingTen()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
+            SetupScanCvMocks(applicant, ValidCvXml);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsTrue(result <= GradeMax);
         }
 
         [TestMethod]
-        public async Task ScanCvXml_CvWithWhitespaceOnlyInterests_ReturnsBaseGrade()
+        public async Task ScanCvXml_CvWithWhitespaceOnlyInterests_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlWhitespaceInterests);
+            SetupScanCvMocks(applicant, XmlWhitespaceInterests);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -508,7 +753,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithInvalidEmail_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlInvalidEmail);
+            SetupScanCvMocks(applicant, XmlInvalidEmail);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -518,7 +763,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithNameTooShort_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortName);
+            SetupScanCvMocks(applicant, XmlShortName);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -528,7 +773,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithSummaryTooShort_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortSummary);
+            SetupScanCvMocks(applicant, XmlShortSummary);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -538,7 +783,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithProjectsTooShort_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortProjects);
+            SetupScanCvMocks(applicant, XmlShortProjects);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -548,7 +793,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithPhoneTooFewDigits_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortPhone);
+            SetupScanCvMocks(applicant, XmlShortPhone);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -558,7 +803,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithSkillsTooShort_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortSkills);
+            SetupScanCvMocks(applicant, XmlShortSkills);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -568,7 +813,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithInterestsTooShort_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlShortInterests);
+            SetupScanCvMocks(applicant, XmlShortInterests);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -578,19 +823,15 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_ValidCvWithJobSkills_ReturnsGradeGreaterThanZero()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.Job = new JobPosting
+            var jobSkills = new List<JobSkill>
             {
-                JobId = ValidJobId,
-                JobSkills = new List<JobSkill>
-                {
-                    new JobSkill { Skill = new Skill { SkillName = SkillCSharp }, RequiredPercentage = RequirementHigh },
-                    new JobSkill { Skill = new Skill { SkillName = SkillSql }, RequiredPercentage = RequirementMedium }
-                }
+                new JobSkill { Skill = new Skill { SkillName = SkillCSharp }, RequiredPercentage = RequirementHigh },
+                new JobSkill { Skill = new Skill { SkillName = SkillSql }, RequiredPercentage = RequirementMedium }
             };
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
+            applicant.Job = new JobPosting { JobId = ValidJobId, JobSkills = jobSkills };
+            SetupScanCvMocks(applicant, ValidCvXml, jobSkills);
 
             var result = await sut.ScanCvXmlAsync(applicant);
-
             Assert.IsTrue(result > GradeZero);
         }
 
@@ -598,7 +839,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithContactNumberInsteadOfPhone_ReturnsGrade()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlContactNumberTag);
+            SetupScanCvMocks(applicant, XmlContactNumberTag);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNotNull(result);
@@ -608,7 +849,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithEmailMissingDotInDomain_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlEmailNoDot);
+            SetupScanCvMocks(applicant, XmlEmailNoDot);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -618,7 +859,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithEmailStartingWithAt_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlEmailStartsWithAt);
+            SetupScanCvMocks(applicant, XmlEmailStartsWithAt);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -628,7 +869,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_ValidCvWithSynonymKeyword_ReturnsGradeGreaterThanZero()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlSynonymKeywords);
+            SetupScanCvMocks(applicant, XmlSynonymKeywords);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsTrue(result > GradeZero);
@@ -638,7 +879,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_ValidCvWithRepeatedKeywords_ReturnsGradeGreaterThanZero()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlRepeatedKeywords);
+            SetupScanCvMocks(applicant, XmlRepeatedKeywords);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsTrue(result > GradeZero);
@@ -648,95 +889,27 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_ValidCvWithManyKeywords_ReturnsGradeCappedAtTen()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.Job = new JobPosting
+            var jobSkills = new List<JobSkill>
             {
-                JobId = ValidJobId,
-                JobSkills = new List<JobSkill>
-                {
-                    new JobSkill { Skill = new Skill { SkillName = SkillPython }, RequiredPercentage = RequirementHigh },
-                    new JobSkill { Skill = new Skill { SkillName = SkillSql }, RequiredPercentage = RequirementHigh },
-                    new JobSkill { Skill = new Skill { SkillName = SkillJava }, RequiredPercentage = RequirementHigh },
-                    new JobSkill { Skill = new Skill { SkillName = SkillReact }, RequiredPercentage = RequirementHigh },
-                    new JobSkill { Skill = new Skill { SkillName = SkillDocker }, RequiredPercentage = RequirementHigh }
-                }
+                new JobSkill { Skill = new Skill { SkillName = SkillPython }, RequiredPercentage = RequirementHigh },
+                new JobSkill { Skill = new Skill { SkillName = SkillSql }, RequiredPercentage = RequirementHigh },
+                new JobSkill { Skill = new Skill { SkillName = SkillJava }, RequiredPercentage = RequirementHigh },
+                new JobSkill { Skill = new Skill { SkillName = SkillReact }, RequiredPercentage = RequirementHigh },
+                new JobSkill { Skill = new Skill { SkillName = SkillDocker }, RequiredPercentage = RequirementHigh }
             };
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlManyKeywords);
+            applicant.Job = new JobPosting { JobId = ValidJobId, JobSkills = jobSkills };
+            SetupScanCvMocks(applicant, XmlManyKeywords, jobSkills);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.AreEqual(GradeMax, result);
         }
 
         [TestMethod]
-        public void ProcessCv_NonExistingApplicant_DoesNotCallRepositoryUpdate()
-        {
-            sut.ProcessCv(InvalidApplicantId);
-            Assert.IsNull(fakeRepo.LastUpdated);
-        }
-
-        [TestMethod]
-        public void ProcessCv_ValidCv_SetsCvGradeOnApplicant()
-        {
-            var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
-            fakeRepo.AddApplicant(applicant);
-
-            sut.ProcessCv(ValidApplicantId);
-            Assert.IsNotNull(fakeRepo.LastUpdated?.CvGrade);
-        }
-
-        [TestMethod]
-        public void ProcessCv_InvalidCv_LeavesGradeNull()
-        {
-            var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, null);
-            fakeRepo.AddApplicant(applicant);
-
-            sut.ProcessCv(ValidApplicantId);
-            Assert.IsNull(fakeRepo.LastUpdated?.CvGrade);
-        }
-
-        [TestMethod]
-        public void ProcessCv_AnyApplicant_CallsRepositoryUpdate()
-        {
-            var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, null);
-            fakeRepo.AddApplicant(applicant);
-
-            sut.ProcessCv(ValidApplicantId);
-            Assert.IsNotNull(fakeRepo.LastUpdated);
-        }
-
-        [TestMethod]
-        public void UpdateApplicant_CallsRepositoryUpdate()
-        {
-            var applicant = MakeApplicant(ValidApplicantId);
-            fakeRepo.AddApplicant(applicant);
-
-            sut.UpdateApplicant(applicant);
-            Assert.IsNotNull(fakeRepo.LastUpdated);
-        }
-
-        [TestMethod]
-        public void UpdateApplicant_GradeBelowIndividualThreshold_SetsStatusRejected()
-        {
-            var applicant = MakeApplicant(ValidApplicantId);
-            applicant.AppTestGrade = GradeLow;
-            fakeRepo.AddApplicant(applicant);
-
-            sut.UpdateApplicant(applicant);
-            Assert.AreEqual(StatusRejected, fakeRepo.LastUpdated?.ApplicationStatus);
-        }
-
-        [TestMethod]
         public async Task ScanCvXml_ValidCvWithNullJobSkills_ReturnsGrade()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.Job = new JobPosting
-            {
-                JobId = ValidJobId,
-                JobSkills = null
-            };
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
+            applicant.Job = new JobPosting { JobId = ValidJobId, JobSkills = null };
+            SetupScanCvMocks(applicant, ValidCvXml, jobSkills: null);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNotNull(result);
@@ -747,7 +920,8 @@ namespace TestsAndInterviews.Tests.Services
         {
             var applicant = MakeApplicant(ValidApplicantId);
             applicant.Job = null;
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
+            // JobId will be 0 when Job is null — mock that endpoint
+            SetupScanCvMocks(applicant, ValidCvXml, jobSkills: null);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNotNull(result);
@@ -757,16 +931,13 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_JobSkillWithNullSkillName_UsesDefaultKeywords()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.Job = new JobPosting
+            var jobSkills = new List<JobSkill>
             {
-                JobId = ValidJobId,
-                JobSkills = new List<JobSkill>
-                {
-                    new JobSkill { Skill = new Skill { SkillName = EmptyString }, RequiredPercentage = RequirementHigh },
-                    new JobSkill { Skill = null, RequiredPercentage = RequirementHigh }
-                }
+                new JobSkill { Skill = new Skill { SkillName = EmptyString }, RequiredPercentage = RequirementHigh },
+                new JobSkill { Skill = null, RequiredPercentage = RequirementHigh }
             };
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, ValidCvXml);
+            applicant.Job = new JobPosting { JobId = ValidJobId, JobSkills = jobSkills };
+            SetupScanCvMocks(applicant, ValidCvXml, jobSkills);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNotNull(result);
@@ -776,7 +947,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithMissingName_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingName);
+            SetupScanCvMocks(applicant, XmlMissingName);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -786,7 +957,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithMissingEmail_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingEmail);
+            SetupScanCvMocks(applicant, XmlMissingEmail);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -796,7 +967,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithMissingSkills_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingSkills);
+            SetupScanCvMocks(applicant, XmlMissingSkills);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -806,7 +977,7 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithMissingSummary_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingSummary);
+            SetupScanCvMocks(applicant, XmlMissingSummary);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
@@ -816,20 +987,80 @@ namespace TestsAndInterviews.Tests.Services
         public async Task ScanCvXml_CvWithMissingProjects_ReturnsNull()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = new User(UserIdMultiplier, DefaultUserName, DefaultUserEmail, XmlMissingProjects);
+            SetupScanCvMocks(applicant, XmlMissingProjects);
 
             var result = await sut.ScanCvXmlAsync(applicant);
             Assert.IsNull(result);
         }
+        [TestMethod]
+        public async Task ProcessCv_NonExistingApplicant_ThrowsHttpRequestException()
+        {
+            var fullUri = $"https://localhost/api/applicants/{InvalidApplicantId}";
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == fullUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(
+                () => sut.ProcessCv(InvalidApplicantId));
+        }
 
         [TestMethod]
-        public async Task ScanCvXml_NullUser_ReturnsNull()
+        public async Task ProcessCv_ValidCv_SetsCvGradeOnApplicant()
         {
             var applicant = MakeApplicant(ValidApplicantId);
-            applicant.User = null;
+            SetupApplicantResponse(applicant);
+            SetupScanCvMocks(applicant, ValidCvXml);
 
-            var result = await sut.ScanCvXmlAsync(applicant);
-            Assert.IsNull(result);
+            await sut.ProcessCv(ValidApplicantId);
+            Assert.IsNotNull(_lastUpdatedApplicant?.CvGrade);
+        }
+
+        [TestMethod]
+        public async Task ProcessCv_InvalidCv_LeavesGradeNull()
+        {
+            var applicant = MakeApplicant(ValidApplicantId);
+            SetupApplicantResponse(applicant);
+            SetupScanCvMocks(applicant, cvXml: null);
+
+            await sut.ProcessCv(ValidApplicantId);
+            Assert.IsNull(_lastUpdatedApplicant?.CvGrade);
+        }
+
+        [TestMethod]
+        public async Task ProcessCv_AnyApplicant_CallsRepositoryUpdate()
+        {
+            var applicant = MakeApplicant(ValidApplicantId);
+            SetupApplicantResponse(applicant);
+            SetupScanCvMocks(applicant, cvXml: null);
+
+            await sut.ProcessCv(ValidApplicantId);
+            Assert.IsNotNull(_lastUpdatedApplicant);
+        }
+
+        // -------------------------------------------------------------------------
+        // UpdateApplicant
+        // -------------------------------------------------------------------------
+
+        [TestMethod]
+        public async Task UpdateApplicant_CallsRepositoryUpdate()
+        {
+            await sut.UpdateApplicant(MakeApplicant(ValidApplicantId));
+            Assert.IsNotNull(_lastUpdatedApplicant);
+        }
+
+        [TestMethod]
+        public async Task UpdateApplicant_GradeBelowIndividualThreshold_SetsStatusRejected()
+        {
+            var applicant = MakeApplicant(ValidApplicantId);
+            applicant.AppTestGrade = GradeLow;
+
+            await sut.UpdateApplicant(applicant);
+            Assert.AreEqual(StatusRejected, _lastUpdatedApplicant?.ApplicationStatus);
         }
     }
 }

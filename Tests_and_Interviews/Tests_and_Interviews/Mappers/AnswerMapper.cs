@@ -20,6 +20,7 @@
                 QuestionId = entity.QuestionId,
                 Value = entity.Value,
                 AttemptId = entity.AttemptId,
+                Question = entity.Question?.ToDto()
             };
         }
 
@@ -35,6 +36,7 @@
                 QuestionId = dto.QuestionId,
                 Value = dto.Value,
                 AttemptId = dto.AttemptId,
+                Question = dto.Question?.ToEntity()
             };
         }
     }

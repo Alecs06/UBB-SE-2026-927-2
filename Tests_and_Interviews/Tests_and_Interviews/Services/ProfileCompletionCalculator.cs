@@ -1,3 +1,6 @@
+// <copyright file="ProfileCompletionCalculator.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 namespace Tests_and_Interviews.Services
 {
     using System;
@@ -5,6 +8,8 @@ namespace Tests_and_Interviews.Services
     using System.ComponentModel.Design;
     using System.Linq;
     using System.Threading.Tasks;
+    using System.Net.Http;
+    using Tests_and_Interviews.Api;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
