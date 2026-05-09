@@ -212,5 +212,29 @@ namespace TestsAndInterviews.Tests.Services
             Assert.Contains("\"id\":55", _lastPayload);
             Assert.Contains("2026-04-21T12:00:00", _lastPayload);
         }
+
+        [Fact]
+        public void DefaultConstructor_InitializesHttpClient()
+        {
+            // Act
+            var service = new SlotService();
+
+            // Assert
+            var httpField = typeof(SlotService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.NotNull(httpField);
+            Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
+
+        [Fact]
+        public void ParametrizedConstructor_WithNull_InitializesWithDefault()
+        {
+            // Act
+            var service = new SlotService(null!);
+
+            // Assert
+            var httpField = typeof(SlotService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.NotNull(httpField);
+            Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
     }
 }

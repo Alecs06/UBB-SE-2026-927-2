@@ -197,5 +197,29 @@ namespace TestsAndInterviews.Tests.Services
             // Assert
             Assert.False(timerService.CheckExpiration(1));
         }
+
+        [Fact]
+        public void DefaultConstructor_InitializesHttpClient()
+        {
+            // Act
+            var service = new TimerService();
+
+            // Assert
+            var httpField = typeof(TimerService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.NotNull(httpField);
+            Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
+
+        [Fact]
+        public void ParametrizedConstructor_WithNull_InitializesWithDefault()
+        {
+            // Act
+            var service = new TimerService(null!);
+
+            // Assert
+            var httpField = typeof(TimerService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.NotNull(httpField);
+            Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
     }
 }

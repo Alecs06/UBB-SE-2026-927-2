@@ -13,11 +13,23 @@ using Tests_and_Interviews.Services.Interfaces;
 
 namespace Tests_and_Interviews.Services
 {
-    internal class UserService: IUserService
+    public class UserService: IUserService
     {
+        private readonly HttpClient http;
+
+        public UserService()
+        {
+            this.http = ApiClient.Http;
+        }
+
+        public UserService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
+        }
+
         public async Task<List<User>> GetAllAsync()
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"users");
+            HttpResponseMessage response = await this.http.GetAsync($"users");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {

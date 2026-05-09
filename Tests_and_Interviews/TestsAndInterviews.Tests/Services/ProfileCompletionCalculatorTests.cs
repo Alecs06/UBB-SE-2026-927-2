@@ -108,6 +108,7 @@ namespace TestsAndInterviews.Tests.Services
             var job = new JobPosting
             {
                 Company = company,
+                CompanyId = company.CompanyId,
                 JobSkills = new List<JobSkill>
                 {
                     new JobSkill { Skill = new Skill { SkillName = SkillCSharp }, RequiredPercentage = SkillValHigh },
@@ -133,7 +134,7 @@ namespace TestsAndInterviews.Tests.Services
         public void ApplicantsMessage_FirstApplicants_ReturnsGreatStart()
         {
             var company = CreateCompany();
-            var job = new JobPosting { Company = company };
+            var job = new JobPosting { Company = company, CompanyId = company.CompanyId };
 
             var applicant = new Applicant
             {
@@ -150,11 +151,11 @@ namespace TestsAndInterviews.Tests.Services
         public void ApplicantsMessage_MoreApplicants_ReturnsCongratsMessage()
         {
             var company = CreateCompany();
-            var job = new JobPosting { Company = company };
+            var job = new JobPosting { Company = company, CompanyId = company.CompanyId };
 
-            applicantService.UpdateApplicant(new Applicant { Job = job, AppliedAt = DateTime.Now }).Wait();
-            applicantService.UpdateApplicant(new Applicant { Job = job, AppliedAt = DateTime.Now }).Wait();
-            applicantService.UpdateApplicant(new Applicant { Job = job, AppliedAt = DateTime.Now.AddDays(OffsetPastDaysFar) }).Wait();
+            applicantService.UpdateApplicant(new Applicant { ApplicantId = 1, Job = job, AppliedAt = DateTime.Now }).Wait();
+            applicantService.UpdateApplicant(new Applicant { ApplicantId = 2, Job = job, AppliedAt = DateTime.Now }).Wait();
+            applicantService.UpdateApplicant(new Applicant { ApplicantId = 3, Job = job, AppliedAt = DateTime.Now.AddDays(OffsetPastDaysFar) }).Wait();
 
             var message = calculator.ApplicantsMessage(company.CompanyId).Result;
             Assert.IsTrue(message.Contains(MsgCongratsKeyword));
@@ -164,12 +165,12 @@ namespace TestsAndInterviews.Tests.Services
         public void ApplicantsMessage_FewerApplicants_ReturnsDecreaseMessage()
         {
             var company = CreateCompany();
-            var job = new JobPosting { Company = company };
+            var job = new JobPosting { Company = company, CompanyId = company.CompanyId };
 
-            applicantService.UpdateApplicant(new Applicant { Job = job, AppliedAt = DateTime.Now.AddDays(OffsetPastDaysFar) }).Wait();
-            applicantService.UpdateApplicant(new Applicant { Job = job, AppliedAt = DateTime.Now.AddDays(OffsetPastDaysFar) }).Wait();
-            applicantService.UpdateApplicant(new Applicant { Job = job, AppliedAt = DateTime.Now.AddDays(OffsetPastDaysFar) }).Wait();
-            applicantService.UpdateApplicant(new Applicant { Job = job, AppliedAt = DateTime.Now.AddDays(OffsetPastDaysNear) }).Wait();
+            applicantService.UpdateApplicant(new Applicant { ApplicantId = 1, Job = job, AppliedAt = DateTime.Now.AddDays(OffsetPastDaysFar) }).Wait();
+            applicantService.UpdateApplicant(new Applicant { ApplicantId = 2, Job = job, AppliedAt = DateTime.Now.AddDays(OffsetPastDaysFar) }).Wait();
+            applicantService.UpdateApplicant(new Applicant { ApplicantId = 3, Job = job, AppliedAt = DateTime.Now.AddDays(OffsetPastDaysFar) }).Wait();
+            applicantService.UpdateApplicant(new Applicant { ApplicantId = 4, Job = job, AppliedAt = DateTime.Now.AddDays(OffsetPastDaysNear) }).Wait();
 
             var message = calculator.ApplicantsMessage(company.CompanyId).Result;
             Assert.IsTrue(message.Contains(MsgDecreaseKeyword));
@@ -304,6 +305,38 @@ namespace TestsAndInterviews.Tests.Services
             var result = calculator.GetSkillsTop3Async(company.CompanyId).Result;
 
             Assert.AreEqual(0, result.skillNames.Count);
+        }
+
+        [TestMethod]
+        public void GetSkillsTop3_Sync_NoJobs_ReturnsEmptyLists()
+        {
+            var result = calculator.GetSkillsTop3(CompanyIdValue);
+            Assert.AreEqual(EmptyCount, result.skillNames.Count);
+            Assert.AreEqual(EmptyCount, result.percents.Count);
+        }
+
+        [TestMethod]
+        public void GetSkillsTop3_Sync_ReturnsTopSkills()
+        {
+            var company = CreateCompany();
+
+            var job = new JobPosting
+            {
+                Company = company,
+                CompanyId = company.CompanyId,
+                JobSkills = new List<JobSkill>
+                {
+                    new JobSkill { Skill = new Skill { SkillName = SkillCSharp }, RequiredPercentage = SkillValHigh },
+                    new JobSkill { Skill = new Skill { SkillName = SkillSql }, RequiredPercentage = SkillValMed },
+                    new JobSkill { Skill = new Skill { SkillName = SkillReact }, RequiredPercentage = SkillValLow }
+                }
+            };
+
+            jobsService.AddJobDirectly(job);
+
+            var result = calculator.GetSkillsTop3(company.CompanyId);
+            Assert.AreEqual(ExpectedTopSkillsCount, result.skillNames.Count);
+            Assert.AreEqual(SkillCSharp, result.skillNames[0]);
         }
     }
 }

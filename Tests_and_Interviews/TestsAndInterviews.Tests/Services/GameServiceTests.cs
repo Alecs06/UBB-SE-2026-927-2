@@ -51,12 +51,14 @@ namespace TestsAndInterviews.Tests.Services
         private int companyId = 1;
 
         private Game? _mockedGame;
+        private string? _mockedJson;
         private GameDto? _lastSavedDto; // Changed to GameDto because the service sends a DTO
 
         [TestInitialize]
         public void Setup()
         {
             _mockedGame = null;
+            _mockedJson = null;
             _lastSavedDto = null;
 
             _mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
@@ -68,9 +70,20 @@ namespace TestsAndInterviews.Tests.Services
                     ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get),
                     ItExpr.IsAny<CancellationToken>()
                 )
-                .ReturnsAsync(() => new HttpResponseMessage(_mockedGame != null ? HttpStatusCode.OK : HttpStatusCode.NotFound)
+                .ReturnsAsync(() =>
                 {
-                    Content = _mockedGame != null ? JsonContent.Create(MapToDto(_mockedGame)) : null
+                    if (_mockedJson != null)
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(_mockedJson)
+                        };
+                    }
+
+                    return new HttpResponseMessage(_mockedGame != null ? HttpStatusCode.OK : HttpStatusCode.NotFound)
+                    {
+                        Content = _mockedGame != null ? JsonContent.Create(MapToDto(_mockedGame)) : null
+                    };
                 });
 
             // Intercept POST/PUT requests and capture the saved DTO payload
@@ -100,6 +113,13 @@ namespace TestsAndInterviews.Tests.Services
             service = new GameService(companyId, _httpClient);
         }
 
+        [TestMethod]
+        public void Constructor_WithCompanyIdOnly_UsesDefaultHttpClient()
+        {
+            var gameService = new GameService(companyId);
+            Assert.IsNotNull(gameService);
+        }
+
         private Game CreateTestGame()
         {
             var buddy = new Buddy(DefaultBuddyId, DefaultBuddyName, DefaultBuddyIntro);
@@ -108,11 +128,13 @@ namespace TestsAndInterviews.Tests.Services
             var scenario1 = new Scenario(DefaultScenarioText);
             scenario1.AddChoice(new AdviceChoice(AdviceOne, ReactionOne));
             scenario1.AddChoice(new AdviceChoice(AdviceTwo, ReactionTwo));
+            scenario1.AddChoice(new AdviceChoice("Advice 3", "Reaction 3"));
 
-            // Scenario 2 (Added this to prevent MapGameToDto from crashing)
+            // Scenario 2
             var scenario2 = new Scenario(ScenarioTwoText);
             scenario2.AddChoice(new AdviceChoice(AltAdviceTwo, AltReactionTwo));
             scenario2.AddChoice(new AdviceChoice("Extra Advice", "Extra Reaction"));
+            scenario2.AddChoice(new AdviceChoice("Advice 6", "Reaction 6"));
 
             var scenarios = new List<Scenario> { scenario1, scenario2 };
 
@@ -138,7 +160,19 @@ namespace TestsAndInterviews.Tests.Services
                 var reactions = game.Scenarios[0].GetAdviceReactions();
                 if (texts.Count > 0) { dto.Scen1Answer1 = texts[0]; dto.Scen1Reaction1 = reactions[0]; }
                 if (texts.Count > 1) { dto.Scen1Answer2 = texts[1]; dto.Scen1Reaction2 = reactions[1]; }
+                if (texts.Count > 2) { dto.Scen1Answer3 = texts[2]; dto.Scen1Reaction3 = reactions[2]; }
             }
+
+            if (game.Scenarios.Count > 1)
+            {
+                dto.Scen2Text = game.Scenarios[1].Description;
+                var texts = game.Scenarios[1].GetAdviceTexts();
+                var reactions = game.Scenarios[1].GetAdviceReactions();
+                if (texts.Count > 0) { dto.Scen2Answer1 = texts[0]; dto.Scen2Reaction1 = reactions[0]; }
+                if (texts.Count > 1) { dto.Scen2Answer2 = texts[1]; dto.Scen2Reaction2 = reactions[1]; }
+                if (texts.Count > 2) { dto.Scen2Answer3 = texts[2]; dto.Scen2Reaction3 = reactions[2]; }
+            }
+
             return dto;
         }
 
@@ -158,7 +192,40 @@ namespace TestsAndInterviews.Tests.Services
             Assert.AreEqual(DefaultBuddyId, id);
         }
 
+        [TestMethod]
+        public async Task Save_Success()
+        {
+            _mockedGame = CreateTestGame();
+            await service.Save(_mockedGame);
 
+            Assert.IsNotNull(_lastSavedDto);
+            Assert.AreEqual(_mockedGame.Buddy.Name, _lastSavedDto.BuddyName);
+            Assert.AreEqual(_mockedGame.Scenarios[0].Description, _lastSavedDto.Scen1Text);
+            Assert.AreEqual(_mockedGame.Scenarios[1].Description, _lastSavedDto.Scen2Text);
+            Assert.AreEqual(_mockedGame.Scenarios[1].GetAdviceTexts()[2], _lastSavedDto.Scen2Answer3);
+
+            _mockHandler.Protected().Verify(
+                "SendAsync",
+                Times.Once(),
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Put && req.RequestUri.ToString().Contains("/game")),
+                ItExpr.IsAny<CancellationToken>());
+        }
+
+        [TestMethod]
+        public async Task LoadedGame_WithTwoScenariosAndThreeChoices_HitsAllMappingLines()
+        {
+            // Arrange
+            _mockedGame = CreateTestGame(); // 2 scenarios, 3 choices each
+
+            // Act
+            var game = await service.LoadedGame();
+
+            // Assert
+            Assert.AreEqual(2, game.Scenarios.Count);
+            Assert.AreEqual(3, game.GetScenario(1).AdviceChoices.Count);
+            Assert.AreEqual(ScenarioTwoText, game.GetScenario(1).Description);
+            Assert.AreEqual("Advice 6", game.GetScenario(1).AdviceChoices[2].Advice);
+        }
 
         [TestMethod]
         public async Task Save_NullGame_ThrowsException() // Changed to async Task
@@ -166,6 +233,47 @@ namespace TestsAndInterviews.Tests.Services
             Game game = null!;
             Func<Task> action = async () => await service.Save(game); // Using Func<Task>
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(action); // Awaited correctly
+        }
+
+        [TestMethod]
+        public async Task LoadedGame_NullDto_ThrowsInvalidOperationException()
+        {
+            _mockedJson = "null";
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => service.LoadedGame());
+        }
+
+        [TestMethod]
+        public async Task LoadedGame_EmptyScenarios_ReturnsGameWithNoScenarios()
+        {
+            var dto = new GameDto
+            {
+                AvatarId = 0,
+                BuddyName = "Buddy",
+                Scen1Text = "", // Empty
+                Scen2Text = null // Null
+            };
+            _mockedJson = System.Text.Json.JsonSerializer.Serialize(dto);
+
+            var game = await service.LoadedGame();
+            Assert.AreEqual(0, game.Scenarios.Count);
+        }
+
+        [TestMethod]
+        public async Task GetStoredGame_ApiReturnsNull_ReturnsNewGame()
+        {
+            _mockedJson = "null";
+            var result = await service.GetStoredGame();
+            Assert.IsNotNull(result);
+            Assert.AreEqual(0, result.Scenarios.Count);
+        }
+
+        [TestMethod]
+        public async Task GetStoredGame_NotFound_ReturnsNewGame()
+        {
+            _mockedGame = null;
+            var result = await service.GetStoredGame();
+            Assert.IsNotNull(result);
+            Assert.AreEqual(0, result.Scenarios.Count);
         }
 
         [TestMethod]
@@ -245,8 +353,6 @@ namespace TestsAndInterviews.Tests.Services
             service.UnpublishGame(game);
             Assert.IsFalse(game.IsPublished);
         }
-
-        
 
         [TestMethod]
         public async Task IsPublished_NoGame_ReturnsFalse()

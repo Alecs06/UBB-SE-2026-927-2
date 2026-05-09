@@ -210,7 +210,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<List<Test>> FindTestsByCategoryAsync(string category)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"tests/bycategory/{category}");
+            HttpResponseMessage response = await this.http.GetAsync($"tests/bycategory/{category}");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -224,7 +224,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<Test> FindByIdAsync(int id)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"tests/{id}");
+            HttpResponseMessage response = await this.http.GetAsync($"tests/{id}");
             response.EnsureSuccessStatusCode();
             TestDto? testDto = await response.Content.ReadFromJsonAsync<TestDto>();
             return testDto!.ToEntity();

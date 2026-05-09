@@ -13,11 +13,23 @@ using Tests_and_Interviews.Services.Interfaces;
 
 namespace Tests_and_Interviews.Services
 {
-    internal class JobsService: IJobsService
+    public class JobsService: IJobsService
     {
+        private readonly HttpClient http;
+
+        public JobsService()
+        {
+            this.http = ApiClient.Http;
+        }
+
+        public JobsService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
+        }
+
         public async Task<List<JobPosting>> GetAllJobsAsync()
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"jobs");
+            HttpResponseMessage response = await this.http.GetAsync($"jobs");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -32,7 +44,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<List<Skill>> GetAllSkillsAsync()
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"jobs/skills");
+            HttpResponseMessage response = await this.http.GetAsync($"jobs/skills");
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -63,7 +75,7 @@ namespace Tests_and_Interviews.Services
                 }).ToList()
             };
 
-            HttpResponseMessage response = await ApiClient.Http.PostAsJsonAsync($"jobs", content);
+            HttpResponseMessage response = await this.http.PostAsJsonAsync($"jobs", content);
             response.EnsureSuccessStatusCode();
             int jobId = await response.Content.ReadFromJsonAsync<int>();
             return jobId;

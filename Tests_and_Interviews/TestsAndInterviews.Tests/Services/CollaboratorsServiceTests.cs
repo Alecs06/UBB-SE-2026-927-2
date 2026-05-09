@@ -213,5 +213,17 @@ namespace TestsAndInterviews.Tests.Services
 
             Assert.AreEqual(SingleCompanyName, result[0].Name);
         }
+
+        [TestMethod]
+        public void DefaultConstructor_InitializesHttpClient()
+        {
+            // Act
+            var service = new CollaboratorsService();
+
+            // Assert
+            var httpField = typeof(CollaboratorsService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.IsNotNull(httpField, "Field 'http' not found");
+            Assert.AreSame(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
     }
 }

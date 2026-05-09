@@ -218,5 +218,17 @@ namespace TestsAndInterviews.Tests.Services
                     req.RequestUri!.ToString().EndsWith("interviewsessions")),
                 ItExpr.IsAny<CancellationToken>());
         }
+
+        [Fact]
+        public void DefaultConstructor_InitializesHttpClient()
+        {
+            // Act
+            var service = new BookingService();
+
+            // Assert
+            var httpField = typeof(BookingService).GetField("http", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Xunit.Assert.NotNull(httpField);
+            Xunit.Assert.Same(Tests_and_Interviews.Api.ApiClient.Http, httpField.GetValue(service));
+        }
     }
 }
