@@ -90,20 +90,4 @@ namespace Tests_and_Interviews.Views
             await dialog.ShowAsync();
         }
     }
-
-    public class EmptyStringToPendingConverter : Microsoft.UI.Xaml.Data.IValueConverter
-    {
-        private const string FallbackPendingString = "Pending";
-
-        public object Convert(object value, Type targetType, object parameter, string language)
-        {
-            var stringValue = value as string;
-            return string.IsNullOrWhiteSpace(stringValue) ? FallbackPendingString : stringValue;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, string language)
-        {
-            throw new NotImplementedException();
-        }
-    }
 }
