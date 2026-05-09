@@ -31,7 +31,7 @@
             }
         }
 
-        [HttpGet("/recruiter/{recruiterId}")]
+        [HttpGet("recruiter/{recruiterId}")]
         public async Task<ActionResult<List<SlotDto>>> GetAllByRecruiter(int recruiterId)
         {
             List<Slot> slots = await this._service.GetAllSlotsAsync(recruiterId);
@@ -39,7 +39,7 @@
             return Ok(slots.Select(slot => slot.ToDto()).ToList());
         }
 
-        [HttpGet("/recruiter/{recruiterId}/date")]
+        [HttpGet("recruiter/{recruiterId}/date")]
         public async Task<ActionResult<List<SlotDto>>> GetByRecruiter(int recruiterId, [FromQuery] DateTime date)
         {
             List<Slot> slots = await this._service.GetSlotsAsync(recruiterId, date);
