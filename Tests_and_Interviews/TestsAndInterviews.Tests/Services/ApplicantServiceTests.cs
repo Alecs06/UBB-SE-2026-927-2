@@ -1062,5 +1062,82 @@ namespace TestsAndInterviews.Tests.Services
             await sut.UpdateApplicant(applicant);
             Assert.AreEqual(StatusRejected, _lastUpdatedApplicant?.ApplicationStatus);
         }
+
+        [TestMethod]
+        public async Task RemoveApplicant_ValidId_SendsDeleteRequest()
+        {
+            await sut.RemoveApplicant(ValidApplicantId);
+            Assert.AreEqual(ValidApplicantId, _lastRemovedId);
+        }
+
+        [TestMethod]
+        public async Task RemoveApplicant_NonExistingId_ThrowsHttpRequestException()
+        {
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Delete &&
+                        req.RequestUri!.ToString().EndsWith(InvalidApplicantId.ToString())),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(
+                () => sut.RemoveApplicant(InvalidApplicantId));
+        }
+
+        [TestMethod]
+        public async Task GetApplicantsForJob_EmptyJob_ReturnsEmptyList()
+        {
+            var job = new JobPosting { JobId = ValidJobId };
+            SetupApplicantsForJobResponse(ValidJobId, new List<Applicant>());
+
+            var result = await sut.GetApplicantsForJob(job);
+
+            Assert.AreEqual(0, result.Count());
+        }
+
+        [TestMethod]
+        public async Task GetApplicantsForJob_JobNotFound_ReturnsEmptyList()
+        {
+            var job = new JobPosting { JobId = ValidJobId };
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString().Contains($"byjob/{ValidJobId}")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            var result = await sut.GetApplicantsForJob(job);
+
+            Assert.AreEqual(0, result.Count());
+        }
+
+        [TestMethod]
+        public async Task ProcessCv_CvIsNull_LeavesGradeNull()
+        {
+            var applicant = MakeApplicant(ValidApplicantId);
+            SetupApplicantResponse(applicant);
+
+            var userUri = $"https://localhost/api/users/{applicant.UserId}";
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == userUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(new { CvXml = (string)null })
+                });
+
+            await sut.ProcessCv(applicant.ApplicantId);
+
+            Assert.IsNull(_lastUpdatedApplicant?.CvGrade);
+        }
     }
 }

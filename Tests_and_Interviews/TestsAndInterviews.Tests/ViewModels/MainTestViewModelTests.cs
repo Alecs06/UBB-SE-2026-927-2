@@ -12,19 +12,19 @@ namespace TestsAndInterviews.Tests.ViewModels
     using Xunit;
 
     using Tests_and_Interviews.Models.Core;
-    using Tests_and_Interviews.Repositories.Interfaces;
+    using Tests_and_Interviews.Services.Interfaces;
     using Tests_and_Interviews.ViewModels;
 
     public class MainTestViewModelTests
     {
-        private readonly Mock<ITestRepository> mockTestRepository;
+        private readonly Mock<ITestService> mockTestService;
 
         public MainTestViewModelTests()
         {
-            this.mockTestRepository = new Mock<ITestRepository>();
+            this.mockTestService = new Mock<ITestService>();
 
-            this.mockTestRepository
-                .Setup(testRepository => testRepository.FindTestsByCategoryAsync(It.IsAny<string>()))
+            this.mockTestService
+                .Setup(testService => testService.FindTestsByCategoryAsync(It.IsAny<string>()))
                 .ReturnsAsync(new List<Test>());
         }
 
@@ -45,8 +45,8 @@ namespace TestsAndInterviews.Tests.ViewModels
                 },
             };
 
-            this.mockTestRepository
-                .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Programming"))
+            this.mockTestService
+                .Setup(testService => testService.FindTestsByCategoryAsync("Programming"))
                 .ReturnsAsync(tests);
 
             var viewModel = this.CreateViewModel();
@@ -72,8 +72,8 @@ namespace TestsAndInterviews.Tests.ViewModels
                 },
             };
 
-            this.mockTestRepository
-                .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Programming"))
+            this.mockTestService
+                .Setup(testService => testService.FindTestsByCategoryAsync("Programming"))
                 .ReturnsAsync(tests);
 
             var viewModel = this.CreateViewModel();
@@ -117,8 +117,8 @@ namespace TestsAndInterviews.Tests.ViewModels
                 },
             };
 
-            this.mockTestRepository
-                .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Programming"))
+            this.mockTestService
+                .Setup(testService => testService.FindTestsByCategoryAsync("Programming"))
                 .ReturnsAsync(tests);
 
             var viewModel = this.CreateViewModel();
@@ -152,8 +152,8 @@ namespace TestsAndInterviews.Tests.ViewModels
                 },
             };
 
-            this.mockTestRepository
-                .Setup(testRepository => testRepository.FindTestsByCategoryAsync("Programming"))
+            this.mockTestService
+                .Setup(testService => testService.FindTestsByCategoryAsync("Programming"))
                 .ReturnsAsync(tests);
 
             var viewModel = this.CreateViewModel();
@@ -234,7 +234,7 @@ namespace TestsAndInterviews.Tests.ViewModels
 
         private MainTestViewModel CreateViewModel()
         {
-            return new MainTestViewModel(this.mockTestRepository.Object);
+            return new MainTestViewModel(this.mockTestService.Object);
         }
     }
 }

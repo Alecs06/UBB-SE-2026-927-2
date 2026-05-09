@@ -192,9 +192,9 @@ namespace Tests_and_Interviews.ViewModels
             await this.EditGame.LoadStoredGame();
         }
 
-        private Company ToCompany(int postedJobsCount, int collaboratorsCount)
+        private Company ToCompany(int postedJobsCount, int collaboratorsCount, Company? existingCompany = null)
         {
-            return new Company(
+            var company = new Company(
                 name: this.Name,
                 aboutUs: this.AboutUs,
                 pfpUrl: this.ProfilePicturePath,
@@ -204,6 +204,31 @@ namespace Tests_and_Interviews.ViewModels
                 companyId: this.CompanyId,
                 postedJobsCount: postedJobsCount,
                 collaboratorsCount: collaboratorsCount);
+
+            // Preserve all other properties from the existing company to avoid data loss
+            if (existingCompany != null)
+            {
+                company.BuddyName = existingCompany.BuddyName;
+                company.AvatarId = existingCompany.AvatarId;
+                company.FinalQuote = existingCompany.FinalQuote;
+                company.BuddyDescription = existingCompany.BuddyDescription;
+                company.Scen1Text = existingCompany.Scen1Text;
+                company.Scen1Answer1 = existingCompany.Scen1Answer1;
+                company.Scen1Answer2 = existingCompany.Scen1Answer2;
+                company.Scen1Answer3 = existingCompany.Scen1Answer3;
+                company.Scen1Reaction1 = existingCompany.Scen1Reaction1;
+                company.Scen1Reaction2 = existingCompany.Scen1Reaction2;
+                company.Scen1Reaction3 = existingCompany.Scen1Reaction3;
+                company.Scen2Text = existingCompany.Scen2Text;
+                company.Scen2Answer1 = existingCompany.Scen2Answer1;
+                company.Scen2Answer2 = existingCompany.Scen2Answer2;
+                company.Scen2Answer3 = existingCompany.Scen2Answer3;
+                company.Scen2Reaction1 = existingCompany.Scen2Reaction1;
+                company.Scen2Reaction2 = existingCompany.Scen2Reaction2;
+                company.Scen2Reaction3 = existingCompany.Scen2Reaction3;
+            }
+
+            return company;
         }
 
         /// <summary>
@@ -243,7 +268,7 @@ namespace Tests_and_Interviews.ViewModels
                     conclusion: EditGame.Conclusion ?? string.Empty,
                     publish: true);
 
-                Company updatedCompany = ToCompany(existingPostedJobsCount, existingCollaboratorsCount);
+                Company updatedCompany = ToCompany(existingPostedJobsCount, existingCollaboratorsCount, existingCompany);
                 updatedCompany.Collaborators = collaboratorsCopy;
                 updatedCompany.Game = newGame;
 
