@@ -17,8 +17,6 @@ namespace Tests_and_Interviews.ViewModels
     using Tests_and_Interviews.Helpers;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Models.Core;
-    using Tests_and_Interviews.Repositories;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services;
     using Tests_and_Interviews.Services.Interfaces;
     using Tests_and_Interviews.Views;
@@ -32,9 +30,8 @@ namespace Tests_and_Interviews.ViewModels
         private const int VISIBLEDAYSCOUNT = 3;
 
         private readonly IBookingService bookingService;
-        private readonly IInterviewSessionRepository interviewSessionRepository;
+        private readonly IInterviewSessionService interviewSessionService;
         private readonly INotificationService notificationService;
-        private readonly ISlotRepository slotRepository;
 
         private List<Slot> availableSlots;
         private List<Slot> availableDays;
@@ -52,17 +49,15 @@ namespace Tests_and_Interviews.ViewModels
         /// <param name="bookingService">The booking service.</param>
         /// <param name="interviewSessionRepository">The interview session repository.</param>
         /// <param name="notificationService">The notification service.</param>
-        /// <param name="slotRepository">The slot repository.</param>
         public CandidateViewModel(
             IBookingService bookingService,
-            IInterviewSessionRepository interviewSessionRepository,
-            INotificationService notificationService,
-            ISlotRepository slotRepository)
+            IInterviewSessionService interviewSessionService,
+            INotificationService notificationService
+            )
         {
             this.bookingService = bookingService;
-            this.interviewSessionRepository = interviewSessionRepository;
+            this.interviewSessionService = interviewSessionService;
             this.notificationService = notificationService;
-            this.slotRepository = slotRepository;
 
             this.availableSlots = new List<Slot>();
             this.availableDays = new List<Slot>();
@@ -91,9 +86,9 @@ namespace Tests_and_Interviews.ViewModels
         public CandidateViewModel()
             : this(
                 new BookingService(),
-                new InterviewSessionRepository(),
-                new NotificationService(new WindowsToastNotifier()),
-                new SlotRepository())
+                new InterviewSessionService(),
+                new NotificationService(new WindowsToastNotifier())
+                  )
         {
         }
 
@@ -309,7 +304,7 @@ namespace Tests_and_Interviews.ViewModels
             this.InterviewSessions = new ObservableCollection<InterviewSession>();
             try
             {
-                var sessions = await this.interviewSessionRepository.GetScheduledSessionsAsync();
+                var sessions = await this.interviewSessionService.GetScheduledSessionsAsync();
 
                 foreach (var session in sessions)
                 {
@@ -425,10 +420,10 @@ namespace Tests_and_Interviews.ViewModels
 
             try
             {
-                var connectedInterviewSession = await this.interviewSessionRepository.GetInterviewSessionByIdAsync(session.Id);
+                var connectedInterviewSession = await this.interviewSessionService.GetSessionAsync(session.Id);
                 if (connectedInterviewSession != null)
                 {
-                    this.interviewSessionRepository.Delete(connectedInterviewSession);
+                    await this.interviewSessionService.DeleteSessionAsync(connectedInterviewSession.Id);
                 }
 
                 await this.LoadInterviewSessionsAsync();

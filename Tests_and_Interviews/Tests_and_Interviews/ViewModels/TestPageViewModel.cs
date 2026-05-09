@@ -15,7 +15,6 @@ namespace Tests_and_Interviews.ViewModels
     using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Helpers;
     using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
@@ -23,11 +22,8 @@ namespace Tests_and_Interviews.ViewModels
     /// </summary>
     public class TestPageViewModel : INotifyPropertyChanged
     {
-        private readonly IUserRepository userRepository;
-        private readonly ITestRepository testRepository;
-        private readonly IQuestionRepository questionRepository;
-        private readonly ITestAttemptRepository attemptRepository;
-        private readonly IAnswerRepository answerRepository;
+        private readonly IUserService userService;
+        private readonly IQuestionService questionService;
         private readonly ITestService testService;
         private readonly IDataProcessingService dataProcessingService;
         private string testTitle = string.Empty;
@@ -40,27 +36,21 @@ namespace Tests_and_Interviews.ViewModels
         /// Initializes a new instance of the <see cref="TestPageViewModel"/> class.
         /// This constructor sets up the necessary repositories and services for managing the test data and logic.
         /// </summary>
-        /// <param name="userRepository">The repository for managing users in the database.</param>
+        /// <param name="userService">The repository for managing users in the database.</param>
         /// <param name="testRepository">The repository for managing tests in the database.</param>
-        /// <param name="questionRepository">The repository for managing questions in the database.</param>
+        /// <param name="questionService">The repository for managing questions in the database.</param>
         /// <param name="attemptRepository">The repository for managing test attempts in the database.</param>
         /// <param name="answerRepository">The repository for managing answers in the database.</param>
         /// <param name="testService">The service for handling test-related business logic, such as starting and submitting tests.</param>
         /// <param name="dataProcessingService">The service for processing finalized test attempts, such as calculating scores and generating reports.</param>
         public TestPageViewModel(
-            IUserRepository userRepository,
-            ITestRepository testRepository,
-            IQuestionRepository questionRepository,
-            ITestAttemptRepository attemptRepository,
-            IAnswerRepository answerRepository,
+            IUserService userService,
+            IQuestionService questionService,
             ITestService testService,
             IDataProcessingService dataProcessingService)
         {
-            this.userRepository = userRepository;
-            this.testRepository = testRepository;
-            this.questionRepository = questionRepository;
-            this.attemptRepository = attemptRepository;
-            this.answerRepository = answerRepository;
+            this.userService = userService;
+            this.questionService = questionService;
             this.testService = testService;
             this.dataProcessingService = dataProcessingService;
         }
@@ -151,14 +141,14 @@ namespace Tests_and_Interviews.ViewModels
             }
             else
             {
-                var users = await this.userRepository.GetAllAsync();
+                var users = await this.userService.GetAllAsync();
                 var user = users.FirstOrDefault(user => user.Name == "Alice Johnson");
                 this.UserId = user?.Id ?? 0;
             }
 
             System.Diagnostics.Debug.WriteLine($"[TestPageViewModel] UserId = {this.UserId}");
 
-            var test = await this.testRepository.FindByIdAsync(testId);
+            var test = await this.testService.FindByIdAsync(testId);
             if (test == null)
             {
                 return;
@@ -180,7 +170,7 @@ namespace Tests_and_Interviews.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[StartTest error] {exception.InnerException?.Message ?? exception.Message}");
             }
 
-            var questions = await this.questionRepository.FindByTestIdAsync(testId);
+            var questions = await this.questionService.FindByTestIdAsync(testId);
 
             int indexQuestion = 1;
             foreach (var question in questions)

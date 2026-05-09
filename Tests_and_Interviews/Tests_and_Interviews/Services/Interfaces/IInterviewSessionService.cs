@@ -42,5 +42,10 @@ namespace Tests_and_Interviews.Services.Interfaces
         /// <param name="sessionId">The ID of the interview session.</param>
         /// <returns>The interview session corresponding to the specified ID.</returns>
         Task<InterviewSession> GetSessionAsync(int sessionId);
+
+        Task<List<InterviewSession>> GetScheduledSessionsAsync();
+
+        Task DeleteSessionAsync(int sessionId);
+        Task<List<InterviewSession>> GetSessionsByStatusAsync(string status);
     }
 }

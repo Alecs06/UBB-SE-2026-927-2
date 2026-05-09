@@ -6,8 +6,7 @@ namespace Tests_and_Interviews.ViewModels
     using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using Microsoft.UI.Xaml;
-    using Tests_and_Interviews.Repositories;
-    using Tests_and_Interviews.Repositories.Interfaces;
+    using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
     /// MainTestViewModel represents the view model for the main test listing page in the application.
@@ -17,7 +16,7 @@ namespace Tests_and_Interviews.ViewModels
     /// </summary>
     public partial class MainTestViewModel : INotifyPropertyChanged
     {
-        private readonly ITestRepository testRepository;
+        private readonly ITestService testService;
         private bool isLoading = false;
         private TestCardViewModel? selectedTest;
 
@@ -25,10 +24,10 @@ namespace Tests_and_Interviews.ViewModels
         /// Initializes a new instance of the <see cref="MainTestViewModel"/> class.
         /// MainTestViewModel constructor initializes a new instance of the MainTestViewModel class and sets up the necessary dependencies, such as the TestRepository.
         /// </summary>
-        /// <param name="testRepository">An instance of the ITestRepository interface used to interact with the data source for loading tests.</param>
-        public MainTestViewModel(ITestRepository testRepository)
+        /// <param name="testService">An instance of the ITestRepository interface used to interact with the data source for loading tests.</param>
+        public MainTestViewModel(ITestService testService)
         {
-            this.testRepository = testRepository;
+            this.testService = testService;
         }
 
         /// <summary>
@@ -101,7 +100,7 @@ namespace Tests_and_Interviews.ViewModels
 
             foreach (var category in categories)
             {
-                var tests = await this.testRepository.FindTestsByCategoryAsync(category);
+                var tests = await this.testService.FindTestsByCategoryAsync(category);
 
                 foreach (var test in tests)
                 {

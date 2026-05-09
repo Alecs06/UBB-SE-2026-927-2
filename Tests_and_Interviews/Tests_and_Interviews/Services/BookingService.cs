@@ -52,6 +52,12 @@ namespace Tests_and_Interviews.Services
         public async Task<List<Slot>> GetAvailableSlots(int recruiterId, DateTime date)
         {
             HttpResponseMessage response = await this.http.GetAsync($"recruiter/{recruiterId}/date?date={date:O}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<Slot>();
+            }
+
             response.EnsureSuccessStatusCode();
             List<SlotDto>? dtos = await response.Content.ReadFromJsonAsync<List<SlotDto>>();
             return dtos?
@@ -69,6 +75,12 @@ namespace Tests_and_Interviews.Services
         public async Task<List<Slot>> GetAvailableSlotsByRecruiterId(int recruiterId)
         {
             HttpResponseMessage response = await this.http.GetAsync($"recruiter/{recruiterId}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<Slot>();
+            }
+
             response.EnsureSuccessStatusCode();
             List<SlotDto>? dtos = await response.Content.ReadFromJsonAsync<List<SlotDto>>();
             return dtos?

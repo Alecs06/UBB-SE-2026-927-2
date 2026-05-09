@@ -76,6 +76,12 @@ namespace Tests_and_Interviews.Services
         {
             await this.RecalculateLeaderboardAsync(testId);
             HttpResponseMessage response = await this.http.GetAsync($"leaderboard/bytest/{testId}/top/3");
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<LeaderboardEntry>();
+
+            }
+
             response.EnsureSuccessStatusCode();
             List<LeaderboardEntryDto>? dtos = await response.Content.ReadFromJsonAsync<List<LeaderboardEntryDto>>();
             return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<LeaderboardEntry>();
@@ -99,6 +105,12 @@ namespace Tests_and_Interviews.Services
         {
             await this.RecalculateLeaderboardAsync(testId);
             HttpResponseMessage response = await this.http.GetAsync($"leaderboard/bytest/{testId}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<LeaderboardEntry>();
+            }
+
             response.EnsureSuccessStatusCode();
             List<LeaderboardEntryDto>? dtos = await response.Content.ReadFromJsonAsync<List<LeaderboardEntryDto>>();
             return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<LeaderboardEntry>();

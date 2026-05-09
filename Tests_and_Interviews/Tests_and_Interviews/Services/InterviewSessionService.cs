@@ -18,6 +18,7 @@ namespace Tests_and_Interviews.Services
     using Tests_and_Interviews.Services.Interfaces;
     using Windows.Storage;
     using Windows.Storage.Streams;
+    using static System.Collections.Specialized.BitVector32;
 
     /// <summary>
     /// Handles all business logic related to interview sessions.
@@ -125,6 +126,40 @@ namespace Tests_and_Interviews.Services
                 $"interviewsessions/{session.Id}",
                 session.ToDto());
             response.EnsureSuccessStatusCode();
+        }
+
+        public async Task<List<InterviewSession>> GetScheduledSessionsAsync()
+        {
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"interviewsessions/scheduled");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<InterviewSession>();
+            }
+
+            response.EnsureSuccessStatusCode();
+            List<InterviewSessionDto>? sessionsDto = await response.Content.ReadFromJsonAsync<List<InterviewSessionDto>>();
+            return sessionsDto!.Select(session => session.ToEntity()).ToList();
+        }
+
+        public async Task DeleteSessionAsync(int sessionId)
+        {
+            HttpResponseMessage response = await ApiClient.Http.DeleteAsync($"interviewsessions/{sessionId}");
+            response.EnsureSuccessStatusCode();
+        }
+
+        public async Task<List<InterviewSession>> GetSessionsByStatusAsync(string status)
+        {
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"interviewsessions/status/{status}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<InterviewSession>();
+            }
+
+            response.EnsureSuccessStatusCode();
+            List<InterviewSessionDto>? sessionsDto = await response.Content.ReadFromJsonAsync<List<InterviewSessionDto>>();
+            return sessionsDto!.Select(session => session.ToEntity()).ToList();
         }
     }
 }

@@ -26,11 +26,8 @@ namespace Tests_and_Interviews.Views
         public TestPage()
         {
             this.InitializeComponent();
-            var attemptRepository = new TestAttemptRepository();
-            var answerRepository = new AnswerRepository();
-            var testRepository = new TestRepository();
-            var userRepository = new UserRepository();
-            var questionRepository = new QuestionRepository();
+            var userService = new UserService();
+            var questionService = new QuestionService();
             var gradingService = new GradingService();
             var timerService = new TimerService();
             var validationService = new AttemptValidationService();
@@ -38,7 +35,7 @@ namespace Tests_and_Interviews.Views
             var testService = new TestService(gradingService, timerService, validationService, dataProcessingService);
             var leaderboardService = new LeaderboardService();
             this.LeaderboardViewModel = new LeaderboardViewModel(leaderboardService);
-            this.ViewModel = new TestPageViewModel(userRepository, testRepository, questionRepository, attemptRepository, answerRepository, testService, dataProcessingService);
+            this.ViewModel = new TestPageViewModel(userService, questionService, testService, dataProcessingService);
         }
 
         /// <summary>

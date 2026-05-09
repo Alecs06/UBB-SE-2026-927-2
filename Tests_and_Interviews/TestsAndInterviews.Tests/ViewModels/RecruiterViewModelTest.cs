@@ -17,6 +17,7 @@ namespace TestsAndInterviews.Tests.ViewModels
     using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services;
     using Tests_and_Interviews.ViewModels;
+    using Tests_and_Interviews.Services.Interfaces;
 
     public class RecruiterViewModelTests
     {

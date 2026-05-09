@@ -3,8 +3,6 @@ namespace Tests_and_Interviews
     using Microsoft.UI.Xaml;
     using Microsoft.UI.Xaml.Controls;
     using Tests_and_Interviews.Models;
-    using Tests_and_Interviews.Repositories;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services;
     using Tests_and_Interviews.Services.Interfaces;
     using Tests_and_Interviews.Validators;
@@ -24,9 +22,7 @@ namespace Tests_and_Interviews
 
         public ICollaboratorsService CollabsService { get; }
 
-        public IJobsRepository JobsRepository { get; }
-
-        public IApplicantRepository ApplicantsRepository { get; }
+        public IJobsService JobsService { get; }
 
         public IApplicantService ApplicantService { get; }
 
@@ -44,29 +40,24 @@ namespace Tests_and_Interviews
 
         public MainWindow()
         {
-            ICompanyRepo companyRepository = new CompanyRepo();
             this.CompanyService = new CompanyService();
             this.GameService = new GameService(DefaultCompanyId);
 
-            ICollaboratorsRepo collaboratorsRepository = new CollaboratorsRepo();
             this.CollabsService = new CollaboratorsService();
 
             Company defaultCompany = new Company("ndj", "dnis", "dnjs", "hdjd", "sybau", "dj@");
 
             this.InitializeComponent();
 
-            IEventsRepo eventsRepository = new EventsRepo();
             this.EventsService = new EventsService();
             this.SessionService = new SessionService(defaultCompany);
-            this.JobsRepository = new JobsRepository();
-            this.ApplicantsRepository = new ApplicantRepository();
+            this.JobsService = new JobsService();
             this.ApplicantService = new ApplicantService();
             this.CompanyValidator = new CompanyValidator();
             this.EventValidator = new EventValidator();
             this.PaymentValidator = new PaymentValidator();
             this.GameValidator = new GameValidator();
 
-            IPaymentRepository paymentRepository = new PaymentRepository();
             this.PaymentService = new PaymentService(this.PaymentValidator);
         }
 

@@ -11,8 +11,6 @@ namespace Tests_and_Interviews.ViewModels
     using System.Diagnostics.CodeAnalysis;
     using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
-    using Tests_and_Interviews.Repositories;
-    using Tests_and_Interviews.Repositories.Interfaces;
 
     /// <summary>
     /// TestCardViewModel represents the data and state for a single test card in the UI.

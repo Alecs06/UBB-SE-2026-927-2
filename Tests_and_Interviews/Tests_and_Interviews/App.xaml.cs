@@ -4,7 +4,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Tests_and_Interviews.Data;
-using Tests_and_Interviews.Repositories;
+using Tests_and_Interviews.Services;
 using Tests_and_Interviews.Views;
 
 namespace Tests_and_Interviews
@@ -23,13 +23,13 @@ namespace Tests_and_Interviews
         {
             InitializeComponent();
 
-            var userRepo = new UserRepository();
+            var userService = new UserService();
             using var context = new AppDbContext();
             bool canConnect = context.Database.CanConnect();
 
             try
             {
-                var users = Task.Run(() => userRepo.GetAllAsync()).Result;
+                var users = Task.Run(() => userService.GetAllAsync()).Result;
                 var alice = users.FirstOrDefault(u => u.Name == "Alice Johnson");
 
                 CurrentUserId = alice?.Id ?? 0;

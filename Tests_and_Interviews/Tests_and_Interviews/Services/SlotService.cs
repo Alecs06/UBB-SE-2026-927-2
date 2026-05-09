@@ -15,6 +15,7 @@ namespace Tests_and_Interviews.Services
     using Tests_and_Interviews.Mappers;
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Models.Enums;
+    using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
     /// Provides operations for managing recruiter slots, including retrieval and creation of slots.
@@ -47,9 +48,16 @@ namespace Tests_and_Interviews.Services
         public async Task<List<SlotDto>> LoadRecruiterVisibleSlotsAsync(int recruitedId, DateTime date)
         {
             HttpResponseMessage response = await this.http.GetAsync($"recruiter/{recruitedId}/date?date={date:O}");
-            response.EnsureSuccessStatusCode();
-            List<SlotDto>? dtos = await response.Content.ReadFromJsonAsync<List<SlotDto>>();
-            List<Slot> existing = dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Slot>();
+
+
+            List<Slot> existing = new List<Slot>();
+
+            if (response.IsSuccessStatusCode)
+            {
+                response.EnsureSuccessStatusCode();
+                List<SlotDto>? dtos = await response.Content.ReadFromJsonAsync<List<SlotDto>>();
+                existing = dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Slot>();
+            }
 
             var visibleSlots = new List<Slot>();
             var currentTime = date.AddHours(8);

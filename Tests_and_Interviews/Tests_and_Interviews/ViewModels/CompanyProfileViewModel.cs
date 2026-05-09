@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Tests_and_Interviews.Models;
-using Tests_and_Interviews.Repositories.Interfaces;
 using Tests_and_Interviews.Services;
 using Tests_and_Interviews.Services.Interfaces;
 using Tests_and_Interviews.Validators;
@@ -95,7 +94,7 @@ public partial class CompanyProfileViewModel : ObservableObject
     private readonly ICompanyService companyService;
     private readonly IGameService gameService;
     private readonly IEventsService eventsService;
-    private readonly IJobsRepository jobsRepository;
+    private readonly IJobsService jobsService;
     private readonly SessionService sessionService;
     private readonly ICollaboratorsService collaboratorsService;
     private readonly IProfileCompletionCalculator calculator;
@@ -215,8 +214,8 @@ public partial class CompanyProfileViewModel : ObservableObject
     /// Gets the top 3 previews of jobs posted by the company.
     /// </summary>
     public IEnumerable<CompanyProfileListRow> Top3JobPreviews =>
-        this.jobsRepository
-            .GetAllJobs()
+        this.jobsService
+            .GetAllJobsAsync().Result
             .Take(MaximumTopJobsCount)
             .Select(job => new CompanyProfileListRow
             {
@@ -283,7 +282,7 @@ public partial class CompanyProfileViewModel : ObservableObject
     /// <param name="eventService">The events service.</param>
     /// <param name="sessionService">The current session service.</param>
     /// <param name="collaboratorsService">The collaborators service.</param>
-    /// <param name="jobsRepository">The jobs repository.</param>
+    /// <param name="jobsService">The jobs repository.</param>
     public CompanyProfileViewModel(
         ICompanyService companyService,
         IProfileCompletionCalculator calculator,
@@ -291,7 +290,7 @@ public partial class CompanyProfileViewModel : ObservableObject
         IEventsService eventService,
         SessionService sessionService,
         ICollaboratorsService collaboratorsService,
-        IJobsRepository jobsRepository)
+        IJobsService jobsService)
     {
         this.gameService = gameService;
         this.companyService = companyService;
@@ -299,7 +298,7 @@ public partial class CompanyProfileViewModel : ObservableObject
         this.eventsService = eventService;
         this.sessionService = sessionService;
         this.collaboratorsService = collaboratorsService;
-        this.jobsRepository = jobsRepository;
+        this.jobsService = jobsService;
     }
 
     /// <summary>
@@ -319,7 +318,7 @@ public partial class CompanyProfileViewModel : ObservableObject
             return;
         }
 
-        this.ApplicantSummary = this.calculator.ApplicantsMessage(companyId);
+        this.ApplicantSummary = await this.calculator.ApplicantsMessage(companyId);
 
         this.LoadMessage = string.Empty;
         this.RefreshProfileStatistics();

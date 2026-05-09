@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Tests_and_Interviews.Services;
 using Tests_and_Interviews_API.Data;
+using Tests_and_Interviews_API.Helpers;
+using Tests_and_Interviews_API.Mappers;
 using Tests_and_Interviews_API.Repositories;
 using Tests_and_Interviews_API.Repositories.Interfaces;
 using Tests_and_Interviews_API.Services;
@@ -9,36 +12,43 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddDbContext<AppDbContext>();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(Env.CONNECTION_STRING));
 
-builder.Services.AddScoped<ITestRepository, TestRepository>();
-builder.Services.AddScoped<IInterviewSessionRepository, InterviewSessionRepository>();
-builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
-builder.Services.AddScoped<ISlotRepository, SlotRepository>();
 builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
 builder.Services.AddScoped<IApplicantRepository, ApplicantRepository>();
 builder.Services.AddScoped<ICollaboratorsRepo, CollaboratorsRepo>();
 builder.Services.AddScoped<ICompanyRepo, CompanyRepo>();
 builder.Services.AddScoped<IEventsRepo, EventsRepo>();
+builder.Services.AddScoped<IInterviewSessionRepository, InterviewSessionRepository>();
 builder.Services.AddScoped<IJobsRepository, JobsRepository>();
 builder.Services.AddScoped<ILeaderboardRepository, LeaderboardRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+builder.Services.AddScoped<ISlotRepository, SlotRepository>();
 builder.Services.AddScoped<ITestAttemptRepository, TestAttemptRepository>();
+builder.Services.AddScoped<ITestRepository, TestRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
-builder.Services.AddScoped<ITestService, TestService>();
-builder.Services.AddScoped<IInterviewSessionService, InterviewSessionService>();
-builder.Services.AddScoped<IQuestionService, QuestionService>();
-builder.Services.AddScoped<ISlotService, SlotService>();
 builder.Services.AddScoped<IAnswerService, AnswerService>();
 builder.Services.AddScoped<IApplicantService, ApplicantService>();
+builder.Services.AddScoped<IAttemptValidationService, AttemptValidationService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<ICollaboratorsService, CollaboratorsService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
+builder.Services.AddScoped<IDataProcessingService, DataProcessingService>();
 builder.Services.AddScoped<IEventsService, EventsService>();
+builder.Services.AddScoped<IGameService, GameService>();
+builder.Services.AddScoped<IGradingService, GradingService>();
+builder.Services.AddScoped<IInterviewSessionService, InterviewSessionService>();
 builder.Services.AddScoped<IJobsService, JobsService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IProfileCompletionCalculator, ProfileCompletionCalculator>();
+builder.Services.AddScoped<ISlotService, SlotService>();
 builder.Services.AddScoped<ITestAttemptService, TestAttemptService>();
+builder.Services.AddScoped<ITestService, TestService>();
+builder.Services.AddScoped<ITimerService, TimerService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddControllers();

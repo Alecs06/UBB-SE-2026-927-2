@@ -124,6 +124,12 @@ namespace Tests_and_Interviews.Services
         public async Task<ObservableCollection<Event>> GetCurrentEvents(int loggedInUserID)
         {
             HttpResponseMessage response = await this.http.GetAsync($"events/current/{loggedInUserID}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new ObservableCollection<Event>(new List<Event>());
+            }
+
             response.EnsureSuccessStatusCode();
             List<EventDto>? dtos = await response.Content.ReadFromJsonAsync<List<EventDto>>();
             return new ObservableCollection<Event>(
@@ -137,6 +143,12 @@ namespace Tests_and_Interviews.Services
         public async Task<ObservableCollection<Event>> GetPastEvents(int loggedInUserID)
         {
             HttpResponseMessage response = await this.http.GetAsync($"events/past/{loggedInUserID}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new ObservableCollection<Event>(new List<Event>());
+            }
+
             response.EnsureSuccessStatusCode();
             List<EventDto>? dtos = await response.Content.ReadFromJsonAsync<List<EventDto>>();
             return new ObservableCollection<Event>(

@@ -204,5 +204,27 @@ namespace Tests_and_Interviews.Services
             TestAttemptDto? finalDto = await finalResponse.Content.ReadFromJsonAsync<TestAttemptDto>();
             return finalDto != null ? (float)(finalDto.ToEntity().Score ?? 0m) : 0f;
         }
+
+        public async Task<List<Test>> FindTestsByCategoryAsync(string category)
+        {
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"tests/bycategory/{category}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<Test>();
+            }
+
+            response.EnsureSuccessStatusCode();
+            List<TestDto>? testsDto = await response.Content.ReadFromJsonAsync<List<TestDto>>();
+            return testsDto!.Select(session => session.ToEntity()).ToList();
+        }
+
+        public async Task<Test> FindByIdAsync(int id)
+        {
+            HttpResponseMessage response = await ApiClient.Http.GetAsync($"tests/{id}");
+            response.EnsureSuccessStatusCode();
+            TestDto? testDto = await response.Content.ReadFromJsonAsync<TestDto>();
+            return testDto!.ToEntity();
+        }
     }
 }

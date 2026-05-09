@@ -5,11 +5,12 @@ namespace Tests_and_Interviews.ViewModels
     using System.Collections.ObjectModel;
     using System.Globalization;
     using System.Linq;
+    using System.Threading.Tasks;
     using CommunityToolkit.Mvvm.ComponentModel;
     using CommunityToolkit.Mvvm.Input;
     using Tests_and_Interviews.Models;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services;
+    using Tests_and_Interviews.Services.Interfaces;
 
     public partial class SkillPickItem : ObservableObject
     {
@@ -36,22 +37,32 @@ namespace Tests_and_Interviews.ViewModels
 
     public partial class CreateJobViewModel : ObservableObject
     {
-        private readonly IJobsRepository jobsRepository;
+        private readonly IJobsService jobsService;
         private readonly SessionService sessionService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CreateJobViewModel"/> class.
         /// </summary>
-        /// <param name="jobsRepository">The jobs repository.</param>
+        /// <param name="jobsService">The jobs repository.</param>
         /// <param name="sessionService">The session service.</param>
-        public CreateJobViewModel(IJobsRepository jobsRepository, SessionService sessionService)
+        public CreateJobViewModel(IJobsService jobsService, SessionService sessionService)
         {
-            this.jobsRepository = jobsRepository;
+            this.jobsService = jobsService;
             this.sessionService = sessionService;
 
-            foreach (var skillItem in this.jobsRepository.GetAllSkills())
+            //foreach (var skillItem in await this.jobsService.GetAllSkillsAsync())
+            //{
+            //    this.SkillRows.Add(new SkillPickItem(skillItem));
+            //}
+        }
+
+        public async Task InitializeAsync()
+        {
+            var skills = await this.jobsService.GetAllSkillsAsync();
+
+            foreach (var skillitem in skills)
             {
-                this.SkillRows.Add(new SkillPickItem(skillItem));
+                this.SkillRows.Add(new SkillPickItem(skillitem));
             }
         }
 
@@ -226,7 +237,7 @@ namespace Tests_and_Interviews.ViewModels
 
             try
             {
-                var newId = this.jobsRepository.AddJob(job, companyId, links);
+                var newId = this.jobsService.AddJob(job, companyId, links);
                 this.OnSaveCompleted?.Invoke(true, $"Job created with id {newId}.");
             }
             catch (Exception ex)

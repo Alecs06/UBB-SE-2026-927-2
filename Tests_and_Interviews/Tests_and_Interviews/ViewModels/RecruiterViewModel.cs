@@ -12,9 +12,8 @@
     using Tests_and_Interviews.Models;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Models.Enums;
-    using Tests_and_Interviews.Repositories;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services;
+    using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
     /// Represents the view model for recruiters, providing properties and methods to manage interview slots and pending
@@ -25,7 +24,7 @@
     public class RecruiterViewModel : INotifyPropertyChanged
     {
         private readonly ISlotService slotService;
-        private readonly IInterviewSessionRepository sessionRepository;
+        private readonly IInterviewSessionService sessionService;
 
         private int currentRecruiterId = Env.RECRUITER_ID;
         private ObservableCollection<SlotDto> slots = [];
@@ -36,11 +35,11 @@
         /// Initializes a new instance of the <see cref="RecruiterViewModel"/> class.
         /// </summary>
         /// <param name="slotService">The service used to manage interview slots.</param>
-        /// <param name="sessionRepository">The repository used to manage interview sessions.</param>
-        public RecruiterViewModel(ISlotService slotService, IInterviewSessionRepository sessionRepository)
+        /// <param name="sessionService">The repository used to manage interview sessions.</param>
+        public RecruiterViewModel(ISlotService slotService, IInterviewSessionService sessionService)
         {
             this.slotService = slotService;
-            this.sessionRepository = sessionRepository;
+            this.sessionService = sessionService;
             _ = this.InitializeDataAsync();
         }
 
@@ -52,7 +51,7 @@
         public RecruiterViewModel(ISlotService slotService)
         {
             this.slotService = slotService;
-            this.sessionRepository = new InterviewSessionRepository();
+            this.sessionService = new InterviewSessionService();
 
             _ = this.InitializeDataAsync();
         }
@@ -125,7 +124,7 @@
         {
             try
             {
-                var list = await this.sessionRepository.GetSessionsByStatusAsync(InterviewStatus.InProgress.ToString());
+                var list = await this.sessionService.GetSessionsByStatusAsync(InterviewStatus.InProgress.ToString());
                 this.PendingReviews = new ObservableCollection<InterviewSession>(list);
             }
             catch

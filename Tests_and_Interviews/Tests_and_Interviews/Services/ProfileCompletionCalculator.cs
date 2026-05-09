@@ -7,6 +7,7 @@ namespace Tests_and_Interviews.Services
     using System.Collections.Generic;
     using System.ComponentModel.Design;
     using System.Linq;
+    using System.Threading.Tasks;
     using System.Net.Http;
     using Tests_and_Interviews.Api;
     using Tests_and_Interviews.Models;
@@ -45,22 +46,15 @@ namespace Tests_and_Interviews.Services
         private const string MessageMoreApplicantsPrefix = "Congrats! You have ";
         private const string MessageMoreApplicantsSuffix = "% more applicants than last week.";
 
-        private readonly HttpClient http;
-        private readonly IJobsRepository jobsRepository;
-        private readonly IApplicantRepository applicantRepository;
+        private readonly IJobsService jobsService;
+        private readonly IApplicantService applicantService;
+        //private readonly IJobsRepository jobsRepository;
+        //private readonly IApplicantRepository applicantRepository;
 
-        public ProfileCompletionCalculator(IJobsRepository jobsRepository, IApplicantRepository applicantRepository)
+        public ProfileCompletionCalculator(IJobsService jobsService, IApplicantService applicantService)
         {
-            this.jobsRepository = jobsRepository;
-            this.applicantRepository = applicantRepository;
-            this.http = ApiClient.Http;
-        }
-
-        public ProfileCompletionCalculator(IJobsRepository jobsRepository, IApplicantRepository applicantRepository, HttpClient httpClient)
-        {
-            this.jobsRepository = jobsRepository;
-            this.applicantRepository = applicantRepository;
-            this.http = httpClient ?? ApiClient.Http;
+            this.jobsService = jobsService;
+            this.applicantService = applicantService;
         }
 
         public (int percentage, List<string> remainingTasks) Calculate(Company company)
@@ -119,8 +113,8 @@ namespace Tests_and_Interviews.Services
 
         public (List<string> skillNames, List<int> percents) GetSkillsTop3(int companyId)
         {
-            var companyJobsList = jobsRepository
-                .GetAllJobs()
+            var companyJobsList = jobsService
+                .GetAllJobsAsync().Result
                 .Where(job => job.Company != null && job.Company.CompanyId == companyId)
                 .ToList();
 
@@ -169,9 +163,9 @@ namespace Tests_and_Interviews.Services
             return (topSkillNamesList, topSkillPercentagesList);
         }
 
-        public string ApplicantsMessage(int companyId)
+        public async Task<string> ApplicantsMessage(int companyId)
         {
-            var companyApplicantsList = applicantRepository.GetApplicantsByCompany(companyId);
+            var companyApplicantsList = await applicantService.GetApplicantsByCompany(companyId);
 
             int currentWeekApplicantsCount = companyApplicantsList
                 .Count(applicant => applicant.AppliedAt >= DateTime.Now.AddDays(DaysToLookBack));
