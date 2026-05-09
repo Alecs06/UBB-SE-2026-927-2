@@ -5,6 +5,7 @@ namespace Tests_and_Interviews.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Net.Http;
     using System.Net.Http.Json;
@@ -150,6 +151,7 @@ namespace Tests_and_Interviews.Services
             if (number < 0 || number >= game.Scenarios.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(number), "Scenario index is out of bounds.");
+                //return string.Empty();
             }
             return game.Scenarios[number].Description;
         }

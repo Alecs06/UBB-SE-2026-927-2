@@ -1,4 +1,6 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Tests_and_Interviews.Models;
 using Tests_and_Interviews.Services;
@@ -25,7 +27,17 @@ namespace Tests_and_Interviews.ViewModels
             this.eventsService = eventsService;
             this.sessionService = sessionService;
 
-            PastEventsCollection = this.eventsService.GetPastEvents(this.sessionService.LoggedInUser.CompanyId).Result;
+            PastEventsCollection = new ObservableCollection<Event>();
+        }
+
+        public async Task LoadPastEventsAsync()
+        {
+            PastEventsCollection.Clear();
+            var events = await this.eventsService.GetPastEvents(this.sessionService.LoggedInUser.CompanyId);
+            foreach (var @event in events)
+            {
+                PastEventsCollection.Add(@event);
+            }
         }
     }
 }

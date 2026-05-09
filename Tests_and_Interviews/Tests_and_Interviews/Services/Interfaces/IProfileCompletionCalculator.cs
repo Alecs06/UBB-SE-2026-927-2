@@ -10,6 +10,8 @@ namespace Tests_and_Interviews.Services.Interfaces
 
         (List<string> skillNames, List<int> percents) GetSkillsTop3(int companyId);
 
+        Task<(List<string> skillNames, List<int> percents)> GetSkillsTop3Async(int companyId);
+
         Task<string> ApplicantsMessage(int companyId);
     }
 }

@@ -50,10 +50,16 @@
         [HttpPost()]
         public async Task<ActionResult<SlotDto>> Create([FromBody] SlotDto dto)
         {
-
-            Slot created = await this._service.AddSlotAsync(dto.ToEntity());
-
-            return Ok(created);
+            try
+            {
+                Slot created = await this._service.AddSlotAsync(dto.ToEntity());
+                return Ok(created);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+            
         }
 
         [HttpPut("{id}")]
@@ -62,9 +68,8 @@
             try
             {
                 Slot updated = await this._service.UpdateSlotAsync(id, dto.ToEntity());
-
                 return Ok(updated);
-            } catch (KeyNotFoundException e)
+            } catch (Exception e)
             {
                 return NotFound(e.Message);
             }

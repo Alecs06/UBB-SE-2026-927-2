@@ -36,6 +36,12 @@ namespace Tests_and_Interviews.Views
             this.DataContext = ViewModel;
         }
 
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+            await ViewModel.LoadPastEventsAsync();
+        }
+
         private void NavigateBack_Click(object sender, RoutedEventArgs e)
         {
             var mainWindow = App.MainWindow;

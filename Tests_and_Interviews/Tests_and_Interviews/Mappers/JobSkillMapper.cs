@@ -20,6 +20,7 @@
                 SkillId = entity.SkillId,
                 JobId = entity.JobId,
                 RequiredPercentage = entity.RequiredPercentage,
+                SkillDto = entity.Skill != null ? entity.Skill.ToDto() : null,
             };
         }
 
@@ -35,6 +36,7 @@
                 SkillId = dto.SkillId,
                 JobId = dto.JobId,
                 RequiredPercentage = dto.RequiredPercentage,
+                Skill = dto.SkillDto != null ? dto.SkillDto.ToEntity() : null,
             };
         }
     }

@@ -29,15 +29,21 @@ public sealed partial class OurEventsPage : Page
     /// <summary>
     /// Our events page constructor that initializes its view model
     /// </summary>
-    public OurEventsPage()
-    {
-        var mainWindow = App.MainWindow;
-        InitializeComponent();
-        ViewModel = new OurEventsViewModel(mainWindow.EventsService, mainWindow.SessionService);
-        this.DataContext = ViewModel;
-    }
+public OurEventsPage()
+{
+    var mainWindow = App.MainWindow;
+    InitializeComponent();
+    ViewModel = new OurEventsViewModel(mainWindow.EventsService, mainWindow.SessionService);
+    this.DataContext = ViewModel;
+}
 
-    private void NavigateBack_Click(object sender, RoutedEventArgs e)
+protected override async void OnNavigatedTo(NavigationEventArgs e)
+{
+    base.OnNavigatedTo(e);
+    await ViewModel.LoadEventsAsync();
+}
+
+private void NavigateBack_Click(object sender, RoutedEventArgs e)
     {
         var mainWindow = App.MainWindow;
         mainWindow.RootFrame.Navigate(typeof(ViewProfilePage));

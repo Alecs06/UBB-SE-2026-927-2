@@ -170,6 +170,25 @@ namespace Tests_and_Interviews.ViewModels
             this.Location = existingCompany.Location ?? string.Empty;
             this.Email = existingCompany.Email ?? string.Empty;
 
+            // Set file names to display in UI - these are just display values
+            if (!string.IsNullOrWhiteSpace(existingCompany.ProfilePicturePath))
+            {
+                this.PhotoFileName = "(profile picture set)";
+            }
+            else
+            {
+                this.PhotoFileName = DefaultPhotoFileName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(existingCompany.CompanyLogoPath))
+            {
+                this.LogoFileName = "(logo set)";
+            }
+            else
+            {
+                this.LogoFileName = DefaultPhotoFileName;
+            }
+
             await this.EditGame.LoadStoredGame();
         }
 

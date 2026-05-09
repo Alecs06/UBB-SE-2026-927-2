@@ -47,6 +47,11 @@ public sealed partial class CreateJobPage : Page
         }
     }
 
+    private async void SaveButton_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.SaveJobAsync();
+    }
+
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
         if (Frame.CanGoBack)
