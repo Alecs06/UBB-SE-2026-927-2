@@ -19,11 +19,23 @@ namespace Tests_and_Interviews.Services
 
     public class EventsService : IEventsService
     {
+        private readonly HttpClient http;
+
         /// <summary>
         /// Events service constructor
         /// </summary>
         public EventsService()
         {
+            this.http = ApiClient.Http;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EventsService"/> class.
+        /// </summary>
+        /// <param name="httpClient">The HTTP client to use for requests.</param>
+        public EventsService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <summary>
@@ -41,7 +53,7 @@ namespace Tests_and_Interviews.Services
             Event eventToBeAdded = new Event(eventPhoto, eventTitle, eventDescription,
                 eventStartDate, eventEndDate, eventLocation, hostId);
 
-            HttpResponseMessage eventResponse = await ApiClient.Http.PostAsJsonAsync(
+            HttpResponseMessage eventResponse = await this.http.PostAsJsonAsync(
                 "events",
                 eventToBeAdded.ToDto());
             eventResponse.EnsureSuccessStatusCode();
@@ -57,7 +69,7 @@ namespace Tests_and_Interviews.Services
                         EventId = createdEvent.Id,
                         CompanyId = company.CompanyId,
                     };
-                    HttpResponseMessage collaboratorResponse = await ApiClient.Http.PostAsJsonAsync(
+                    HttpResponseMessage collaboratorResponse = await this.http.PostAsJsonAsync(
                         $"collaborators?loggedInUserID={hostId}",
                         collaboratorDto);
                     collaboratorResponse.EnsureSuccessStatusCode();
@@ -89,7 +101,7 @@ namespace Tests_and_Interviews.Services
                 EndDate = newEventEndDate,
                 Location = newEventLocation,
             };
-            HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+            HttpResponseMessage response = await this.http.PutAsJsonAsync(
                 $"events/{eventIdToBeUpdated}",
                 dto);
             response.EnsureSuccessStatusCode();
@@ -101,7 +113,7 @@ namespace Tests_and_Interviews.Services
         /// <param name="eventToBeRemoved"> event selected to be removed </param>
         public async Task DeleteEvent(Event eventToBeRemoved)
         {
-            HttpResponseMessage response = await ApiClient.Http.DeleteAsync($"events/{eventToBeRemoved.Id}");
+            HttpResponseMessage response = await this.http.DeleteAsync($"events/{eventToBeRemoved.Id}");
             response.EnsureSuccessStatusCode();
         }
 
@@ -111,7 +123,7 @@ namespace Tests_and_Interviews.Services
         /// <returns> ObservableCollection of the current events </returns>
         public async Task<ObservableCollection<Event>> GetCurrentEvents(int loggedInUserID)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"events/current/{loggedInUserID}");
+            HttpResponseMessage response = await this.http.GetAsync($"events/current/{loggedInUserID}");
             response.EnsureSuccessStatusCode();
             List<EventDto>? dtos = await response.Content.ReadFromJsonAsync<List<EventDto>>();
             return new ObservableCollection<Event>(
@@ -124,7 +136,7 @@ namespace Tests_and_Interviews.Services
         /// <returns> ObservableCollection of the past events </returns>
         public async Task<ObservableCollection<Event>> GetPastEvents(int loggedInUserID)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"events/past/{loggedInUserID}");
+            HttpResponseMessage response = await this.http.GetAsync($"events/past/{loggedInUserID}");
             response.EnsureSuccessStatusCode();
             List<EventDto>? dtos = await response.Content.ReadFromJsonAsync<List<EventDto>>();
             return new ObservableCollection<Event>(

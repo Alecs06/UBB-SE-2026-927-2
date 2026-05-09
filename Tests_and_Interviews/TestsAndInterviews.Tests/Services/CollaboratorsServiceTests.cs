@@ -1,16 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Tests_and_Interviews.Models;
-using Tests_and_Interviews.Repositories;
-using Tests_and_Interviews.Helpers;
-using Tests_and_Interviews.Services;
-using Tests_and_Interviews.Repositories.Interfaces;
-using TestsAndInterviews.Tests.Helpers;
-using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+﻿// <copyright file="CollaboratorsServiceTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace TestsAndInterviews.Tests.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Moq;
+    using Moq.Protected;
+    using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Models;
+    using Tests_and_Interviews.Services;
+    using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+
     [TestClass]
     public class CollaboratorsServiceTests
     {
@@ -41,14 +50,48 @@ namespace TestsAndInterviews.Tests.Services
         private const int CountZero = 0;
         private const int CountTwo = 2;
 
-        private FakeCollaboratorsRepo fakeCollaboratorsRepo = null!;
+        private Mock<HttpMessageHandler> _mockHandler = null!;
+        private HttpClient _httpClient = null!;
         private CollaboratorsService collaboratorsService = null!;
+
+        // Used to capture data sent in POST requests
+        private CollaboratorDto? _lastPostedDto;
+        private string? _lastPostUri;
 
         [TestInitialize]
         public void Setup()
         {
-            fakeCollaboratorsRepo = new FakeCollaboratorsRepo();
-            collaboratorsService = new CollaboratorsService();
+            _lastPostedDto = null;
+            _lastPostUri = null;
+
+            _mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+            // Intercept POST requests to capture the URI and the CollaboratorDto payload
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    _lastPostUri = req.RequestUri?.ToString();
+                    if (req.Content != null)
+                    {
+                        var json = req.Content.ReadAsStringAsync().Result;
+                        _lastPostedDto = System.Text.Json.JsonSerializer.Deserialize<CollaboratorDto>(
+                            json,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            _httpClient = new HttpClient(_mockHandler.Object)
+            {
+                BaseAddress = new Uri("https://localhost/api/")
+            };
+
+            collaboratorsService = new CollaboratorsService(_httpClient);
         }
 
         private static Event MakeEvent()
@@ -69,81 +112,77 @@ namespace TestsAndInterviews.Tests.Services
             return new Company(DefaultCompanyName, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, DefaultCompanyId);
         }
 
+        private void SetupGetCollaboratorsResponse(int companyId, List<CompanyDto> dtos)
+        {
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString().Contains($"collaborators/{companyId}")),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(dtos)
+                });
+        }
+
         [TestMethod]
-        public void AddCollaborator_ValidInputs_AddCollaboratorToRepo()
+        public async Task AddCollaborator_ValidInputs_SendsPostRequest()
         {
             Event eventToCollaborateOn = MakeEvent();
             Company companyToAdd = MakeCompany();
 
-            collaboratorsService.AddCollaborator(eventToCollaborateOn, companyToAdd, DefaultId);
+            await collaboratorsService.AddCollaborator(eventToCollaborateOn, companyToAdd, DefaultId);
 
-            Assert.IsNotNull(fakeCollaboratorsRepo.ReceivedEvent);
+            Assert.IsNotNull(_lastPostedDto);
+            Assert.IsTrue(_lastPostUri!.Contains("collaborators"));
         }
 
         [TestMethod]
-        public void AddCollaborator_ValidInputs_RepoReceivesCorrectEvent()
-        {
-            Event eventToCollaborateOn = MakeEvent();
-            Company companyToAdd = MakeCompany();
-
-            collaboratorsService.AddCollaborator(eventToCollaborateOn, companyToAdd, DefaultId);
-
-            Assert.AreEqual(eventToCollaborateOn, fakeCollaboratorsRepo.ReceivedEvent);
-        }
-
-        [TestMethod]
-        public void AddCollaborator_ValidInputs_RepoReceivesCorrectCompany()
-        {
-            Event eventToCollaborateOn = MakeEvent();
-            Company companyToAdd = MakeCompany();
-
-            collaboratorsService.AddCollaborator(eventToCollaborateOn, companyToAdd, DefaultId);
-
-            Assert.AreEqual(companyToAdd, fakeCollaboratorsRepo.ReceivedCompany);
-        }
-
-        [TestMethod]
-        public void AddCollaborator_ValidInputs_RepoReceivesCorrectLoggedInUserId()
-        {
-            Event eventToCollaborateOn = MakeEvent();
-            Company companyToAdd = MakeCompany();
-
-            collaboratorsService.AddCollaborator(eventToCollaborateOn, companyToAdd, ExpectedUserId);
-
-            Assert.AreEqual(ExpectedUserId, fakeCollaboratorsRepo.ReceivedLoggedInUserId);
-        }
-
-        [TestMethod]
-        public void AddCollaborator_ValidInputs_RepoReceivesEventWithCorrectId()
+        public async Task AddCollaborator_ValidInputs_SendsCorrectEventId()
         {
             Event eventToCollaborateOn = MakeEvent();
             eventToCollaborateOn.Id = AltEventId;
             Company companyToAdd = MakeCompany();
 
-            collaboratorsService.AddCollaborator(eventToCollaborateOn, companyToAdd, DefaultId);
+            await collaboratorsService.AddCollaborator(eventToCollaborateOn, companyToAdd, DefaultId);
 
-            Assert.AreEqual(AltEventId, fakeCollaboratorsRepo.ReceivedEvent?.Id);
+            Assert.AreEqual(AltEventId, _lastPostedDto?.EventId);
         }
 
         [TestMethod]
-        public void AddCollaborator_ValidInputs_RepoReceivesCompanyWithCorrectId()
+        public async Task AddCollaborator_ValidInputs_SendsCorrectCompanyId()
         {
             Event eventToCollaborateOn = MakeEvent();
             Company companyToAdd = new Company(AltCompanyName, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, AltCompanyId);
 
-            collaboratorsService.AddCollaborator(eventToCollaborateOn, companyToAdd, DefaultId);
+            await collaboratorsService.AddCollaborator(eventToCollaborateOn, companyToAdd, DefaultId);
 
-            Assert.AreEqual(AltCompanyId, fakeCollaboratorsRepo.ReceivedCompany?.CompanyId);
+            Assert.AreEqual(AltCompanyId, _lastPostedDto?.CompanyId);
         }
 
         [TestMethod]
-        public async Task GetAllCollaborators_RepoReturnsTwoCompanies_ServiceReturnsTwoCompanies()
+        public async Task AddCollaborator_ValidInputs_SendsCorrectLoggedInUserIdInUri()
         {
-            fakeCollaboratorsRepo.CollaboratorsToReturn = new List<Company>
+            Event eventToCollaborateOn = MakeEvent();
+            Company companyToAdd = MakeCompany();
+
+            await collaboratorsService.AddCollaborator(eventToCollaborateOn, companyToAdd, ExpectedUserId);
+
+            Assert.IsTrue(_lastPostUri!.Contains($"loggedInUserID={ExpectedUserId}"));
+        }
+
+        [TestMethod]
+        public async Task GetAllCollaborators_ApiReturnsTwoCompanies_ServiceReturnsTwoCompanies()
+        {
+            var dtos = new List<CompanyDto>
             {
-                new Company(Company1Name, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, Company1Id),
-                new Company(Company2Name, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, Company2Id)
+                new CompanyDto { CompanyId = Company1Id, Name = Company1Name },
+                new CompanyDto { CompanyId = Company2Id, Name = Company2Name }
             };
+            SetupGetCollaboratorsResponse(DefaultId, dtos);
 
             List<Company> result = await collaboratorsService.GetAllCollaborators(DefaultId);
 
@@ -151,21 +190,24 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public async Task GetAllCollaborators_RepoReturnsEmptyList_ServiceReturnsEmptyList()
+        public async Task GetAllCollaborators_ApiReturnsEmptyList_ServiceReturnsEmptyList()
         {
-            fakeCollaboratorsRepo.CollaboratorsToReturn = new List<Company>();
+            var dtos = new List<CompanyDto>();
+            SetupGetCollaboratorsResponse(DefaultId, dtos);
 
             List<Company> result = await collaboratorsService.GetAllCollaborators(DefaultId);
+
             Assert.AreEqual(CountZero, result.Count);
         }
 
         [TestMethod]
-        public async Task GetAllCollaborators_RepoReturnsOneCompany_ServiceReturnsCorrectCompanyName()
+        public async Task GetAllCollaborators_ApiReturnsOneCompany_ServiceReturnsCorrectCompanyName()
         {
-            fakeCollaboratorsRepo.CollaboratorsToReturn = new List<Company>
+            var dtos = new List<CompanyDto>
             {
-                new Company(SingleCompanyName, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, DefaultId)
+                new CompanyDto { CompanyId = DefaultId, Name = SingleCompanyName }
             };
+            SetupGetCollaboratorsResponse(DefaultId, dtos);
 
             List<Company> result = await collaboratorsService.GetAllCollaborators(DefaultId);
 

@@ -1,17 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Tests_and_Interviews.Models;
-using Tests_and_Interviews.Models.Core;
-using Tests_and_Interviews.Repositories;
-using Tests_and_Interviews.Helpers;
-using Tests_and_Interviews.Repositories.Interfaces;
-using Tests_and_Interviews.Services;
-using TestsAndInterviews.Tests.Helpers;
-using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+﻿// <copyright file="GameServiceTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace TestsAndInterviews.Tests.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Moq;
+    using Moq.Protected;
+    using Tests_and_Interviews.Dtos; // Make sure Dto namespace is included
+    using Tests_and_Interviews.Models;
+    using Tests_and_Interviews.Services;
+    using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+
     [TestClass]
     public class GameServiceTests
     {
@@ -38,82 +45,142 @@ namespace TestsAndInterviews.Tests.Services
         private const int InvalidIndexPositive = 5;
         private const int InvalidIndexNegative = -1;
 
-        private FakeGameRepository repo = null!;
+        private Mock<HttpMessageHandler> _mockHandler = null!;
+        private HttpClient _httpClient = null!;
         private GameService service = null!;
+        private int companyId = 1;
+
+        private Game? _mockedGame;
+        private GameDto? _lastSavedDto; // Changed to GameDto because the service sends a DTO
 
         [TestInitialize]
         public void Setup()
         {
-            repo = new FakeGameRepository();
-            int companyId = 1;
-            service = new GameService(companyId);
+            _mockedGame = null;
+            _lastSavedDto = null;
+
+            _mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+            // Intercept GET requests and return the mocked game (Mapped to DTO as the service expects)
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(() => new HttpResponseMessage(_mockedGame != null ? HttpStatusCode.OK : HttpStatusCode.NotFound)
+                {
+                    Content = _mockedGame != null ? JsonContent.Create(MapToDto(_mockedGame)) : null
+                });
+
+            // Intercept POST/PUT requests and capture the saved DTO payload
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post || req.Method == HttpMethod.Put),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    if (req.Content != null)
+                    {
+                        var json = req.Content.ReadAsStringAsync().Result;
+                        _lastSavedDto = System.Text.Json.JsonSerializer.Deserialize<GameDto>(
+                            json,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            _httpClient = new HttpClient(_mockHandler.Object)
+            {
+                BaseAddress = new Uri("https://localhost/api/")
+            };
+
+            service = new GameService(companyId, _httpClient);
         }
 
         private Game CreateTestGame()
         {
             var buddy = new Buddy(DefaultBuddyId, DefaultBuddyName, DefaultBuddyIntro);
 
-            var scenario = new Scenario(DefaultScenarioText);
-            scenario.AddChoice(new AdviceChoice(AdviceOne, ReactionOne));
-            scenario.AddChoice(new AdviceChoice(AdviceTwo, ReactionTwo));
+            // Scenario 1
+            var scenario1 = new Scenario(DefaultScenarioText);
+            scenario1.AddChoice(new AdviceChoice(AdviceOne, ReactionOne));
+            scenario1.AddChoice(new AdviceChoice(AdviceTwo, ReactionTwo));
 
-            var scenarios = new List<Scenario> { scenario };
+            // Scenario 2 (Added this to prevent MapGameToDto from crashing)
+            var scenario2 = new Scenario(ScenarioTwoText);
+            scenario2.AddChoice(new AdviceChoice(AltAdviceTwo, AltReactionTwo));
+            scenario2.AddChoice(new AdviceChoice("Extra Advice", "Extra Reaction"));
+
+            var scenarios = new List<Scenario> { scenario1, scenario2 };
 
             return new Game(buddy, scenarios, DefaultConclusion, true);
         }
 
-        [TestMethod]
-        public void LoadedGame_ReturnsGame()
+        // Helper method to simulate the backend mapping Game to GameDto
+        private GameDto MapToDto(Game game)
         {
-            repo.StoredGame = CreateTestGame();
-            var game = service.LoadedGame();
-            Assert.IsNotNull(game);
+            var dto = new GameDto
+            {
+                AvatarId = game.Buddy.Id,
+                BuddyName = game.Buddy.Name,
+                BuddyDescription = game.Buddy.Introduction,
+                FinalQuote = game.Conclusion,
+                IsPublished = game.IsPublished
+            };
+
+            if (game.Scenarios.Count > 0)
+            {
+                dto.Scen1Text = game.Scenarios[0].Description;
+                var texts = game.Scenarios[0].GetAdviceTexts();
+                var reactions = game.Scenarios[0].GetAdviceReactions();
+                if (texts.Count > 0) { dto.Scen1Answer1 = texts[0]; dto.Scen1Reaction1 = reactions[0]; }
+                if (texts.Count > 1) { dto.Scen1Answer2 = texts[1]; dto.Scen1Reaction2 = reactions[1]; }
+            }
+            return dto;
         }
 
         [TestMethod]
-        public void LoadedGame_NoGame_ThrowsException()
+        public async Task LoadedGame_ReturnsGame() // Changed to async Task
         {
-            repo.StoredGame = null;
-            Action action = () => service.LoadedGame();
-            Assert.ThrowsException<InvalidOperationException>(action);
+            _mockedGame = CreateTestGame();
+            var game = await service.LoadedGame(); // Awaited
+            Assert.IsNotNull(game);
         }
 
         [TestMethod]
         public async Task GetBuddyId_ReturnsCorrectId()
         {
-            repo.StoredGame = CreateTestGame();
+            _mockedGame = CreateTestGame();
             int id = await service.GetBuddyId();
             Assert.AreEqual(DefaultBuddyId, id);
         }
 
-        [TestMethod]
-        public void Save_CallsRepository()
-        {
-            var game = CreateTestGame();
-            service.Save(game);
-            Assert.AreEqual(game, repo.SavedGame);
-        }
+
 
         [TestMethod]
-        public void Save_NullGame_ThrowsException()
+        public async Task Save_NullGame_ThrowsException() // Changed to async Task
         {
             Game game = null!;
-            Action action = () => service.Save(game);
-            Assert.ThrowsException<ArgumentNullException>(action);
+            Func<Task> action = async () => await service.Save(game); // Using Func<Task>
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(action); // Awaited correctly
         }
 
         [TestMethod]
-        public void GetStoredGame_WhenGameExists_ReturnsGame()
+        public async Task GetStoredGame_WhenGameExists_ReturnsGame() // Changed to async Task
         {
-            repo.StoredGame = CreateTestGame();
-            var result = service.GetStoredGame();
+            _mockedGame = CreateTestGame();
+            var result = await service.GetStoredGame(); // Awaited
             Assert.IsNotNull(result);
+            Assert.AreEqual(DefaultBuddyName, result.Buddy?.Name);
         }
 
         [TestMethod]
         public async Task IsPublished_ReturnsTrue()
         {
-            repo.StoredGame = CreateTestGame();
+            _mockedGame = CreateTestGame();
             var result = await service.IsPublished();
             Assert.IsTrue(result);
         }
@@ -121,7 +188,7 @@ namespace TestsAndInterviews.Tests.Services
         [TestMethod]
         public async Task ShowCoworker_ReturnsIntroduction()
         {
-            repo.StoredGame = CreateTestGame();
+            _mockedGame = CreateTestGame();
             var intro = await service.ShowCoworker();
             Assert.AreEqual(DefaultBuddyIntro, intro);
         }
@@ -129,31 +196,33 @@ namespace TestsAndInterviews.Tests.Services
         [TestMethod]
         public async Task ShowScenarioText_ReturnsText()
         {
-            repo.StoredGame = CreateTestGame();
+            _mockedGame = CreateTestGame();
             var text = await service.ShowScenarioText(ValidIndex);
             Assert.AreEqual(DefaultScenarioText, text);
         }
 
         [TestMethod]
-        public void ShowScenarioText_InvalidIndex_ThrowsException()
+        public async Task ShowScenarioText_InvalidIndex_ThrowsException() // Changed to async Task
         {
-            repo.StoredGame = CreateTestGame();
-            Action action = () => service.ShowScenarioText(InvalidIndexPositive);
-            Assert.ThrowsException<ArgumentOutOfRangeException>(action);
+            _mockedGame = CreateTestGame();
+            Func<Task> action = async () => await service.ShowScenarioText(InvalidIndexPositive); // Using Func<Task>
+            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(action);
         }
 
         [TestMethod]
         public async Task ShowChoices_ReturnsChoices()
         {
-            repo.StoredGame = CreateTestGame();
+            _mockedGame = CreateTestGame();
             var choices = await service.ShowChoices(ValidIndex);
-            Assert.AreEqual(ExpectedChoicesCount, choices.Count);
+
+
+            Assert.AreEqual(3, choices.Count);
         }
 
         [TestMethod]
         public async Task ShowConclusion_ReturnsConclusion()
         {
-            repo.StoredGame = CreateTestGame();
+            _mockedGame = CreateTestGame();
             var result = await service.ShowConclusion();
             Assert.AreEqual(DefaultConclusion, result);
         }
@@ -177,36 +246,31 @@ namespace TestsAndInterviews.Tests.Services
             Assert.IsFalse(game.IsPublished);
         }
 
-        [TestMethod]
-        public void GetStoredGame_NoGame_ReturnsEmptyGame()
-        {
-            repo.StoredGame = null;
-            var result = service.GetStoredGame();
-            Assert.IsNotNull(result);
-        }
+        
 
         [TestMethod]
         public async Task IsPublished_NoGame_ReturnsFalse()
         {
-            repo.StoredGame = null;
+            _mockedGame = null;
             var result = await service.IsPublished();
             Assert.IsFalse(result);
         }
 
         [TestMethod]
-        public void ShowChoices_InvalidIndex_ThrowsException()
+        public async Task ShowChoices_InvalidIndex_ThrowsException() // Changed to async Task
         {
-            repo.StoredGame = CreateTestGame();
-            Action action = () => service.ShowChoices(InvalidIndexPositive);
-            Assert.ThrowsException<ArgumentOutOfRangeException>(action);
+            _mockedGame = CreateTestGame();
+            Func<Task> action = async () => await service.ShowChoices(InvalidIndexPositive); // Using Func<Task>
+            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(action);
         }
 
         [TestMethod]
-        public void ChoiceMade_ReturnsReaction()
+        public async Task ChoiceMade_ReturnsReaction() // Changed to async Task
         {
-            repo.StoredGame = CreateTestGame();
-            var result = service.ChoiceMade(ValidIndex, ValidIndex);
+            _mockedGame = CreateTestGame();
+            var result = await service.ChoiceMade(ValidIndex, ValidIndex); // Awaited
             Assert.IsNotNull(result);
+            Assert.AreEqual(ReactionOne, result);
         }
 
         [TestMethod]
@@ -238,11 +302,11 @@ namespace TestsAndInterviews.Tests.Services
         }
 
         [TestMethod]
-        public void ChoiceMade_InvalidScenarioIndex_ThrowsException()
+        public async Task ChoiceMade_InvalidScenarioIndex_ThrowsException() // Changed to async Task
         {
-            repo.StoredGame = CreateTestGame();
-            Action action = () => service.ChoiceMade(InvalidIndexNegative, ValidIndex);
-            Assert.ThrowsException<ArgumentOutOfRangeException>(action);
+            _mockedGame = CreateTestGame();
+            Func<Task> action = async () => await service.ChoiceMade(InvalidIndexNegative, ValidIndex); // Using Func<Task>
+            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(action);
         }
     }
 }

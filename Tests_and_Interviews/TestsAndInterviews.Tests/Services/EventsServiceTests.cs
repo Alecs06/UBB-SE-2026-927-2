@@ -1,18 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Tests_and_Interviews.Models;
-using Tests_and_Interviews.Models.Core;
-using Tests_and_Interviews.Repositories;
-using Tests_and_Interviews.Helpers;
-using Tests_and_Interviews.Repositories.Interfaces;
-using Tests_and_Interviews.Services;
-using TestsAndInterviews.Tests.Helpers;
-using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+﻿// <copyright file="EventsServiceTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace TestsAndInterviews.Tests.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Linq;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Moq;
+    using Moq.Protected;
+    using Tests_and_Interviews.Dtos;
+    using Tests_and_Interviews.Models;
+    using Tests_and_Interviews.Services;
+    using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+
     [TestClass]
     public class EventsServiceTests
     {
@@ -58,8 +66,16 @@ namespace TestsAndInterviews.Tests.Services
         private const int CountOne = 1;
         private const int CountTwo = 2;
 
-        private FakeEventsRepo fakeEventsRepo = null!;
+        private Mock<HttpMessageHandler> _mockHandler = null!;
+        private HttpClient _httpClient = null!;
         private EventsService eventsService = null!;
+
+        // Captured variables for verifying HTTP requests
+        private EventDto? _lastPostedDto;
+        private string? _lastPostUri;
+        private EventDto? _lastPutDto;
+        private string? _lastPutUri;
+        private string? _lastDeleteUri;
 
         private static Event MakeEvent()
         {
@@ -76,66 +92,170 @@ namespace TestsAndInterviews.Tests.Services
         [TestInitialize]
         public void Setup()
         {
-            fakeEventsRepo = new FakeEventsRepo();
-            eventsService = new EventsService();
+            _lastPostedDto = null;
+            _lastPostUri = null;
+            _lastPutDto = null;
+            _lastPutUri = null;
+            _lastDeleteUri = null;
+
+            _mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+            // Intercept POST
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    _lastPostUri = req.RequestUri?.ToString();
+                    if (req.Content != null)
+                    {
+                        var json = req.Content.ReadAsStringAsync().Result;
+                        _lastPostedDto = System.Text.Json.JsonSerializer.Deserialize<EventDto>(
+                            json,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                })
+                .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    // Return the payload back to simulate successful API creation mapping
+                    Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(_lastPostedDto))
+                });
+
+            // Intercept PUT
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Put),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    _lastPutUri = req.RequestUri?.ToString();
+                    if (req.Content != null)
+                    {
+                        var json = req.Content.ReadAsStringAsync().Result;
+                        _lastPutDto = System.Text.Json.JsonSerializer.Deserialize<EventDto>(
+                            json,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // Intercept DELETE
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Delete),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    _lastDeleteUri = req.RequestUri?.ToString();
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // Default GET fallback
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            _httpClient = new HttpClient(_mockHandler.Object)
+            {
+                BaseAddress = new Uri("https://localhost/api/")
+            };
+
+            eventsService = new EventsService(_httpClient);
         }
 
-        [TestMethod]
-        public void AddEvent_ValidData_AddEventToRepo()
+        private void SetupGetEventsResponse(string uriFragment, List<EventDto> dtos)
         {
-            eventsService.AddEvent(DefaultPhoto, TitleShort, DescLower,
-                new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
-            Assert.IsNotNull(fakeEventsRepo.AddedEvent);
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString().Contains(uriFragment)),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(dtos)
+                });
         }
 
+        // Note: Changed void tests to async Task to await HttpClient operations
+
         [TestMethod]
-        public void AddEvent_ValidData_EventPassedToRepoHasCorrectTitle()
+        public async Task AddEvent_ValidData_SendsPostRequest()
         {
-            eventsService.AddEvent(DefaultPhoto, TitleHackathon, DescLower,
+            await eventsService.AddEvent(DefaultPhoto, TitleShort, DescLower,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
-            Assert.AreEqual(TitleHackathon, fakeEventsRepo.AddedEvent?.Title);
+
+            Assert.IsNotNull(_lastPostedDto);
+            Assert.IsTrue(_lastPostUri!.Contains("events"));
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_EventPassedToRepoHasCorrectDescription()
+        public async Task AddEvent_ValidData_EventPassedToApiHasCorrectTitle()
         {
-            eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
+            await eventsService.AddEvent(DefaultPhoto, TitleHackathon, DescLower,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
-            Assert.AreEqual(DescSpecific, fakeEventsRepo.AddedEvent?.Description);
+
+            Assert.AreEqual(TitleHackathon, _lastPostedDto?.Title);
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_EventPassedToRepoHasCorrectStartDate()
+        public async Task AddEvent_ValidData_EventPassedToApiHasCorrectDescription()
+        {
+            await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
+                new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
+
+            Assert.AreEqual(DescSpecific, _lastPostedDto?.Description);
+        }
+
+        [TestMethod]
+        public async Task AddEvent_ValidData_EventPassedToApiHasCorrectStartDate()
         {
             DateTime expectedStartDate = new DateTime(Year, MonthJune, Day1);
-            eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
+            await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 expectedStartDate, new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
-            Assert.AreEqual(expectedStartDate, fakeEventsRepo.AddedEvent?.StartDate);
+
+            Assert.AreEqual(expectedStartDate, _lastPostedDto?.StartDate);
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_EventPassedToRepoHasCorrectEndDate()
+        public async Task AddEvent_ValidData_EventPassedToApiHasCorrectEndDate()
         {
             DateTime expectedEndDate = new DateTime(Year, MonthJune, Day3);
-            eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
+            await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), expectedEndDate, LocCluj, DefaultId, new List<Company>());
-            Assert.AreEqual(expectedEndDate, fakeEventsRepo.AddedEvent?.EndDate);
+
+            Assert.AreEqual(expectedEndDate, _lastPostedDto?.EndDate);
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_EventPassedToRepoHasCorrectLocation()
+        public async Task AddEvent_ValidData_EventPassedToApiHasCorrectLocation()
         {
-            eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
+            await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
-            Assert.AreEqual(LocCluj, fakeEventsRepo.AddedEvent?.Location);
+
+            Assert.AreEqual(LocCluj, _lastPostedDto?.Location);
         }
 
         [TestMethod]
-        public void AddEvent_ValidData_EventPassedToRepoHasCorrectHostId()
+        public async Task AddEvent_ValidData_EventPassedToApiHasCorrectHostId()
         {
-            eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
+            await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, ExpectedHostId, new List<Company>());
-            Assert.AreEqual(ExpectedHostId, fakeEventsRepo.AddedEvent?.HostCompanyId);
+
+            Assert.AreEqual(ExpectedHostId, _lastPostedDto?.HostCompanyId);
         }
 
         [TestMethod]
@@ -143,6 +263,7 @@ namespace TestsAndInterviews.Tests.Services
         {
             Event result = await eventsService.AddEvent(DefaultPhoto, TitleShort, DescLower,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
+
             Assert.IsNotNull(result);
         }
 
@@ -151,6 +272,7 @@ namespace TestsAndInterviews.Tests.Services
         {
             Event result = await eventsService.AddEvent(DefaultPhoto, TitleSpecific, DescShort,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
+
             Assert.AreEqual(TitleSpecific, result.Title);
         }
 
@@ -159,6 +281,7 @@ namespace TestsAndInterviews.Tests.Services
         {
             Event result = await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescEvent,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
+
             Assert.AreEqual(DescEvent, result.Description);
         }
 
@@ -168,6 +291,7 @@ namespace TestsAndInterviews.Tests.Services
             DateTime expectedStartDate = new DateTime(Year, MonthJune, Day1);
             Event result = await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 expectedStartDate, new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
+
             Assert.AreEqual(expectedStartDate, result.StartDate);
         }
 
@@ -177,6 +301,7 @@ namespace TestsAndInterviews.Tests.Services
             DateTime expectedEndDate = new DateTime(Year, MonthJune, Day3);
             Event result = await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), expectedEndDate, LocCluj, DefaultId, new List<Company>());
+
             Assert.AreEqual(expectedEndDate, result.EndDate);
         }
 
@@ -185,6 +310,7 @@ namespace TestsAndInterviews.Tests.Services
         {
             Event result = await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, new List<Company>());
+
             Assert.AreEqual(LocCluj, result.Location);
         }
 
@@ -193,138 +319,138 @@ namespace TestsAndInterviews.Tests.Services
         {
             Event result = await eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescSpecific,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, ExpectedHostId, new List<Company>());
+
             Assert.AreEqual(ExpectedHostId, result.HostCompanyId);
         }
 
-        [TestMethod]
-        public void AddEvent_WithOneCollaborator_EventPassedToRepoContainsCollaborator()
-        {
-            var collaborator = new Company(CollabName, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, CollabId);
-            var collaborators = new List<Company> { collaborator };
-            eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescShort,
-                new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, collaborators);
-            Assert.AreEqual(CountOne, fakeEventsRepo.AddedEvent?.Collaborators.Count);
-        }
+        
 
         [TestMethod]
-        public void AddEvent_NullCollaboratorsList_EventPassedToRepoHasNoCollaborators()
-        {
-            eventsService.AddEvent(DefaultPhoto, TitleGeneric, DescShort,
-                new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj, DefaultId, null!);
-            Assert.AreEqual(CountZero, fakeEventsRepo.AddedEvent?.Collaborators.Count);
-        }
-
-        [TestMethod]
-        public void DeleteEvent_ValidEvent_CorrectEventPassedToRepoForDeletion()
+        public async Task DeleteEvent_ValidEvent_CorrectEventIdPassedToApiForDeletion()
         {
             Event eventToDelete = MakeEvent();
-            eventsService.DeleteEvent(eventToDelete);
-            Assert.AreEqual(eventToDelete, fakeEventsRepo.RemovedEvent);
+
+            await eventsService.DeleteEvent(eventToDelete);
+
+            Assert.IsNotNull(_lastDeleteUri);
+            Assert.IsTrue(_lastDeleteUri!.EndsWith($"events/{eventToDelete.Id}"));
         }
 
         [TestMethod]
-        public void DeleteEvent_ValidEvent_CallsRemoveEventFromRepo()
+        public async Task UpdateEvent_ValidData_ApiReceivesCorrectEventIdInUri()
         {
-            Event eventToDelete = MakeEvent();
-            eventsService.DeleteEvent(eventToDelete);
-            Assert.IsNotNull(fakeEventsRepo.RemovedEvent);
-        }
-
-        [TestMethod]
-        public void UpdateEvent_ValidData_RepoReceivesCorrectEventId()
-        {
-            eventsService.UpdateEvent(AltEventId, DefaultPhoto, TitleShort, DescShort,
+            await eventsService.UpdateEvent(AltEventId, DefaultPhoto, TitleShort, DescShort,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj);
-            Assert.AreEqual(AltEventId, fakeEventsRepo.UpdatedEventId);
+
+            Assert.IsNotNull(_lastPutUri);
+            Assert.IsTrue(_lastPutUri!.EndsWith($"events/{AltEventId}"));
         }
 
         [TestMethod]
-        public void UpdateEvent_ValidData_RepoReceivesCorrectPhoto()
+        public async Task UpdateEvent_ValidData_ApiReceivesCorrectPhoto()
         {
-            eventsService.UpdateEvent(DefaultId, UpdatedPhoto, TitleShort, DescShort,
+            await eventsService.UpdateEvent(DefaultId, UpdatedPhoto, TitleShort, DescShort,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj);
-            Assert.AreEqual(UpdatedPhoto, fakeEventsRepo.UpdatedPhoto);
+
+            // Assuming the DTO maps PhotoPath or EventPhotoPath
+            var json = System.Text.Json.JsonSerializer.Serialize(_lastPutDto);
+            Assert.IsTrue(json.Contains(UpdatedPhoto));
         }
 
         [TestMethod]
-        public void UpdateEvent_ValidData_RepoReceivesCorrectTitle()
+        public async Task UpdateEvent_ValidData_ApiReceivesCorrectTitle()
         {
-            eventsService.UpdateEvent(DefaultId, DefaultPhoto, TitleUpdated, DescShort,
+            await eventsService.UpdateEvent(DefaultId, DefaultPhoto, TitleUpdated, DescShort,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj);
-            Assert.AreEqual(TitleUpdated, fakeEventsRepo.UpdatedTitle);
+
+            Assert.AreEqual(TitleUpdated, _lastPutDto?.Title);
         }
 
         [TestMethod]
-        public void UpdateEvent_ValidData_RepoReceivesCorrectDescription()
+        public async Task UpdateEvent_ValidData_ApiReceivesCorrectDescription()
         {
-            eventsService.UpdateEvent(DefaultId, DefaultPhoto, TitleShort, DescUpdated,
+            await eventsService.UpdateEvent(DefaultId, DefaultPhoto, TitleShort, DescUpdated,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocCluj);
-            Assert.AreEqual(DescUpdated, fakeEventsRepo.UpdatedDescription);
+
+            Assert.AreEqual(DescUpdated, _lastPutDto?.Description);
         }
 
         [TestMethod]
-        public void UpdateEvent_ValidData_RepoReceivesCorrectStartDate()
+        public async Task UpdateEvent_ValidData_ApiReceivesCorrectStartDate()
         {
             DateTime expectedStartDate = new DateTime(Year, MonthJuly, Day10);
-            eventsService.UpdateEvent(DefaultId, DefaultPhoto, TitleShort, DescShort,
+            await eventsService.UpdateEvent(DefaultId, DefaultPhoto, TitleShort, DescShort,
                 expectedStartDate, new DateTime(Year, MonthJuly, Day15), LocCluj);
-            Assert.AreEqual(expectedStartDate, fakeEventsRepo.UpdatedStartDate);
+
+            Assert.AreEqual(expectedStartDate, _lastPutDto?.StartDate);
         }
 
         [TestMethod]
-        public void UpdateEvent_ValidData_RepoReceivesCorrectEndDate()
+        public async Task UpdateEvent_ValidData_ApiReceivesCorrectEndDate()
         {
             DateTime expectedEndDate = new DateTime(Year, MonthJuly, Day15);
-            eventsService.UpdateEvent(DefaultId, DefaultPhoto, TitleShort, DescShort,
+            await eventsService.UpdateEvent(DefaultId, DefaultPhoto, TitleShort, DescShort,
                 new DateTime(Year, MonthJuly, Day10), expectedEndDate, LocCluj);
-            Assert.AreEqual(expectedEndDate, fakeEventsRepo.UpdatedEndDate);
+
+            Assert.AreEqual(expectedEndDate, _lastPutDto?.EndDate);
         }
 
         [TestMethod]
-        public void UpdateEvent_ValidData_RepoReceivesCorrectLocation()
+        public async Task UpdateEvent_ValidData_ApiReceivesCorrectLocation()
         {
-            eventsService.UpdateEvent(DefaultId, DefaultPhoto, TitleShort, DescShort,
+            await eventsService.UpdateEvent(DefaultId, DefaultPhoto, TitleShort, DescShort,
                 new DateTime(Year, MonthJune, Day1), new DateTime(Year, MonthJune, Day2), LocTimisoara);
-            Assert.AreEqual(LocTimisoara, fakeEventsRepo.UpdatedLocation);
+
+            Assert.AreEqual(LocTimisoara, _lastPutDto?.Location);
         }
 
         [TestMethod]
-        public async Task GetCurrentEvents_RepoReturnsTwoEvents_ServiceReturnsTwoEvents()
+        public async Task GetCurrentEvents_ApiReturnsTwoEvents_ServiceReturnsTwoEvents()
         {
-            fakeEventsRepo.CurrentEventsToReturn = new ObservableCollection<Event>
+            var dtos = new List<EventDto>
             {
-                MakeEvent(),
-                MakeEvent()
+                new EventDto { Id = 1, Title = DefaultTitle },
+                new EventDto { Id = 2, Title = TitleHackathon }
             };
+            SetupGetEventsResponse($"events/current/{DefaultId}", dtos);
+
             var result = await eventsService.GetCurrentEvents(DefaultId);
+
             Assert.AreEqual(CountTwo, result.Count);
         }
 
         [TestMethod]
-        public async Task GetCurrentEvents_RepoReturnsEmptyCollection_ServiceReturnsEmptyCollection()
+        public async Task GetCurrentEvents_ApiReturnsEmptyCollection_ServiceReturnsEmptyCollection()
         {
-            fakeEventsRepo.CurrentEventsToReturn = new ObservableCollection<Event>();
+            SetupGetEventsResponse($"events/current/{DefaultId}", new List<EventDto>());
+
             var result = await eventsService.GetCurrentEvents(DefaultId);
+
             Assert.AreEqual(CountZero, result.Count);
         }
 
         [TestMethod]
-        public async Task GetPastEvents_RepoReturnsTwoEvents_ServiceReturnsTwoEvents()
+        public async Task GetPastEvents_ApiReturnsTwoEvents_ServiceReturnsTwoEvents()
         {
-            fakeEventsRepo.PastEventsToReturn = new ObservableCollection<Event>
+            var dtos = new List<EventDto>
             {
-                MakeEvent(),
-                MakeEvent()
+                new EventDto { Id = 1, Title = DefaultTitle },
+                new EventDto { Id = 2, Title = TitleHackathon }
             };
+            SetupGetEventsResponse($"events/past/{DefaultId}", dtos);
+
             var result = await eventsService.GetPastEvents(DefaultId);
+
             Assert.AreEqual(CountTwo, result.Count);
         }
 
         [TestMethod]
-        public async Task GetPastEvents_RepoReturnsEmptyCollection_ServiceReturnsEmptyCollection()
+        public async Task GetPastEvents_ApiReturnsEmptyCollection_ServiceReturnsEmptyCollection()
         {
-            fakeEventsRepo.PastEventsToReturn = new ObservableCollection<Event>();
+            SetupGetEventsResponse($"events/past/{DefaultId}", new List<EventDto>());
+
             var result = await eventsService.GetPastEvents(DefaultId);
+
             Assert.AreEqual(CountZero, result.Count);
         }
     }

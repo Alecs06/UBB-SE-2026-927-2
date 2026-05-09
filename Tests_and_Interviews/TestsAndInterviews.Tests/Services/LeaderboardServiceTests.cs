@@ -1,35 +1,90 @@
-﻿namespace Tests_and_Interviews.Tests.Services
+﻿// <copyright file="LeaderboardServiceTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Tests_and_Interviews.Tests.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading;
     using System.Threading.Tasks;
     using Moq;
+    using Moq.Protected;
+    using Tests_and_Interviews.Dtos;
     using Tests_and_Interviews.Models.Core;
-    using Tests_and_Interviews.Repositories.Interfaces;
     using Tests_and_Interviews.Services;
     using Xunit;
 
     public class LeaderboardServiceTests
     {
-        #region helpers
+        private readonly Mock<HttpMessageHandler> _mockHandler;
+        private readonly HttpClient _httpClient;
+        private readonly LeaderboardService _leaderboardService;
 
-        private static (
-            Mock<ITestAttemptRepository> attemptRepo,
-            Mock<ILeaderboardRepository> leaderboardRepo,
-            LeaderboardService leaderboardService)
-            
-            CreateSetupMocksAndService()
+        private List<LeaderboardEntry>? _lastPostedEntries;
+        private List<string> _callOrder;
+        private int _deleteCallCount;
+        private int _postCallCount;
+
+        public LeaderboardServiceTests()
         {
-            var attemptRepo = new Mock<ITestAttemptRepository>(MockBehavior.Strict);
-            var leaderboardRepo = new Mock<ILeaderboardRepository>(MockBehavior.Strict);
+            _mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+            _callOrder = new List<string>();
+            _lastPostedEntries = null;
+            _deleteCallCount = 0;
+            _postCallCount = 0;
 
-            var leaderboardService = new LeaderboardService();
+            // Intercept DELETE
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Delete),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    _callOrder.Add("delete");
+                    _deleteCallCount++;
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
 
-            return (attemptRepo, leaderboardRepo, leaderboardService);
+            // Intercept POST — service POSTs to "leaderboard" (no 's', no "/range")
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    _callOrder.Add("save");
+                    _postCallCount++;
+                    if (req.Content != null)
+                    {
+                        var json = req.Content.ReadAsStringAsync().Result;
+                        _lastPostedEntries = System.Text.Json.JsonSerializer.Deserialize<List<LeaderboardEntry>>(
+                            json,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            _httpClient = new HttpClient(_mockHandler.Object)
+            {
+                BaseAddress = new Uri("https://localhost/api/")
+            };
+
+            _leaderboardService = new LeaderboardService(_httpClient);
         }
 
-        private static TestAttempt MakeAttempt(int testId, int userId, decimal pct, DateTime? completedAt = null) =>
-            new TestAttempt
+        #region helpers
+
+        // The service deserializes GET attempts as List<TestAttemptDto>, not List<TestAttempt>,
+        // so all mock setup must return DTOs.
+        private static TestAttemptDto MakeAttemptDto(int testId, int userId, decimal pct, DateTime? completedAt = null) =>
+            new TestAttemptDto
             {
                 TestId = testId,
                 ExternalUserId = userId,
@@ -38,8 +93,11 @@
                 StartedAt = DateTime.UtcNow.AddMinutes(-30),
                 CompletedAt = completedAt ?? DateTime.UtcNow,
             };
-        private static LeaderboardEntry MakeEntry(int testId, int userId, decimal score, int rank) =>
-            new LeaderboardEntry
+
+        // The service deserializes GET leaderboard responses as List<LeaderboardEntryDto>
+        // and maps them via .ToEntity(), so mocks must return DTOs here too.
+        private static LeaderboardEntryDto MakeEntryDto(int testId, int userId, decimal score, int rank) =>
+            new LeaderboardEntryDto
             {
                 TestId = testId,
                 UserId = userId,
@@ -47,125 +105,100 @@
                 RankPosition = rank,
             };
 
-        private static void SetupRecalculate(
-            Mock<ITestAttemptRepository> attemptRepo,
-            Mock<ILeaderboardRepository> leaderboardRepo,
-            int testId,
-            List<TestAttempt> attempts)
+        // Exact full-URI equality so multiple GET setups never shadow each other.
+        // .Contains() and .EndsWith() both break when one URL is a prefix of another
+        // (e.g. "leaderboard/bytest/30" vs "leaderboard/bytest/30/top/3").
+        private void SetupGetResponse<T>(string uriPath, T? content)
         {
-            attemptRepo
-                .Setup(repository => repository.FindValidAttemptsByTestIdAsync(testId))
-                .ReturnsAsync(attempts);
+            var fullUri = $"https://localhost/api/{uriPath}";
 
-            leaderboardRepo
-                .Setup(repository => repository.DeleteByTestIdAsync(testId))
-                .Returns(Task.CompletedTask);
+            var response = new HttpResponseMessage(
+                content == null ? HttpStatusCode.NotFound : HttpStatusCode.OK);
 
-            if (attempts.Count > 0)
+            if (content != null)
             {
-                leaderboardRepo
-                    .Setup(repository => repository.SaveRangeAsync(It.IsAny<List<LeaderboardEntry>>()))
-                    .Returns(Task.CompletedTask);
+                response.Content = JsonContent.Create(content);
             }
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString() == fullUri),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(response);
         }
+
+        private void SetupRecalculate(int testId, List<TestAttemptDto> attemptDtos)
+        {
+            SetupGetResponse($"testattempts/valid/bytest/{testId}", attemptDtos);
+        }
+
         #endregion
 
         #region RecalculateLeaderboard
+
         [Fact]
         public async Task RecalculateLeaderboard_WithAttempts_DeletesThenSavesEntries()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 1;
 
-            var attempts = new List<TestAttempt>
+            var attempts = new List<TestAttemptDto>
             {
-                MakeAttempt(testId, 10, 90m),
-                MakeAttempt(testId, 20, 75m),
+                MakeAttemptDto(testId, 10, 90m),
+                MakeAttemptDto(testId, 20, 75m),
             };
 
-            attemptRepo
-                .Setup(repository => repository.FindValidAttemptsByTestIdAsync(testId))
-                .ReturnsAsync(attempts);
+            SetupRecalculate(testId, attempts);
 
-            leaderboardRepo
-                .Setup(repository => repository.DeleteByTestIdAsync(testId))
-                .Returns(Task.CompletedTask);
+            await _leaderboardService.RecalculateLeaderboardAsync(testId);
 
-            List<LeaderboardEntry>? saved = null;
-            leaderboardRepo
-                .Setup(repository => repository.SaveRangeAsync(It.IsAny<List<LeaderboardEntry>>()))
-                .Callback<List<LeaderboardEntry>>(e => saved = e)
-                .Returns(Task.CompletedTask);
-
-            await leaderboardService.RecalculateLeaderboardAsync(testId);
-
-            // i know there should only be one verify or assert but it doesn't make sense to only have one 
-            leaderboardRepo.Verify(repository => repository.DeleteByTestIdAsync(testId), Times.Once);
-            leaderboardRepo.Verify(r => r.SaveRangeAsync(It.IsAny<List<LeaderboardEntry>>()), Times.Once);
-            Assert.Equal(2, saved.Count);
+            Assert.Equal(1, _deleteCallCount);
+            Assert.Equal(1, _postCallCount);
+            Assert.NotNull(_lastPostedEntries);
+            Assert.Equal(2, _lastPostedEntries!.Count);
         }
 
         [Fact]
         public async Task RecalculateLeaderboard_AssignsRanksInOrder()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 2;
 
-            var attempts = new List<TestAttempt>
+            var attempts = new List<TestAttemptDto>
             {
-                MakeAttempt(testId, 1, 95m),
-                MakeAttempt(testId, 2, 80m),
-                MakeAttempt(testId, 3, 60m),
+                MakeAttemptDto(testId, 1, 95m),
+                MakeAttemptDto(testId, 2, 80m),
+                MakeAttemptDto(testId, 3, 60m),
             };
 
-            attemptRepo
-                .Setup(repository => repository.FindValidAttemptsByTestIdAsync(testId))
-                .ReturnsAsync(attempts);
-            leaderboardRepo
-                .Setup(repository => repository.DeleteByTestIdAsync(testId))
-                .Returns(Task.CompletedTask);
+            SetupRecalculate(testId, attempts);
 
-            List<LeaderboardEntry>? saved = null;
-            leaderboardRepo
-                .Setup(repository => repository.SaveRangeAsync(It.IsAny<List<LeaderboardEntry>>()))
-                .Callback<List<LeaderboardEntry>>(entry => saved = entry)
-                .Returns(Task.CompletedTask);
+            await _leaderboardService.RecalculateLeaderboardAsync(testId);
 
-            await leaderboardService.RecalculateLeaderboardAsync(testId);
-
-            Assert.Equal(1, saved[0].RankPosition);
-            Assert.Equal(2, saved[1].RankPosition);
-            Assert.Equal(3, saved[2].RankPosition);
+            Assert.NotNull(_lastPostedEntries);
+            Assert.Equal(1, _lastPostedEntries![0].RankPosition);
+            Assert.Equal(2, _lastPostedEntries[1].RankPosition);
+            Assert.Equal(3, _lastPostedEntries[2].RankPosition);
         }
 
         [Fact]
         public async Task RecalculateLeaderboard_MapsAttemptFieldsToEntryCorrectly()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 3;
             const int userId = 10;
             const decimal pct = 88.5m;
 
-            var attempts = new List<TestAttempt> { MakeAttempt(testId, userId, pct) };
+            var attempts = new List<TestAttemptDto> { MakeAttemptDto(testId, userId, pct) };
 
-            attemptRepo
-                .Setup(repository => repository.FindValidAttemptsByTestIdAsync(testId))
-                .ReturnsAsync(attempts);
-            leaderboardRepo
-                .Setup(repository => repository.DeleteByTestIdAsync(testId))
-                .Returns(Task.CompletedTask);
-
-            List<LeaderboardEntry>? saved = null;
-            leaderboardRepo
-                .Setup(repository => repository.SaveRangeAsync(It.IsAny<List<LeaderboardEntry>>()))
-                .Callback<List<LeaderboardEntry>>(entry => saved = entry)
-                .Returns(Task.CompletedTask);
+            SetupRecalculate(testId, attempts);
 
             var before = DateTime.UtcNow;
-            await leaderboardService.RecalculateLeaderboardAsync(testId);
+            await _leaderboardService.RecalculateLeaderboardAsync(testId);
             var after = DateTime.UtcNow;
 
-            var entry = saved[0];
+            Assert.NotNull(_lastPostedEntries);
+            var entry = _lastPostedEntries![0];
             Assert.Equal(testId, entry.TestId);
             Assert.Equal(userId, entry.UserId);
             Assert.Equal(pct, entry.NormalizedScore);
@@ -177,157 +210,112 @@
         [Fact]
         public async Task RecalculateLeaderboard_WithNoAttempts_DeletesButDoesNotSave()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 4;
 
-            attemptRepo
-                .Setup(repository => repository.FindValidAttemptsByTestIdAsync(testId))
-                .ReturnsAsync(new List<TestAttempt>());
+            SetupRecalculate(testId, new List<TestAttemptDto>());
 
-            leaderboardRepo
-                .Setup(repository => repository.DeleteByTestIdAsync(testId))
-                .Returns(Task.CompletedTask);
+            await _leaderboardService.RecalculateLeaderboardAsync(testId);
 
-            await leaderboardService.RecalculateLeaderboardAsync(testId);
-
-            leaderboardRepo.Verify(repository => repository.DeleteByTestIdAsync(testId), Times.Once);
-            leaderboardRepo.Verify(repository => repository.SaveRangeAsync(It.IsAny<List<LeaderboardEntry>>()), Times.Never);
+            Assert.Equal(1, _deleteCallCount);
+            Assert.Equal(0, _postCallCount);
+            Assert.Null(_lastPostedEntries);
         }
 
         [Fact]
         public async Task RecalculateLeaderboard_DeleteAlwaysCalledBeforeSave()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 5;
-            var callOrder = new List<string>();
 
-            attemptRepo
-                .Setup(repository => repository.FindValidAttemptsByTestIdAsync(testId))
-                .ReturnsAsync(new List<TestAttempt> { MakeAttempt(testId, 99, 50m) });
+            SetupRecalculate(testId, new List<TestAttemptDto> { MakeAttemptDto(testId, 99, 50m) });
 
-            leaderboardRepo
-                .Setup(repository => repository.DeleteByTestIdAsync(testId))
-                .Callback(() => callOrder.Add("delete"))
-                .Returns(Task.CompletedTask);
+            await _leaderboardService.RecalculateLeaderboardAsync(testId);
 
-            leaderboardRepo
-                .Setup(repository => repository.SaveRangeAsync(It.IsAny<List<LeaderboardEntry>>()))
-                .Callback<List<LeaderboardEntry>>(_ => callOrder.Add("save"))
-                .Returns(Task.CompletedTask);
-
-            await leaderboardService.RecalculateLeaderboardAsync(testId);
-
-            Assert.Equal(new[] { "delete", "save" }, callOrder);
+            Assert.Equal(new[] { "delete", "save" }, _callOrder);
         }
+
         #endregion
 
-        #region Test GetTopThree
+        #region GetTopThree
 
         [Fact]
         public async Task GetTopThree_RecalculatesThenReturnsTopThree()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 10;
 
-            var attempts = new List<TestAttempt>
+            var attempts = new List<TestAttemptDto>
             {
-                MakeAttempt(testId, 1, 95m),
-                MakeAttempt(testId, 2, 85m),
-                MakeAttempt(testId, 3, 60m),
-                MakeAttempt(testId, 4, 75m),
+                MakeAttemptDto(testId, 1, 95m),
+                MakeAttemptDto(testId, 2, 85m),
+                MakeAttemptDto(testId, 3, 60m),
+                MakeAttemptDto(testId, 4, 75m),
             };
 
-            var topThree = new List<LeaderboardEntry>
+            // Service GETs "leaderboard/bytest/{id}/top/3" (no 's')
+            var topThree = new List<LeaderboardEntryDto>
             {
-                MakeEntry(testId, 1, 95m, 1),
-                MakeEntry(testId, 2, 85m, 2),
-                MakeEntry(testId, 3, 75m, 3),
+                MakeEntryDto(testId, 1, 95m, 1),
+                MakeEntryDto(testId, 2, 85m, 2),
+                MakeEntryDto(testId, 4, 75m, 3),
             };
 
-            attemptRepo
-                .Setup(repository => repository.FindValidAttemptsByTestIdAsync(testId))
-                .ReturnsAsync(attempts);
-            leaderboardRepo
-                .Setup(repository => repository.DeleteByTestIdAsync(testId))
-                .Returns(Task.CompletedTask);
-            leaderboardRepo
-                .Setup(repository => repository.SaveRangeAsync(It.IsAny<List<LeaderboardEntry>>()))
-                .Returns(Task.CompletedTask);
-            leaderboardRepo
-                .Setup(repository => repository.FindTopByTestIdAsync(testId, 3))
-                .ReturnsAsync(topThree);
+            SetupRecalculate(testId, attempts);
+            SetupGetResponse($"leaderboard/bytest/{testId}/top/3", topThree);
 
-            var result = await leaderboardService.GetTopThreeAsync(testId);
+            var result = await _leaderboardService.GetTopThreeAsync(testId);
 
             Assert.Equal(3, result.Count);
             Assert.Equal(1, result[0].RankPosition);
-            leaderboardRepo.Verify(r => r.FindTopByTestIdAsync(testId, 3), Times.Once);
         }
 
         [Fact]
         public async Task GetTopThree_WithFewerThanThreeAttempts_ReturnsWhatExists()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 11;
 
-            attemptRepo
-                .Setup(repository => repository.FindValidAttemptsByTestIdAsync(testId))
-                .ReturnsAsync(new List<TestAttempt> { MakeAttempt(testId, 1, 70m) });
-            leaderboardRepo
-                .Setup(repository => repository.DeleteByTestIdAsync(testId))
-                .Returns(Task.CompletedTask);
-            leaderboardRepo
-                .Setup(repository => repository.SaveRangeAsync(It.IsAny<List<LeaderboardEntry>>()))
-                .Returns(Task.CompletedTask);
+            SetupRecalculate(testId, new List<TestAttemptDto> { MakeAttemptDto(testId, 1, 70m) });
 
-            var singleEntry = new List<LeaderboardEntry> { MakeEntry(testId, 1, 70m, 1) };
-            leaderboardRepo
-                .Setup(repository => repository.FindTopByTestIdAsync(testId, 3))
-                .ReturnsAsync(singleEntry);
+            var singleEntry = new List<LeaderboardEntryDto> { MakeEntryDto(testId, 1, 70m, 1) };
+            SetupGetResponse($"leaderboard/bytest/{testId}/top/3", singleEntry);
 
-            var result = await leaderboardService.GetTopThreeAsync(testId);
+            var result = await _leaderboardService.GetTopThreeAsync(testId);
 
             Assert.Single(result);
         }
 
         #endregion
 
-        #region Get User Ranking
+        #region GetUserRanking
 
         [Fact]
         public async Task GetUserRanking_RecalculatesThenReturnsEntry()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 20;
             const int userId = 5;
 
-            SetupRecalculate(attemptRepo, leaderboardRepo, testId,
-                new List<TestAttempt> { MakeAttempt(testId, userId, 82m) });
+            SetupRecalculate(testId, new List<TestAttemptDto> { MakeAttemptDto(testId, userId, 82m) });
 
-            var expectedEntry = MakeEntry(testId, userId, 82m, 1);
-            leaderboardRepo
-                .Setup(repository => repository.FindUserEntryAsync(userId, testId))
-                .ReturnsAsync(expectedEntry);
+            // Service GETs "leaderboard/bytest/{testId}/byuser/{userId}"
+            // (bytest first, byuser second — opposite of the original test)
+            var expectedEntry = MakeEntryDto(testId, userId, 82m, 1);
+            SetupGetResponse($"leaderboard/bytest/{testId}/byuser/{userId}", expectedEntry);
 
-            var result = await leaderboardService.GetUserRankingAsync(userId, testId);
+            var result = await _leaderboardService.GetUserRankingAsync(userId, testId);
 
-            Assert.Equal(userId, result.UserId);
+            Assert.NotNull(result);
+            Assert.Equal(userId, result!.UserId);
         }
 
         [Fact]
         public async Task GetUserRanking_WhenUserHasNoEntry_ReturnsNull()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 21;
             const int userId = 99;
 
-            SetupRecalculate(attemptRepo, leaderboardRepo, testId, new List<TestAttempt>());
+            SetupRecalculate(testId, new List<TestAttemptDto>());
 
-            leaderboardRepo
-                .Setup(repo => repo.FindUserEntryAsync(userId, testId))
-                .ReturnsAsync((LeaderboardEntry?)null);
+            SetupGetResponse($"leaderboard/bytest/{testId}/byuser/{userId}", (LeaderboardEntryDto?)null);
 
-            var result = await leaderboardService.GetUserRankingAsync(userId, testId);
+            var result = await _leaderboardService.GetUserRankingAsync(userId, testId);
 
             Assert.Null(result);
         }
@@ -339,53 +327,48 @@
         [Fact]
         public async Task GetFullLeaderboard_RecalculatesThenReturnsAll()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 30;
 
-            var attempts = new List<TestAttempt>
+            var attempts = new List<TestAttemptDto>
             {
-                MakeAttempt(testId, 1, 91m),
-                MakeAttempt(testId, 2, 78m),
-                MakeAttempt(testId, 3, 55m),
-                MakeAttempt(testId, 4, 30m),
+                MakeAttemptDto(testId, 1, 91m),
+                MakeAttemptDto(testId, 2, 78m),
+                MakeAttemptDto(testId, 3, 55m),
+                MakeAttemptDto(testId, 4, 30m),
             };
 
-            SetupRecalculate(attemptRepo, leaderboardRepo, testId, attempts);
+            SetupRecalculate(testId, attempts);
 
-            var fullBoard = new List<LeaderboardEntry>
+            // Service GETs "leaderboard/bytest/{id}" (no 's')
+            var fullBoard = new List<LeaderboardEntryDto>
             {
-                MakeEntry(testId, 1, 91m, 1),
-                MakeEntry(testId, 2, 78m, 2),
-                MakeEntry(testId, 3, 55m, 3),
-                MakeEntry(testId, 4, 30m, 4)
+                MakeEntryDto(testId, 1, 91m, 1),
+                MakeEntryDto(testId, 2, 78m, 2),
+                MakeEntryDto(testId, 3, 55m, 3),
+                MakeEntryDto(testId, 4, 30m, 4),
             };
 
-            leaderboardRepo
-                .Setup(r => r.FindByTestIdAsync(testId))
-                .ReturnsAsync(fullBoard);
+            SetupGetResponse($"leaderboard/bytest/{testId}", fullBoard);
 
-            var result = await leaderboardService.GetFullLeaderboardAsync(testId);
+            var result = await _leaderboardService.GetFullLeaderboardAsync(testId);
 
             Assert.Equal(4, result.Count);
-            leaderboardRepo.Verify(r => r.FindByTestIdAsync(testId), Times.Once);
         }
 
         [Fact]
         public async Task GetFullLeaderboard_WhenNoAttempts_ReturnsEmptyList()
         {
-            var (attemptRepo, leaderboardRepo, leaderboardService) = CreateSetupMocksAndService();
             const int testId = 31;
 
-            SetupRecalculate(attemptRepo, leaderboardRepo, testId, new List<TestAttempt>());
+            SetupRecalculate(testId, new List<TestAttemptDto>());
 
-            leaderboardRepo
-                .Setup(r => r.FindByTestIdAsync(testId))
-                .ReturnsAsync(new List<LeaderboardEntry>());
+            SetupGetResponse($"leaderboard/bytest/{testId}", new List<LeaderboardEntryDto>());
 
-            var result = await leaderboardService.GetFullLeaderboardAsync(testId);
+            var result = await _leaderboardService.GetFullLeaderboardAsync(testId);
 
             Assert.Empty(result);
         }
+
         #endregion
     }
 }

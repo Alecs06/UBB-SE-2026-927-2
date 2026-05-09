@@ -18,6 +18,8 @@ namespace Tests_and_Interviews.Services
 
     public class ApplicantService : IApplicantService
     {
+        private readonly HttpClient http;
+
         private const decimal PassIndividual = 5.5m;
         private const decimal PassCollective = 7.0m;
         private const int MinimumNameLength = 2;
@@ -65,11 +67,17 @@ namespace Tests_and_Interviews.Services
 
         public ApplicantService()
         {
+            this.http = ApiClient.Http;
+        }
+
+        public ApplicantService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         public async Task<IEnumerable<Applicant>> GetApplicantsForJob(JobPosting job)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"applicants/byjob/{job.JobId}");
+            HttpResponseMessage response = await this.http.GetAsync($"applicants/byjob/{job.JobId}");
             response.EnsureSuccessStatusCode();
             List<ApplicantDto>? dtos = await response.Content.ReadFromJsonAsync<List<ApplicantDto>>();
             return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Applicant>();
@@ -77,7 +85,7 @@ namespace Tests_and_Interviews.Services
 
         public async Task<Applicant> GetApplicant(int applicantId)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"applicants/{applicantId}");
+            HttpResponseMessage response = await this.http.GetAsync($"applicants/{applicantId}");
             response.EnsureSuccessStatusCode();
             ApplicantDto? dto = await response.Content.ReadFromJsonAsync<ApplicantDto>();
             return dto!.ToEntity();
@@ -135,7 +143,7 @@ namespace Tests_and_Interviews.Services
         public async Task<decimal?> ScanCvXmlAsync(Applicant applicant)
         {
             // Fetch CvXml from user endpoint
-            HttpResponseMessage userResponse = await ApiClient.Http.GetAsync($"users/{applicant.UserId}");
+            HttpResponseMessage userResponse = await this.http.GetAsync($"users/{applicant.UserId}");
             userResponse.EnsureSuccessStatusCode();
             UserDto? userDto = await userResponse.Content.ReadFromJsonAsync<UserDto>();
             string? curriculumVitaeXml = userDto?.CvXml;
@@ -146,12 +154,12 @@ namespace Tests_and_Interviews.Services
             }
 
             // Fetch job skills for this applicant's job
-            HttpResponseMessage jobSkillsResponse = await ApiClient.Http.GetAsync($"jobs/{applicant.JobId}/skills");
+            HttpResponseMessage jobSkillsResponse = await this.http.GetAsync($"jobs/{applicant.JobId}/skills");
             jobSkillsResponse.EnsureSuccessStatusCode();
             List<JobSkillDto>? jobSkillDtos = await jobSkillsResponse.Content.ReadFromJsonAsync<List<JobSkillDto>>();
 
             // Fetch all skills to resolve SkillId -> SkillName
-            HttpResponseMessage allSkillsResponse = await ApiClient.Http.GetAsync("jobs/skills");
+            HttpResponseMessage allSkillsResponse = await this.http.GetAsync("jobs/skills");
             allSkillsResponse.EnsureSuccessStatusCode();
             List<SkillDto>? allSkillDtos = await allSkillsResponse.Content.ReadFromJsonAsync<List<SkillDto>>();
             Dictionary<int, string> skillNameMap = allSkillDtos?.ToDictionary(s => s.SkillId, s => s.SkillName)
@@ -196,13 +204,13 @@ namespace Tests_and_Interviews.Services
 
         public async Task RemoveApplicant(int applicantId)
         {
-            HttpResponseMessage response = await ApiClient.Http.DeleteAsync($"applicants/{applicantId}");
+            HttpResponseMessage response = await this.http.DeleteAsync($"applicants/{applicantId}");
             response.EnsureSuccessStatusCode();
         }
 
         private async Task UpdateApplicantViaApiAsync(Applicant applicant)
         {
-            HttpResponseMessage response = await ApiClient.Http.PutAsJsonAsync(
+            HttpResponseMessage response = await this.http.PutAsJsonAsync(
                 $"applicants/{applicant.ApplicantId}",
                 applicant.ToDto());
             response.EnsureSuccessStatusCode();

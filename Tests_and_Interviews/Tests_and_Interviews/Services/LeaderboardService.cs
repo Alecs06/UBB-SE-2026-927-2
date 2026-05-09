@@ -18,22 +18,34 @@ namespace Tests_and_Interviews.Services
     /// <inheritdoc cref="ILeaderboardService"/>
     public class LeaderboardService : ILeaderboardService
     {
+        private readonly HttpClient http;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="LeaderboardService"/> class.
         /// </summary>
         public LeaderboardService()
         {
+            this.http = ApiClient.Http;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LeaderboardService"/> class.
+        /// </summary>
+        /// <param name="httpClient">The HTTP client to use for requests.</param>
+        public LeaderboardService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <inheritdoc />
         public async Task RecalculateLeaderboardAsync(int testId)
         {
-            HttpResponseMessage attemptsResponse = await ApiClient.Http.GetAsync($"testattempts/valid/bytest/{testId}");
+            HttpResponseMessage attemptsResponse = await this.http.GetAsync($"testattempts/valid/bytest/{testId}");
             attemptsResponse.EnsureSuccessStatusCode();
             List<TestAttemptDto>? attemptDtos = await attemptsResponse.Content.ReadFromJsonAsync<List<TestAttemptDto>>();
             List<TestAttempt> attempts = attemptDtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<TestAttempt>();
 
-            HttpResponseMessage deleteResponse = await ApiClient.Http.DeleteAsync($"leaderboard/bytest/{testId}");
+            HttpResponseMessage deleteResponse = await this.http.DeleteAsync($"leaderboard/bytest/{testId}");
             deleteResponse.EnsureSuccessStatusCode();
 
             var entries = new List<LeaderboardEntry>();
@@ -54,7 +66,7 @@ namespace Tests_and_Interviews.Services
             if (entries.Count > 0)
             {
                 List<LeaderboardEntryDto> entryDtos = entries.Select(e => e.ToDto()).ToList();
-                HttpResponseMessage saveResponse = await ApiClient.Http.PostAsJsonAsync("leaderboard", entryDtos);
+                HttpResponseMessage saveResponse = await this.http.PostAsJsonAsync("leaderboard", entryDtos);
                 saveResponse.EnsureSuccessStatusCode();
             }
         }
@@ -63,7 +75,7 @@ namespace Tests_and_Interviews.Services
         public async Task<List<LeaderboardEntry>> GetTopThreeAsync(int testId)
         {
             await this.RecalculateLeaderboardAsync(testId);
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"leaderboard/bytest/{testId}/top/3");
+            HttpResponseMessage response = await this.http.GetAsync($"leaderboard/bytest/{testId}/top/3");
             response.EnsureSuccessStatusCode();
             List<LeaderboardEntryDto>? dtos = await response.Content.ReadFromJsonAsync<List<LeaderboardEntryDto>>();
             return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<LeaderboardEntry>();
@@ -73,7 +85,7 @@ namespace Tests_and_Interviews.Services
         public async Task<LeaderboardEntry?> GetUserRankingAsync(int userId, int testId)
         {
             await this.RecalculateLeaderboardAsync(testId);
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"leaderboard/bytest/{testId}/byuser/{userId}");
+            HttpResponseMessage response = await this.http.GetAsync($"leaderboard/bytest/{testId}/byuser/{userId}");
             if (!response.IsSuccessStatusCode)
             {
                 return null;
@@ -86,7 +98,7 @@ namespace Tests_and_Interviews.Services
         public async Task<List<LeaderboardEntry>> GetFullLeaderboardAsync(int testId)
         {
             await this.RecalculateLeaderboardAsync(testId);
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"leaderboard/bytest/{testId}");
+            HttpResponseMessage response = await this.http.GetAsync($"leaderboard/bytest/{testId}");
             response.EnsureSuccessStatusCode();
             List<LeaderboardEntryDto>? dtos = await response.Content.ReadFromJsonAsync<List<LeaderboardEntryDto>>();
             return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<LeaderboardEntry>();

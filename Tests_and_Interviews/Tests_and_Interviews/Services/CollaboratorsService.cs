@@ -16,11 +16,23 @@ namespace Tests_and_Interviews.Services
 
     public class CollaboratorsService : ICollaboratorsService
     {
+        private readonly HttpClient http;
+
         /// <summary>
         /// Collaborators service constructor
         /// </summary>
         public CollaboratorsService()
         {
+            this.http = ApiClient.Http;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CollaboratorsService"/> class.
+        /// </summary>
+        /// <param name="httpClient">The HTTP client to use for requests.</param>
+        public CollaboratorsService(HttpClient httpClient)
+        {
+            this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <summary>
@@ -36,7 +48,7 @@ namespace Tests_and_Interviews.Services
                 EventId = eventToBeCollaboratedOn.Id,
                 CompanyId = companyInvitedToCollaborate.CompanyId,
             };
-            HttpResponseMessage response = await ApiClient.Http.PostAsJsonAsync(
+            HttpResponseMessage response = await this.http.PostAsJsonAsync(
                 $"collaborators?loggedInUserID={loggedInUserID}",
                 dto);
             response.EnsureSuccessStatusCode();
@@ -49,7 +61,7 @@ namespace Tests_and_Interviews.Services
         /// <returns> a list of all its collaborators </returns>
         public async Task<List<Company>> GetAllCollaborators(int loggedInCompanyId)
         {
-            HttpResponseMessage response = await ApiClient.Http.GetAsync($"collaborators/{loggedInCompanyId}");
+            HttpResponseMessage response = await this.http.GetAsync($"collaborators/{loggedInCompanyId}");
             response.EnsureSuccessStatusCode();
             List<CompanyDto>? dtos = await response.Content.ReadFromJsonAsync<List<CompanyDto>>();
             return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Company>();

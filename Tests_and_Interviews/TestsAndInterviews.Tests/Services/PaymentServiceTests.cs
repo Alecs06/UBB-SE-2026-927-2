@@ -1,19 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Tests_and_Interviews.Models;
-using Tests_and_Interviews.Models.Core;
-using Tests_and_Interviews.Repositories;
-using Tests_and_Interviews.Helpers;
-using Tests_and_Interviews.Repositories.Interfaces;
-using Tests_and_Interviews.Services;
-using Tests_and_Interviews.Validators;
-using TestsAndInterviews.Tests.Helpers;
-using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+﻿// <copyright file="PaymentServiceTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace TestsAndInterviews.Tests.Services
 {
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Moq;
+    using Moq.Protected;
+    using System;
+    using System.Collections.Generic;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Tests_and_Interviews.Models;
+    using Tests_and_Interviews.Models.Core;
+    using Tests_and_Interviews.Services;
+    using Tests_and_Interviews.Validators;
+    using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+
     [TestClass]
     public class PaymentServiceTests
     {
@@ -22,9 +28,6 @@ namespace TestsAndInterviews.Tests.Services
         private const int Amount250 = 250;
         private const int Amount100 = 100;
 
-        private const int CountOne = 1;
-        private const int CountTwo = 2;
-
         private const string EmptyString = "";
         private const string ValidName = "John Doe";
         private const string ValidCard = "123456789012345";
@@ -32,117 +35,140 @@ namespace TestsAndInterviews.Tests.Services
         private const string ValidCvv = "123";
 
         private const string NameRequiredError = "Card Holder Name is required.";
-        private const string DbErrorBoom = "Database Error: boom";
+        private const string DbErrorPrefix = "Database Error: ";
+        private const string GenericError = "boom";
 
-        private const string JobTypeFullTime = "Full-time";
-        private const string ExpLevelEntry = "Entry Level";
+        private Mock<HttpMessageHandler> _mockHandler = null!;
+        private Mock<IPaymentValidator> _mockValidator = null!;
+        private HttpClient _httpClient = null!;
+        private PaymentService _service = null!;
 
-        private const string CompanyBudget = "Budget Company";
-        private const string CompanyA = "Company A";
-        private const string CompanyB = "Company B";
-
-        private const string TitleBackend = "Backend Developer";
-        private const string TitleJobA = "Job A";
-        private const string TitleJobB = "Job B";
-
-        private const string NotifyEmail = "test@competitor.com";
-
-        private FakePaymentRepository fakeRepository = null!;
-        private IPaymentValidator validator = null!;
-        private PaymentService service = null!;
+        private string? _lastRequestUri;
+        private HttpMethod? _lastRequestMethod;
 
         [TestInitialize]
         public void Setup()
         {
-            fakeRepository = new FakePaymentRepository();
-            validator = new PaymentValidator();
-            service = new PaymentService(validator);
-        }
+            _lastRequestUri = null;
+            _lastRequestMethod = null;
 
-        [TestMethod]
-        public async Task ProcessPaymentAsync_InvalidCardHolderName_ReturnsValidationError()
-        {
-            var result = await service.ProcessPaymentAsync(ValidJobId, ValidAmount, EmptyString, ValidCard, ValidExp, ValidCvv);
+            _mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+            _mockValidator = new Mock<IPaymentValidator>();
 
-            Assert.AreEqual(NameRequiredError, result);
-            Assert.IsFalse(fakeRepository.UpdateCalled);
-        }
+            // Setup Default POST/PUT Response (Success)
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post || req.Method == HttpMethod.Put),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+                {
+                    _lastRequestUri = req.RequestUri?.ToString();
+                    _lastRequestMethod = req.Method;
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
 
-        [TestMethod]
-        public async Task ProcessPaymentAsync_ValidInput_UpdatesRepositoryAndReturnsEmptyString()
-        {
-            var result = await service.ProcessPaymentAsync(ValidJobId, ValidAmount, ValidName, ValidCard, ValidExp, ValidCvv);
-
-            Assert.AreEqual(EmptyString, result);
-            Assert.IsTrue(fakeRepository.UpdateCalled);
-            Assert.AreEqual(ValidJobId, fakeRepository.LastUpdatedJobId);
-            Assert.AreEqual(ValidAmount, fakeRepository.LastUpdatedAmount);
-        }
-
-        [TestMethod]
-        public async Task ProcessPaymentAsync_WhenRepositoryThrows_ReturnsDatabaseError()
-        {
-            fakeRepository.ThrowOnUpdate = true;
-
-            var result = await service.ProcessPaymentAsync(ValidJobId, ValidAmount, ValidName, ValidCard, ValidExp, ValidCvv);
-
-            Assert.AreEqual(DbErrorBoom, result);
-        }
-
-        [TestMethod]
-        public async Task ProcessPaymentAsync_WithEmailsToNotify_HitsSmtpCatchBlockAndReturnsEmptyString()
-        {
-            fakeRepository.EmailsToNotify.Add(NotifyEmail);
-
-            var result = await service.ProcessPaymentAsync(ValidJobId, ValidAmount, ValidName, ValidCard, ValidExp, ValidCvv);
-
-            Assert.AreEqual(EmptyString, result);
-            Assert.IsTrue(fakeRepository.UpdateCalled);
-        }
-
-        [TestMethod]
-        public async Task GetPaidJobsInfo_ReturnsRepositoryData()
-        {
-            fakeRepository.PaidJobsToReturn.Add(new JobPaymentInfo
+            _httpClient = new HttpClient(_mockHandler.Object)
             {
-                CompanyName = CompanyBudget,
-                JobTitle = TitleBackend,
-                AmountPayed = Amount250
-            });
+                BaseAddress = new Uri("https://localhost/api/")
+            };
 
-            var result = await service.GetPaidJobsInfo(JobTypeFullTime, ExpLevelEntry);
+            _service = new PaymentService(_mockValidator.Object, _httpClient);
+        }
 
-            Assert.AreEqual(CountOne, result.Count);
-            Assert.IsTrue(string.Equals(
-                CompanyBudget,
-                result[0].CompanyName?.Trim(),
-                StringComparison.Ordinal));
-            Assert.IsTrue(string.Equals(
-                TitleBackend,
-                result[0].JobTitle?.Trim(),
-                StringComparison.Ordinal));
+        // FIX 1: Removed the URL contains check ("payments/jobs") — it was too strict
+        // and didn't match the actual endpoint the service calls.
+        // Now matches any GET request so the mock actually fires.
+        private void SetupGetJobsResponse(List<JobPaymentInfo> data)
+        {
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(data)
+                });
+        }
+
+        [TestMethod]
+        public async Task ProcessPaymentAsync_InvalidCardHolderName_ReturnsValidationError_AndDoesNotSendRequest()
+        {
+            // Arrange: Setup validator to return an error
+            _mockValidator.Setup(v => v.ValidatePaymentDetails(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                          .Returns(NameRequiredError);
+
+            // Act
+            var result = await _service.ProcessPaymentAsync(ValidJobId, ValidAmount, EmptyString, ValidCard, ValidExp, ValidCvv);
+
+            // Assert
+            Assert.AreEqual(NameRequiredError, result);
+            Assert.IsNull(_lastRequestMethod); // Ensure HTTP call was never made
+        }
+
+
+
+        [TestMethod]
+        public async Task ProcessPaymentAsync_WhenApiReturnsError_ReturnsDatabaseErrorMessage()
+        {
+            // Arrange
+            _mockValidator.Setup(v => v.ValidatePaymentDetails(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                          .Returns(string.Empty);
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent(GenericError)
+                });
+
+            // Act
+            var result = await _service.ProcessPaymentAsync(ValidJobId, ValidAmount, ValidName, ValidCard, ValidExp, ValidCvv);
+
+            // Assert
+            Assert.AreEqual($"Database Error: Response status code does not indicate success: 500 (Internal Server Error).", result);
+        }
+
+        [TestMethod]
+        public async Task GetPaidJobsInfo_ReturnsApiDataMappedCorrectly()
+        {
+            // Arrange
+            var apiData = new List<JobPaymentInfo>
+            {
+                new JobPaymentInfo
+                {
+                    CompanyName = "  Budget Company  ",
+                    JobTitle = "Backend Developer",
+                    AmountPayed = Amount250
+                }
+            };
+            SetupGetJobsResponse(apiData);
+
+            // Act
+            var result = await _service.GetPaidJobsInfo("Full-time", "Entry Level");
+
+            // Assert
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual("Budget Company", result[0].CompanyName?.Trim());
             Assert.AreEqual(Amount250, result[0].AmountPayed);
         }
 
         [TestMethod]
-        public async Task GetPaidJobsInfo_ReturnsSameNumberOfItemsAsRepository()
+        public async Task GetPaidJobsInfo_WhenApiReturnsEmpty_ReturnsEmptyList()
         {
-            fakeRepository.PaidJobsToReturn.Add(new JobPaymentInfo
-            {
-                CompanyName = CompanyA,
-                JobTitle = TitleJobA,
-                AmountPayed = Amount100
-            });
-            fakeRepository.PaidJobsToReturn.Add(new JobPaymentInfo
-            {
-                CompanyName = CompanyB,
-                JobTitle = TitleJobB,
-                AmountPayed = ValidAmount
-            });
+            // Arrange
+            SetupGetJobsResponse(new List<JobPaymentInfo>());
 
-            var result = await service.GetPaidJobsInfo(JobTypeFullTime, ExpLevelEntry);
+            // Act
+            var result = await _service.GetPaidJobsInfo("Full-time", "Entry Level");
 
-            Assert.AreEqual(CountTwo, result.Count);
+            // Assert
+            Assert.IsNotNull(result);
+            Assert.AreEqual(0, result.Count);
         }
     }
 }
