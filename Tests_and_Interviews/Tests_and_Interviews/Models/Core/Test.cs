@@ -16,7 +16,7 @@
         /// Gets or sets the unique identifier for the entity.
         /// </summary>
         [Key]
-        [Column("id")]
+        [Column("test_id")]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
