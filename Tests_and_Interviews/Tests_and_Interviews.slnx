@@ -4,6 +4,7 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="../Tests_and_Interviews.Web/Tests_and_Interviews.Web/Tests_and_Interviews.Web.csproj" />
   <Project Path="TestsAndInterviews.Tests/TestsAndInterviews.Tests.csproj" Id="6d338443-1de1-4117-9b74-64610b660a49">
     <Platform Solution="Debug|x64" Project="x64" />
   </Project>

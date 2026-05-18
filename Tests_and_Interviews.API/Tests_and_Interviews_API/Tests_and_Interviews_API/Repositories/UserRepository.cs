@@ -66,5 +66,12 @@
                 await this.appDbContext.SaveChangesAsync();
             }
         }
+
+        /// <inheritdoc/>
+        public async Task<User?> GetByEmailAsync(string email)
+        {
+            return await this.appDbContext.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
     }
 }
