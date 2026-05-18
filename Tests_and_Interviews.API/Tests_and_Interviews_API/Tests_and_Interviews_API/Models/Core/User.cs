@@ -16,11 +16,13 @@
         /// <param name="name">The user's name.</param>
         /// <param name="email">The user's email.</param>
         /// <param name="cvXml">The user's cv in xml format.</param>
-        public User(int id, string name, string email, string? cvXml = null)
+        public User(int id, string name, string email, string passwordHash, string role = "CANDIDATE", string? cvXml = null )
         {
             this.Id = id;
             this.Name = name;
             this.Email = email;
+            this.PasswordHash = passwordHash;
+            this.Role = role;
             this.CvXml = cvXml;
         }
 
@@ -57,6 +59,18 @@
         /// </summary>
         [Column("cv_xml", TypeName = "nvarchar(max)")]
         public string? CvXml { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user's hashed password.
+        /// </summary>
+        [Column("password_hash", TypeName = "nvarchar(255)")]
+        public string PasswordHash { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the user's role (Candidate, Recruiter, Admin).
+        /// </summary>
+        [Column("role", TypeName = "nvarchar(50)")]
+        public string Role { get; set; } = "Candidate";
 
     }
 }
