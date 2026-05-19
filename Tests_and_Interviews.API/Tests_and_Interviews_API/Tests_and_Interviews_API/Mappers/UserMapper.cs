@@ -21,6 +21,8 @@
                 Name = entity.Name,
                 Email = entity.Email,
                 CvXml = entity.CvXml,
+                PasswordHash = entity.PasswordHash,
+                Role = entity.Role,
             };
         }
 
@@ -31,7 +33,7 @@
         /// <returns>A new User entity populated with values from the specified UserDto.</returns>
         public static User ToEntity(this UserDto dto)
         {
-            return new User(dto.Id, dto.Name, dto.Email, dto.CvXml);
+            return new User(dto.Id, dto.Name, dto.Email, dto.PasswordHash, dto.Role, dto.CvXml);
         }
     }
 }
