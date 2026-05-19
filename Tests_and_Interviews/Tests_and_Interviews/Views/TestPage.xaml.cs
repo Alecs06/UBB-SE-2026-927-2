@@ -32,7 +32,7 @@ namespace Tests_and_Interviews.Views
             var timerService = new TimerService();
             var validationService = new AttemptValidationService();
             var dataProcessingService = new DataProcessingService();
-            var testService = new TestService(gradingService, timerService, validationService, dataProcessingService);
+            var testService = new TestService();
             var leaderboardService = new LeaderboardService();
             this.LeaderboardViewModel = new LeaderboardViewModel(leaderboardService);
             this.ViewModel = new TestPageViewModel(userService, questionService, testService, dataProcessingService);

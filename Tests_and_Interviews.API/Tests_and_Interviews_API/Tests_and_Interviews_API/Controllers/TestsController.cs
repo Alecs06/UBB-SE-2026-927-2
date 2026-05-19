@@ -44,5 +44,33 @@ namespace Tests_and_Interviews_API.Controllers
 
             return Ok(tests.Select(t => t.ToDto()).ToList());
         }
+
+        /// <summary>
+        /// Starts a test attempt for the specified user and test.
+        /// </summary>
+        [HttpPost("start")]
+        public async Task<ActionResult> StartTest([FromBody] StartTestDto dto)
+        {
+            try
+            {
+                await this._service.StartTestAsync(dto.UserId, dto.TestId);
+                return this.Ok();
+            }
+            catch (InvalidOperationException e)
+            {
+                return this.Conflict(e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Submits a test attempt with answers and returns the final score.
+        /// </summary>
+        [HttpPost("submit-attempt")]
+        public async Task<ActionResult<float>> SubmitAttempt([FromBody] SubmitAttemptDto dto)
+        {
+            float score = await this._service.SubmitAttemptAsync(
+                dto.UserId, dto.TestId, dto.Answers);
+            return this.Ok(score);
+        }
     }
 }

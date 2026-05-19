@@ -46,46 +46,33 @@ namespace Tests_and_Interviews.Services
         /// <param name="date">The date for which to load the slots.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a list of slot DTOs for the specified
         /// recruiter and date.</returns>
-        public async Task<List<SlotDto>> LoadRecruiterVisibleSlotsAsync(int recruitedId, DateTime date)
+        public async Task<List<SlotDto>> LoadRecruiterVisibleSlotsAsync(
+     int recruiterId, DateTime date)
         {
-            HttpResponseMessage response = await this.http.GetAsync($"slots/recruiter/{recruitedId}/date?date={date:O}");
+            string url = $"api/slots/recruiter/{recruiterId}/visible?date={Uri.EscapeDataString(date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"))}";
 
-            List<Slot> existing = new List<Slot>();
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                response.EnsureSuccessStatusCode();
-                List<SlotDto>? dtos = await response.Content.ReadFromJsonAsync<List<SlotDto>>();
-                existing = dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<Slot>();
-            }
+                HttpResponseMessage response = await this.http.GetAsync(url);
 
-            var visibleSlots = new List<Slot>();
-            var currentTime = date.AddHours(8);
-            var endOfDay = date.AddHours(18);
-            while (currentTime < endOfDay)
-            {
-                var overlappingSlot = existing.FirstOrDefault(s =>
-                    s.StartTime < currentTime.AddMinutes(30) && s.EndTime > currentTime);
-                if (overlappingSlot != null)
+                if (!response.IsSuccessStatusCode) { return new List<SlotDto>();}
+
+                List<SlotDto>? slots = await response.Content.ReadFromJsonAsync<List<SlotDto>>();
+
+                if (slots == null)  return new List<SlotDto>();
+
+                foreach (SlotDto slot in slots)
                 {
-                    visibleSlots.Add(overlappingSlot);
-                    currentTime = overlappingSlot.EndTime;
-                }
-                else
-                {
-                    visibleSlots.Add(new Slot
-                    {
-                        RecruiterId = recruitedId,
-                        StartTime = currentTime,
-                        EndTime = currentTime.AddMinutes(30),
-                        Duration = 30,
-                        Status = SlotStatus.Free,
-                        InterviewType = string.Empty,
-                    });
-                    currentTime = currentTime.AddMinutes(30);
-                }
+                    slot.StartTime = slot.StartTime.ToLocalTime();
+                    slot.EndTime = slot.EndTime.ToLocalTime();}
+
+                return slots;
             }
-            return visibleSlots.Select(slot => slot.ToDto()).ToList();
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SlotService] Exception: {ex.Message}");
+                return new List<SlotDto>();
+            }
         }
 
         /// <summary>
@@ -96,16 +83,8 @@ namespace Tests_and_Interviews.Services
         /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task CreateRecruiterSlotAsync(SlotDto baseSlot, int duration)
         {
-            var newSlot = new Slot
-            {
-                RecruiterId = Env.RECRUITER_ID,
-                StartTime = baseSlot.StartTime,
-                EndTime = baseSlot.StartTime.AddMinutes(duration),
-                Duration = duration,
-                Status = SlotStatus.Free,
-                InterviewType = "Available",
-            };
-            HttpResponseMessage response = await this.http.PostAsJsonAsync("slots", newSlot.ToDto());
+            var payload = new { BaseSlot = baseSlot, Duration = duration };
+            HttpResponseMessage response = await this.http.PostAsJsonAsync("api/slots/recruiter/create", payload);
             response.EnsureSuccessStatusCode();
         }
 
@@ -116,7 +95,7 @@ namespace Tests_and_Interviews.Services
         /// <returns>A task that represents the asynchronous delete operation.</returns>
         public async Task DeleteRecruiterSlotAsync(int id)
         {
-            HttpResponseMessage response = await this.http.DeleteAsync($"slots/{id}");
+            HttpResponseMessage response = await this.http.DeleteAsync($"api/slots/{id}");
             response.EnsureSuccessStatusCode();
         }
 
@@ -130,20 +109,8 @@ namespace Tests_and_Interviews.Services
         /// <exception cref="Exception">Thrown when the start time is outside the allowed hours of 8 to 18.</exception>
         public async Task UpdateRecruiterSlotAsync(SlotDto initialSlot, DateTime startTime, int duration)
         {
-            if (startTime.Hour < 8 || startTime.Hour > 18)
-            {
-                throw new Exception("Slots should be between hours 8 and 18.");
-            }
-            var newSlot = new Slot
-            {
-                Id = initialSlot.Id,
-                RecruiterId = initialSlot.RecruiterId,
-                StartTime = startTime,
-                EndTime = startTime.AddMinutes(duration),
-            };
-            HttpResponseMessage response = await this.http.PutAsJsonAsync(
-                $"slots/{newSlot.Id}",
-                newSlot.ToDto());
+            var payload = new { InitialSlot = initialSlot, StartTime = startTime, Duration = duration };
+            HttpResponseMessage response = await this.http.PutAsJsonAsync("api/slots/recruiter/update", payload);
             response.EnsureSuccessStatusCode();
         }
     }

@@ -93,5 +93,33 @@
                 return NotFound(e.Message);
             }
         }
+
+        [HttpGet("recruiter/{recruiterId}/visible")]
+        public async Task<ActionResult<List<SlotDto>>> GetVisibleSlots(int recruiterId, [FromQuery] DateTime date)
+        {
+            List<SlotDto> slots = await this._service.LoadRecruiterVisibleSlotsAsync(recruiterId, date);
+            return Ok(slots);
+        }
+
+        [HttpPost("recruiter/create")]
+        public async Task<ActionResult> CreateRecruiterSlot([FromBody] CreateSlotDto dto)
+        {
+            await this._service.CreateRecruiterSlotAsync(dto.BaseSlot, dto.Duration);
+            return Ok();
+        }
+
+        [HttpPut("recruiter/update")]
+        public async Task<ActionResult> UpdateRecruiterSlot([FromBody] UpdateSlotDto dto)
+        {
+            try
+            {
+                await this._service.UpdateRecruiterSlotAsync(dto.InitialSlot, dto.StartTime, dto.Duration);
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
     }
 }

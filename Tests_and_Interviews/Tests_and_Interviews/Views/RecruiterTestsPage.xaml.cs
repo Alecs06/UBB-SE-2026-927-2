@@ -16,11 +16,7 @@ namespace Tests_and_Interviews.Views
         public RecruiterTestsPage()
         {
             InitializeComponent();
-            ViewModel = new MainTestViewModel(new TestService(
-                new GradingService(),
-                new TimerService(),
-                new AttemptValidationService(),
-                new DataProcessingService()));
+            ViewModel = new MainTestViewModel(new TestService());
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)

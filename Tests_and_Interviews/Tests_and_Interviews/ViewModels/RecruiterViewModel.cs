@@ -145,7 +145,9 @@
         /// <returns>A task that represents the asynchronous load operation.</returns>
         public async Task LoadSlotsAsync()
         {
-            List<SlotDto> recruiterSlots = await this.slotService.LoadRecruiterVisibleSlotsAsync(this.currentRecruiterId, this.SelectedDate.Date);
+            List<SlotDto> recruiterSlots = await this.slotService
+                .LoadRecruiterVisibleSlotsAsync(
+                    this.currentRecruiterId, this.SelectedDate.Date);
 
             this.Slots = new ObservableCollection<SlotDto>(recruiterSlots);
         }

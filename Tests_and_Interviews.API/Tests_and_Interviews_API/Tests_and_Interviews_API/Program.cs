@@ -54,6 +54,13 @@ builder.Services.AddScoped<ITestService, TestService>();
 builder.Services.AddScoped<ITimerService, TimerService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
+builder.Services.AddScoped<ITestAttemptRepository, TestAttemptRepository>();
+builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
+builder.Services.AddScoped<IGradingService, GradingService>();
+builder.Services.AddScoped<ITimerService, TimerService>();
+builder.Services.AddScoped<IAttemptValidationService, AttemptValidationService>();
+builder.Services.AddScoped<IDataProcessingService, DataProcessingService>();
+builder.Services.AddScoped<ITestService, TestService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

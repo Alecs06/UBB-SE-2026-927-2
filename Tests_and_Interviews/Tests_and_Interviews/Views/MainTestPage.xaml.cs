@@ -21,11 +21,7 @@ namespace Tests_and_Interviews.Views
         public MainTestPage()
         {
             this.InitializeComponent();
-            this.ViewModel = new MainTestViewModel(new TestService(
-                new GradingService(),
-                new TimerService(),
-                new AttemptValidationService(),
-                new DataProcessingService()));
+            this.ViewModel = new MainTestViewModel(new TestService());
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 ﻿namespace Tests_and_Interviews_API.Services.Interfaces
 {
+    using Tests_and_Interviews_API.Dtos;
     using Tests_and_Interviews_API.Models;
 
     /// <summary>
@@ -60,5 +61,9 @@
         /// successfully deleted.</returns>
         /// <exception cref="KeyNotFoundException">Thrown if a slot with the specified <paramref name="id"/> does not exist.</exception
         public Task<bool> DeleteSlotAsync(int id);
+
+        Task<List<SlotDto>> LoadRecruiterVisibleSlotsAsync(int recruiterId, DateTime date);
+        Task CreateRecruiterSlotAsync(SlotDto baseSlot, int duration);
+        Task UpdateRecruiterSlotAsync(SlotDto initialSlot, DateTime startTime, int duration);
     }
 }

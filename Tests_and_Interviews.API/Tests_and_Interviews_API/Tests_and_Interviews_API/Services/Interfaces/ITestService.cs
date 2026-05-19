@@ -6,6 +6,7 @@ namespace Tests_and_Interviews_API.Services.Interfaces
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Tests_and_Interviews_API.Dtos;
     using Tests_and_Interviews_API.Models.Core;
 
     /// <summary>
@@ -26,5 +27,19 @@ namespace Tests_and_Interviews_API.Services.Interfaces
         /// <param name="category">The category to filter tests by.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a list of tests in the specified category.</returns>
         Task<List<Test>> FindTestsByCategoryAsync(string category);
+        /// <summary>
+        /// Starts a test attempt for the specified user and test.
+        /// </summary>
+        Task StartTestAsync(int userId, int testId);
+
+        /// <summary>
+        /// Submits a test attempt by grading all answers and calculating the final score.
+        /// </summary>
+        Task SubmitTestAsync(int attemptId);
+
+        /// <summary>
+        /// Submits a full attempt with answers, grades it, and returns the final score.
+        /// </summary>
+        Task<float> SubmitAttemptAsync(int userId, int testId, IEnumerable<AnswerDto> answers);
     }
 }

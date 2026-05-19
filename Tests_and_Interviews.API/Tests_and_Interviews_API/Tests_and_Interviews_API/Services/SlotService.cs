@@ -1,6 +1,9 @@
 ﻿namespace Tests_and_Interviews_API.Services
 {
+    using Tests_and_Interviews_API.Dtos;
+    using Tests_and_Interviews_API.Mappers;
     using Tests_and_Interviews_API.Models;
+    using Tests_and_Interviews_API.Models.Enums;
     using Tests_and_Interviews_API.Repositories;
     using Tests_and_Interviews_API.Repositories.Interfaces;
     using Tests_and_Interviews_API.Services.Interfaces;
@@ -122,6 +125,79 @@
             await this._repository.DeleteAsync(id);
 
             return true;
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<SlotDto>> LoadRecruiterVisibleSlotsAsync(int recruiterId, DateTime date)
+        {
+            List<Slot> existing = await this._repository.GetSlotsAsync(recruiterId, date);
+
+            var visibleSlots = new List<Slot>();
+            var currentTime = date.AddHours(8);
+            var endOfDay = date.AddHours(18);
+
+            while (currentTime < endOfDay)
+            {
+                var overlappingSlot = existing.FirstOrDefault(s =>
+                    s.StartTime < currentTime.AddMinutes(30) && s.EndTime > currentTime);
+
+                if (overlappingSlot != null)
+                {
+                    visibleSlots.Add(overlappingSlot);
+                    currentTime = overlappingSlot.EndTime;
+                }
+                else
+                {
+                    visibleSlots.Add(new Slot
+                    {
+                        RecruiterId = recruiterId,
+                        StartTime = currentTime,
+                        EndTime = currentTime.AddMinutes(30),
+                        Duration = 30,
+                        Status = SlotStatus.Free,
+                        InterviewType = string.Empty,
+                    });
+                    currentTime = currentTime.AddMinutes(30);
+                }
+            }
+
+            return visibleSlots.Select(slot => slot.ToDto()).ToList();
+        }
+
+        /// <inheritdoc/>
+        public async Task CreateRecruiterSlotAsync(SlotDto baseSlot, int duration)
+        {
+            var newSlot = new Slot
+            {
+                RecruiterId = baseSlot.RecruiterId,
+                StartTime = baseSlot.StartTime,
+                EndTime = baseSlot.StartTime.AddMinutes(duration),
+                Duration = duration,
+                Status = SlotStatus.Free,
+                InterviewType = "Available",
+            };
+
+            await this._repository.AddAsync(newSlot);
+        }
+
+        /// <inheritdoc/>
+        public async Task UpdateRecruiterSlotAsync(SlotDto initialSlot, DateTime startTime, int duration)
+        {
+            if (startTime.Hour < 8 || startTime.Hour > 18)
+            {
+                throw new ArgumentException("Slots should be between hours 8 and 18.");
+            }
+
+            var updatedSlot = new Slot
+            {
+                Id = initialSlot.Id,
+                RecruiterId = initialSlot.RecruiterId,
+                StartTime = startTime,
+                EndTime = startTime.AddMinutes(duration),
+                Duration = duration,
+            };
+
+            await this._repository.UpdateAsync(updatedSlot);
         }
     }
 }
