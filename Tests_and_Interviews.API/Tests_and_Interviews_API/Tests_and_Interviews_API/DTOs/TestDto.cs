@@ -30,5 +30,10 @@ namespace Tests_and_Interviews_API.Dtos
         /// Gets or sets the date and time when the test was created.
         /// </summary>
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the label that describes the type of question.
+        /// </summary>
+        public string QuestionTypeLabel { get; set; } = "MIXED";
     }
 }

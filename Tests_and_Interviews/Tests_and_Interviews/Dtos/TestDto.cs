@@ -31,6 +31,9 @@ namespace Tests_and_Interviews.Dtos
         /// </summary>
         public DateTime CreatedAt { get; set; }
 
+        /// <summary>
+        /// Gets or sets the label that describes the type of question.
+        /// </summary>
         public string QuestionTypeLabel { get; set; } = "MIXED";
     }
 }

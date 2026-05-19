@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
 using Tests_and_Interviews.Web.Clients;
 using Tests_and_Interviews.Web.Dtos;
 using Tests_and_Interviews.Web.Models;

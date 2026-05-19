@@ -14,7 +14,7 @@ builder.Services.AddHttpClient("BackendAPI", client =>
 
 builder.Services.AddHttpClient<TestsApiClient>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:5179");
+    client.BaseAddress = new Uri("http://localhost:5179");
 });
 
 //builder.Services.AddScoped<Interface, Service>
