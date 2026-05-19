@@ -6,10 +6,8 @@ namespace Tests_and_Interviews.Services
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Net;
     using System.Net.Http;
     using System.Net.Http.Json;
-    using System.Net.Mail;
     using System.Threading.Tasks;
     using Tests_and_Interviews.Api;
     using Tests_and_Interviews.Dtos;
@@ -20,17 +18,7 @@ namespace Tests_and_Interviews.Services
 
     public class PaymentService : IPaymentService
     {
-        private const int EmptyCollectionCount = 0;
-        private const string AdminEmailAddress = "carla.draghiciu@cnglsibiu.ro";
-        private const string AdminEmailDisplayName = "Job Portal Admin";
-        private const string AdminEmailPassword = "[REDACTED_PASSWORD]";
-        private const string SmtpHostAddress = "smtp.gmail.com";
-        private const int SmtpHostPort = 587;
-        private const int SmtpTimeoutMilliseconds = 60000;
-        private const string NotificationEmailSubject = "Job Promotion Alert!";
         private const string DatabaseErrorMessagePrefix = "Database Error: ";
-        private const string EmailSentDebugMessagePrefix = "Email sent to ";
-        private const string EmailFailedDebugMessagePrefix = "Failed to send email: ";
         private readonly IPaymentValidator validator;
         private readonly HttpClient http;
 
@@ -53,33 +41,13 @@ namespace Tests_and_Interviews.Services
             {
                 return validationError;
             }
+
             try
             {
-                // 1. Save to database
-                HttpResponseMessage updateResponse = await this.http.PutAsJsonAsync(
-                    $"payment/{jobId}?paymentAmount={amount}",
+                HttpResponseMessage response = await this.http.PostAsJsonAsync(
+                    $"payment/process/{jobId}?paymentAmount={amount}",
                     new { });
-                updateResponse.EnsureSuccessStatusCode();
-
-                // 2. Fetch emails to notify (don't fail if this returns 404)
-                HttpResponseMessage notifyResponse = await this.http.GetAsync(
-                    $"payment/notify/{jobId}?newPaymentAmount={amount}");
-
-                List<string>? emailsToNotify = null;
-                if (notifyResponse.IsSuccessStatusCode)
-                {
-                    emailsToNotify = await notifyResponse.Content.ReadFromJsonAsync<List<string>>();
-                }
-                else if (notifyResponse.StatusCode != System.Net.HttpStatusCode.NotFound)
-                {
-                    notifyResponse.EnsureSuccessStatusCode();
-                }
-
-                // 3. Send Emails if we got any
-                if (emailsToNotify != null && emailsToNotify.Count > EmptyCollectionCount)
-                {
-                    await this.SendNotificationEmailsAsync(emailsToNotify, amount);
-                }
+                response.EnsureSuccessStatusCode();
                 return string.Empty;
             }
             catch (Exception exception)
@@ -101,43 +69,6 @@ namespace Tests_and_Interviews.Services
             response.EnsureSuccessStatusCode();
             List<JobPaymentInfoDto>? dtos = await response.Content.ReadFromJsonAsync<List<JobPaymentInfoDto>>();
             return dtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<JobPaymentInfo>();
-        }
-
-        private async Task SendNotificationEmailsAsync(List<string> emails, int newAmount)
-        {
-            try
-            {
-                var fromAddress = new MailAddress(AdminEmailAddress, AdminEmailDisplayName);
-                using (var smtpClient = new SmtpClient
-                {
-                    Host = SmtpHostAddress,
-                    Port = SmtpHostPort,
-                    EnableSsl = true,
-                    DeliveryMethod = SmtpDeliveryMethod.Network,
-                    Credentials = new NetworkCredential(fromAddress.Address, AdminEmailPassword),
-                    Timeout = SmtpTimeoutMilliseconds
-                })
-                {
-                    foreach (string email in emails)
-                    {
-                        var toAddress = new MailAddress(email);
-                        string notificationBody = $"Hello, \n\nJust letting you know that a competitor has placed a bid of ${newAmount} on a job that shares the same Type and Experience Level as yours. Consider increasing your budget to stay competitive!";
-                        using (var mailMessage = new MailMessage(fromAddress, toAddress)
-                        {
-                            Subject = NotificationEmailSubject,
-                            Body = notificationBody
-                        })
-                        {
-                            await smtpClient.SendMailAsync(mailMessage);
-                            System.Diagnostics.Debug.WriteLine($"{EmailSentDebugMessagePrefix}{email}!");
-                        }
-                    }
-                }
-            }
-            catch (Exception exception)
-            {
-                System.Diagnostics.Debug.WriteLine($"{EmailFailedDebugMessagePrefix}{exception.Message}");
-            }
         }
     }
 }

@@ -37,38 +37,14 @@ namespace Tests_and_Interviews.Services
             this.http = httpClient ?? ApiClient.Http;
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Triggers a server-side recalculation of the leaderboard for the specified test.
+        /// </summary>
+        /// <param name="testId">The unique identifier of the test.</param>
         public async Task RecalculateLeaderboardAsync(int testId)
         {
-            HttpResponseMessage attemptsResponse = await this.http.GetAsync($"testattempts/valid/bytest/{testId}");
-            attemptsResponse.EnsureSuccessStatusCode();
-            List<TestAttemptDto>? attemptDtos = await attemptsResponse.Content.ReadFromJsonAsync<List<TestAttemptDto>>();
-            List<TestAttempt> attempts = attemptDtos?.Select(dto => dto.ToEntity()).ToList() ?? new List<TestAttempt>();
-
-            HttpResponseMessage deleteResponse = await this.http.DeleteAsync($"leaderboard/bytest/{testId}");
-            deleteResponse.EnsureSuccessStatusCode();
-
-            var entries = new List<LeaderboardEntry>();
-            for (int i = 0; i < attempts.Count; i++)
-            {
-                var attempt = attempts[i];
-                entries.Add(new LeaderboardEntry
-                {
-                    TestId = attempt.TestId,
-                    UserId = attempt.ExternalUserId!.Value,
-                    NormalizedScore = attempt.PercentageScore!.Value,
-                    RankPosition = i + 1,
-                    TieBreakPriority = i + 1,
-                    LastRecalculationAt = DateTime.UtcNow,
-                });
-            }
-
-            if (entries.Count > 0)
-            {
-                List<LeaderboardEntryDto> entryDtos = entries.Select(e => e.ToDto()).ToList();
-                HttpResponseMessage saveResponse = await this.http.PostAsJsonAsync("leaderboard", entryDtos);
-                saveResponse.EnsureSuccessStatusCode();
-            }
+            HttpResponseMessage response = await this.http.PostAsync($"leaderboard/recalculate/{testId}", null);
+            response.EnsureSuccessStatusCode();
         }
 
         /// <inheritdoc />
@@ -77,10 +53,7 @@ namespace Tests_and_Interviews.Services
             await this.RecalculateLeaderboardAsync(testId);
             HttpResponseMessage response = await this.http.GetAsync($"leaderboard/bytest/{testId}/top/3");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
                 return new List<LeaderboardEntry>();
-
-            }
 
             response.EnsureSuccessStatusCode();
             List<LeaderboardEntryDto>? dtos = await response.Content.ReadFromJsonAsync<List<LeaderboardEntryDto>>();
@@ -93,9 +66,8 @@ namespace Tests_and_Interviews.Services
             await this.RecalculateLeaderboardAsync(testId);
             HttpResponseMessage response = await this.http.GetAsync($"leaderboard/bytest/{testId}/byuser/{userId}");
             if (!response.IsSuccessStatusCode)
-            {
                 return null;
-            }
+
             LeaderboardEntryDto? dto = await response.Content.ReadFromJsonAsync<LeaderboardEntryDto>();
             return dto?.ToEntity();
         }
@@ -105,11 +77,8 @@ namespace Tests_and_Interviews.Services
         {
             await this.RecalculateLeaderboardAsync(testId);
             HttpResponseMessage response = await this.http.GetAsync($"leaderboard/bytest/{testId}");
-
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
                 return new List<LeaderboardEntry>();
-            }
 
             response.EnsureSuccessStatusCode();
             List<LeaderboardEntryDto>? dtos = await response.Content.ReadFromJsonAsync<List<LeaderboardEntryDto>>();

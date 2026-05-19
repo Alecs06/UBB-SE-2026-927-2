@@ -1,6 +1,8 @@
 ﻿namespace Tests_and_Interviews_API.Services
 {
     using Tests_and_Interviews_API.Models;
+    using Tests_and_Interviews_API.Models.Core;
+    using Tests_and_Interviews_API.Models.Enums;
     using Tests_and_Interviews_API.Repositories;
     using Tests_and_Interviews_API.Repositories.Interfaces;
     using Tests_and_Interviews_API.Services.Interfaces;
@@ -12,7 +14,10 @@
     /// <remarks>SlotService acts as the main entry point for slot-related business logic and data access.</remarks>
     public class SlotService: ISlotService
     {
-        private readonly ISlotRepository _repository;
+        private const int MINIMUMPOSITIONID = 0;
+        private const int MINIMUMINTERVIEWSCORE = 0;
+
+        private readonly ISlotRepository _slotRepository;
 
         /// <summary>
         /// Initializes a new instance of the SlotService class using the specified slot repository.
@@ -20,7 +25,7 @@
         /// <param name="repository">The repository used to access and manage slot data. Cannot be null.</param>
         public SlotService(ISlotRepository repository)
         {
-            this._repository = repository;
+            this._slotRepository = repository;
         }
 
         /// <summary>
@@ -32,7 +37,7 @@
         /// the specified recruiter on the given date. The list is empty if no slots are available.</returns>
         public async Task<List<Slot>> GetSlotsAsync(int recruiterId, DateTime date)
         {
-            return await this._repository.GetSlotsAsync(recruiterId, date);
+            return await this._slotRepository.GetSlotsAsync(recruiterId, date);
         }
 
         /// <summary>
@@ -43,7 +48,7 @@
         /// specified recruiter. The list is empty if no slots are found.</returns>
         public async Task<List<Slot>> GetAllSlotsAsync(int recruiterId)
         {
-            return await this._repository.GetAllSlotsAsync(recruiterId);
+            return await this._slotRepository.GetAllSlotsAsync(recruiterId);
         }
 
         /// <summary>
@@ -55,7 +60,7 @@
         /// <exception cref="KeyNotFoundException">Thrown if a slot with the specified identifier does not exist.</exception>
         public async Task<Slot> GetSlotByIdAsync(int id)
         {
-            Slot? slot = await this._repository.GetByIdAsync(id);
+            Slot? slot = await this._slotRepository.GetByIdAsync(id);
 
             if (slot == null)
             {
@@ -72,7 +77,7 @@
         /// <returns>A task that represents the asynchronous operation. The task result contains the added slot.</returns>
         public async Task<Slot> AddSlotAsync(Slot slot)
         {
-            await this._repository.AddAsync(slot);
+            await this._slotRepository.AddAsync(slot);
 
             return slot;
         }
@@ -88,7 +93,7 @@
         /// <exception cref="KeyNotFoundException">Thrown if a slot with the specified <paramref name="id"/> does not exist.</exception>
         public async Task<Slot> UpdateSlotAsync(int id, Slot slot)
         {
-            Slot? initialSlot = await this._repository.GetByIdAsync(slot.Id);
+            Slot? initialSlot = await this._slotRepository.GetByIdAsync(slot.Id);
 
             if (initialSlot == null)
             {
@@ -96,7 +101,7 @@
             }
             else
             {
-                await _repository.UpdateAsync(slot);
+                await _slotRepository.UpdateAsync(slot);
             }
             slot.Id = id;
 
@@ -112,16 +117,18 @@
         /// <exception cref="KeyNotFoundException">Thrown if a slot with the specified <paramref name="id"/> does not exist.</exception>
         public async Task<bool> DeleteSlotAsync(int id)
         {
-            Slot? initialSlot = await this._repository.GetByIdAsync(id);
+            Slot? initialSlot = await this._slotRepository.GetByIdAsync(id);
 
             if (initialSlot == null)
             {
                 throw new KeyNotFoundException("Slot to delete not found.");
             }
 
-            await this._repository.DeleteAsync(id);
+            await this._slotRepository.DeleteAsync(id);
 
             return true;
         }
+
+
     }
 }

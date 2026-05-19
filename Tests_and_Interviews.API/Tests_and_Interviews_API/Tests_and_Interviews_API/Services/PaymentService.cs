@@ -1,6 +1,9 @@
 ﻿namespace Tests_and_Interviews_API.Services
 {
     using System.Collections.Generic;
+    using System.Net;
+    using System.Net.Mail;
+    using System.Threading.Tasks;
     using Tests_and_Interviews_API.Models;
     using Tests_and_Interviews_API.Repositories.Interfaces;
     using Tests_and_Interviews_API.Services.Interfaces;
@@ -10,6 +13,16 @@
     /// </summary>
     public class PaymentService : IPaymentService
     {
+        private const int EmptyCollectionCount = 0;
+        private const string AdminEmailAddress = "carla.draghiciu@cnglsibiu.ro";
+        private const string AdminEmailDisplayName = "Job Portal Admin";
+        private const string AdminEmailPassword = "[REDACTED_PASSWORD]";
+        private const string SmtpHostAddress = "smtp.gmail.com";
+        private const int SmtpHostPort = 587;
+        private const int SmtpTimeoutMilliseconds = 60000;
+        private const string NotificationEmailSubject = "Job Promotion Alert!";
+        private const string EmailSentDebugMessagePrefix = "Email sent to ";
+        private const string EmailFailedDebugMessagePrefix = "Failed to send email: ";
         private readonly IPaymentRepository _repository;
 
         /// <summary>
@@ -19,6 +32,25 @@
         public PaymentService(IPaymentRepository repository)
         {
             this._repository = repository;
+        }
+
+        /// <summary>
+        /// Processes a payment for the specified job by updating the payment amount,
+        /// fetching companies to notify, and sending notification emails.
+        /// </summary>
+        /// <param name="jobId">The unique identifier of the job.</param>
+        /// <param name="paymentAmount">The new payment amount to apply.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public async Task ProcessPaymentAsync(int jobId, int paymentAmount)
+        {
+            this._repository.UpdateJobPayment(jobId, paymentAmount);
+
+            List<string> emailsToNotify = this._repository.GetCompaniesToNotify(jobId, paymentAmount);
+
+            if (emailsToNotify != null && emailsToNotify.Count > EmptyCollectionCount)
+            {
+                await this.SendNotificationEmailsAsync(emailsToNotify, paymentAmount);
+            }
         }
 
         /// <summary>
@@ -51,6 +83,49 @@
         public List<string> GetCompaniesToNotify(int currentJobId, int newPaymentAmount)
         {
             return this._repository.GetCompaniesToNotify(currentJobId, newPaymentAmount);
+        }
+
+        /// <summary>
+        /// Sends notification emails to the specified addresses informing them of a new competing payment amount.
+        /// </summary>
+        /// <param name="emails">The list of email addresses to notify.</param>
+        /// <param name="newAmount">The new payment amount to include in the notification.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task SendNotificationEmailsAsync(List<string> emails, int newAmount)
+        {
+            try
+            {
+                var fromAddress = new MailAddress(AdminEmailAddress, AdminEmailDisplayName);
+                using (var smtpClient = new SmtpClient
+                {
+                    Host = SmtpHostAddress,
+                    Port = SmtpHostPort,
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    Credentials = new NetworkCredential(fromAddress.Address, AdminEmailPassword),
+                    Timeout = SmtpTimeoutMilliseconds,
+                })
+                {
+                    foreach (string email in emails)
+                    {
+                        var toAddress = new MailAddress(email);
+                        string notificationBody = $"Hello, \n\nJust letting you know that a competitor has placed a bid of ${newAmount} on a job that shares the same Type and Experience Level as yours. Consider increasing your budget to stay competitive!";
+                        using (var mailMessage = new MailMessage(fromAddress, toAddress)
+                        {
+                            Subject = NotificationEmailSubject,
+                            Body = notificationBody,
+                        })
+                        {
+                            await smtpClient.SendMailAsync(mailMessage);
+                            System.Diagnostics.Debug.WriteLine($"{EmailSentDebugMessagePrefix}{email}!");
+                        }
+                    }
+                }
+            }
+            catch (System.Exception exception)
+            {
+                System.Diagnostics.Debug.WriteLine($"{EmailFailedDebugMessagePrefix}{exception.Message}");
+            }
         }
     }
 }
