@@ -1,3 +1,5 @@
+using Tests_and_Interviews.Web.Clients;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -8,6 +10,11 @@ builder.Services.AddHttpClient("BackendAPI", client =>
 {
     // TODO: Update this URL when backend is deployed - maybe an env file or smth
     client.BaseAddress = new Uri("https://localhost:7000");
+});
+
+builder.Services.AddHttpClient<TestsApiClient>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:5179");
 });
 
 //builder.Services.AddScoped<Interface, Service>
