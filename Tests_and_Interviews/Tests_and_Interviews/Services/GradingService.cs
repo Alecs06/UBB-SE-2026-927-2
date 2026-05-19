@@ -4,18 +4,16 @@
 
 namespace Tests_and_Interviews.Services
 {
-    using System;
-    using System.Collections.Generic;
     using System.Globalization;
-    using System.Linq;
     using System.Net.Http;
+    using System.Net.Http.Json;
+    using System.Threading.Tasks;
     using Tests_and_Interviews.Api;
-    using Tests_and_Interviews.Helpers;
     using Tests_and_Interviews.Models.Core;
     using Tests_and_Interviews.Services.Interfaces;
 
     /// <summary>
-    /// GradingService class provides methods to grade different types of questions and calculate the final score for a test attempt.
+    /// GradingService acts as a proxy to the API grading endpoints.
     /// </summary>
     public class GradingService : IGradingService
     {
@@ -32,173 +30,132 @@ namespace Tests_and_Interviews.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="GradingService"/> class.
         /// </summary>
-        /// <param name="httpClient">The HTTP client to use for requests.</param>
+        /// <param name="httpClient">Http client.</param>
         public GradingService(HttpClient httpClient)
         {
             this.http = httpClient ?? ApiClient.Http;
         }
 
         /// <summary>
-        /// Grades a single choice question by comparing the provided answer with the correct answer.
-        /// If the answer is correct, it updates the answer value to indicate correctness and the score awarded.
+        /// Grades single choice question.
         /// </summary>
-        /// <param name="question">The question being graded.</param>
-        /// <param name="answer">The answer provided by the user.</param>
-        public void GradeSingleChoice(Question question, Answer answer)
+        public async void GradeSingleChoice(Question question, Answer answer)
         {
-            if (question.QuestionAnswer == null)
+            var request = new GradeRequest
             {
-                return;
-            }
+                Question = question,
+                Answer = answer,
+            };
 
-            if (answer.Value.Trim() == question.QuestionAnswer.Trim())
-            {
-                answer.Value = $"CORRECT:{question.QuestionScore}";
-            }
+            var response = await this.http.PostAsJsonAsync(
+                "grading/single-choice",
+                request);
+
+            response.EnsureSuccessStatusCode();
+
+            var gradedAnswer = await response.Content.ReadFromJsonAsync<Answer>();
+
+            answer.Value = gradedAnswer.Value;
         }
 
         /// <summary>
-        /// Grades a multiple choice question by comparing the list of selected answers with the list of correct answers.
+        /// Grades multiple choice question.
         /// </summary>
-        /// <param name="question"> The question being graded.</param>
-        /// <param name="answer"> The answer provided by the user, which should be a comma-separated list of selected option indices.</param>
-        public void GradeMultipleChoice(Question question, Answer answer)
+        public async void GradeMultipleChoice(Question question, Answer answer)
         {
-            if (question.QuestionAnswer == null)
+            var request = new GradeRequest
             {
-                return;
-            }
+                Question = question,
+                Answer = answer,
+            };
 
-            var correctIndexes = new List<int>();
-            var selectedIndexes = new List<int>();
+            var response = await this.http.PostAsJsonAsync(
+                "grading/multiple-choice",
+                request);
 
-            foreach (var part in question.QuestionAnswer.Trim().TrimStart('[').TrimEnd(']').Split(','))
-            {
-                if (int.TryParse(part.Trim(), out int parsedIndex))
-                {
-                    correctIndexes.Add(parsedIndex);
-                }
-            }
+            response.EnsureSuccessStatusCode();
 
-            foreach (var part in answer.Value.Trim().TrimStart('[').TrimEnd(']').Split(','))
-            {
-                if (int.TryParse(part.Trim(), out int parsedIndex))
-                {
-                    selectedIndexes.Add(parsedIndex);
-                }
-            }
+            var gradedAnswer = await response.Content.ReadFromJsonAsync<Answer>();
 
-            int numberOfCorrectAnswers = correctIndexes.Count;
-            int numberOfWrongAnswers = selectedIndexes.Count(index => !correctIndexes.Contains(index));
-            int numberOfWrongOptions = TestConstants.OptionsPerQuestion - numberOfCorrectAnswers;
-
-            float scorePerCorrect = numberOfCorrectAnswers > 0
-                ? question.QuestionScore / numberOfCorrectAnswers
-                : 0f;
-
-            float penaltyPerWrong = numberOfWrongOptions > 0
-                ? question.QuestionScore / numberOfWrongOptions
-                : 0f;
-
-            float score = 0f;
-            foreach (var index in selectedIndexes)
-            {
-                if (correctIndexes.Contains(index))
-                {
-                    score += scorePerCorrect;
-                }
-                else
-                {
-                    score -= penaltyPerWrong;
-                }
-            }
-
-            if (score < 0f)
-            {
-                score = 0f;
-            }
-
-            answer.Value = $"PARTIAL:{score}";
+            answer.Value = gradedAnswer.Value;
         }
 
         /// <summary>
-        /// Grades a text question by comparing the provided answer with the correct answer, ignoring case and leading/trailing whitespace.
+        /// Grades text question.
         /// </summary>
-        /// <param name="question">The question being graded.</param>
-        /// <param name="answer">The answer provided by the user.</param>
-        public void GradeText(Question question, Answer answer)
+        public async void GradeText(Question question, Answer answer)
         {
-            if (question.QuestionAnswer == null)
+            var request = new GradeRequest
             {
-                return;
-            }
+                Question = question,
+                Answer = answer,
+            };
 
-            bool isCorrect = string.Equals(
-                answer.Value.Trim(),
-                question.QuestionAnswer.Trim(),
-                StringComparison.OrdinalIgnoreCase);
+            var response = await this.http.PostAsJsonAsync(
+                "grading/text",
+                request);
 
-            if (isCorrect)
-            {
-                answer.Value = $"CORRECT:{question.QuestionScore}";
-            }
+            response.EnsureSuccessStatusCode();
+
+            var gradedAnswer = await response.Content.ReadFromJsonAsync<Answer>();
+
+            answer.Value = gradedAnswer.Value;
         }
 
         /// <summary>
-        /// Grades a true/false question by comparing the provided answer with the correct answer, ignoring case and leading/trailing whitespace.
+        /// Grades true/false question.
         /// </summary>
-        /// <param name="question">The question being graded.</param>
-        /// <param name="answer">The answer provided by the user, which should be "true" or "false".</param>
-        public void GradeTrueFalse(Question question, Answer answer)
+        public async void GradeTrueFalse(Question question, Answer answer)
         {
-            if (question.QuestionAnswer == null)
+            var request = new GradeRequest
             {
-                return;
-            }
+                Question = question,
+                Answer = answer,
+            };
 
-            bool isCorrect = string.Equals(
-                answer.Value.Trim(),
-                question.QuestionAnswer.Trim(),
-                StringComparison.OrdinalIgnoreCase);
+            var response = await this.http.PostAsJsonAsync(
+                "grading/true-false",
+                request);
 
-            if (isCorrect)
-            {
-                answer.Value = $"CORRECT:{question.QuestionScore}";
-            }
+            response.EnsureSuccessStatusCode();
+
+            var gradedAnswer = await response.Content.ReadFromJsonAsync<Answer>();
+
+            answer.Value = gradedAnswer.Value;
         }
 
         /// <summary>
-        /// Calculates the final score for a test attempt by summing up the scores from all answers that are marked as correct.
+        /// Calculates final score.
         /// </summary>
-        /// <param name="attempt">The test attempt for which the final score is being calculated.</param>
-        /// <returns>The total score calculated for the test attempt.</returns>
         public float CalculateFinalScore(TestAttempt attempt)
         {
-            float totalScore = 0f;
+            var response = this.http.PostAsJsonAsync(
+                "grading/final-score",
+                attempt).Result;
 
-            foreach (var answer in attempt.Answers)
-            {
-                if (answer.Value.StartsWith("CORRECT:", StringComparison.OrdinalIgnoreCase))
-                {
-                    string scorePart = answer.Value.Substring("CORRECT:".Length);
-                    if (float.TryParse(scorePart, NumberStyles.Float, CultureInfo.InvariantCulture, out float points))
-                    {
-                        totalScore += points;
-                    }
-                }
-                else if (answer.Value.StartsWith("PARTIAL:", StringComparison.OrdinalIgnoreCase))
-                {
-                    string scorePart = answer.Value.Substring("PARTIAL:".Length);
-                    if (float.TryParse(scorePart, NumberStyles.Float, CultureInfo.InvariantCulture, out float points))
-                    {
-                        totalScore += points;
-                    }
-                }
-            }
+            response.EnsureSuccessStatusCode();
 
-            attempt.Score = (decimal)totalScore;
+            var score = response.Content.ReadFromJsonAsync<float>().Result;
 
-            return totalScore;
+            attempt.Score = (decimal)score;
+
+            return score;
+        }
+
+        /// <summary>
+        /// DTO used for requests.
+        /// </summary>
+        private class GradeRequest
+        {
+            /// <summary>
+            /// Gets or sets question.
+            /// </summary>
+            public Question Question { get; set; }
+
+            /// <summary>
+            /// Gets or sets answer.
+            /// </summary>
+            public Answer Answer { get; set; }
         }
     }
 }

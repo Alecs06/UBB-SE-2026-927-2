@@ -18,6 +18,13 @@
         Task<User?> GetByIdAsync(int id);
 
         /// <summary>
+        /// Gets a user by their email address.
+        /// </summary>
+        /// <param name="email">The email of the User to be found</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        Task<User?> GetByEmailAsync(string email);
+
+        /// <summary>
         /// Gets all users asynchronously.
         /// This method executes a SQL query to retrieve all user records and maps them to a list of User objects.
         /// </summary>

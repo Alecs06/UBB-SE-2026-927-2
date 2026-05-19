@@ -73,7 +73,7 @@ namespace Tests_and_Interviews.Services
                         $"collaborators?loggedInUserID={hostId}",
                         collaboratorDto);
                     collaboratorResponse.EnsureSuccessStatusCode();
-                }
+                }   
             }
 
             return createdEvent;
