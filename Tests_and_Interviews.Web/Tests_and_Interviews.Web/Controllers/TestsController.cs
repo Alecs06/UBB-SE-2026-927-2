@@ -48,19 +48,19 @@ namespace Tests_and_Interviews.Web.Controllers
             return View(test);
         }
 
-        //[Authorize(Roles = Roles.Candidate)]
+        [Authorize(Roles = "Candidate")]
         public IActionResult Start(int id)
         {
             return RedirectToAction("Take", new { id });
         }
 
-        //[Authorize(Roles = Roles.Recruiter)]
+        [Authorize(Roles = "Recruiter,Admin")]
         public IActionResult Create()
         {
             return View();
         }
 
-        //[Authorize(Roles = Roles.Recruiter)]
+        [Authorize(Roles = "Recruiter,Admin")]
         [HttpPost]
         public async Task<IActionResult> Create(TestDto dto)
         {
@@ -73,7 +73,7 @@ namespace Tests_and_Interviews.Web.Controllers
             return RedirectToAction("Index");
         }
 
-        //[Authorize(Roles = Roles.Recruiter)]
+        [Authorize(Roles = "Recruiter,Admin")]
         public async Task<IActionResult> Edit(int id)
         {
             TestDto? test = await this._api.GetById(id);
@@ -84,7 +84,7 @@ namespace Tests_and_Interviews.Web.Controllers
             return View(test);
         }
 
-        //[Authorize(Roles = Roles.Recruiter)]
+        [Authorize(Roles = "Recruiter,Admin")]
         [HttpPost]
         public async Task<IActionResult> Edit(int id, TestDto dto)
         {
@@ -96,7 +96,7 @@ namespace Tests_and_Interviews.Web.Controllers
             return RedirectToAction("Index");
         }
 
-        //[Authorize(Roles = Roles.Recruiter)]
+        [Authorize(Roles = "Recruiter,Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             TestDto? test = await this._api.GetById(id);
@@ -107,7 +107,7 @@ namespace Tests_and_Interviews.Web.Controllers
             return View(test);
         }
 
-        //[Authorize(Roles = Roles.Recruiter)]
+        [Authorize(Roles = "Recruiter,Admin")]
         [HttpPost]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {

@@ -27,16 +27,16 @@
 
         <div class="d-flex gap-2">
 
-            @* @if (User.IsInRole("Candidate")) { *@
+            @if (User.IsInRole("Candidate")) {
                 <a asp-controller="Tests"
                        asp-action="Start"
                        asp-route-id="@Model.Id"
                        class="btn btn-primary">
                     Start Test
                 </a>
-            @* } *@
+            }
 
-            @* @if (User.IsInRole("Recruiter")) { *@
+            @if (User.IsInRole("Admin") || User.IsInRole("Recruiter")) {
                 <a asp-controller="Tests"
                        asp-action="Edit"
                        asp-route-id="@Model.Id"
@@ -50,7 +50,7 @@
                        class="btn btn-danger">
                     Delete
                 </a>
-            @* } *@
+            }
 
             <a asp-action="Index" class="btn btn-secondary ms-auto">
                 Back to List

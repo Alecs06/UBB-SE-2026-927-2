@@ -20,13 +20,13 @@
         </p>
     </div>
 
-    @* @if (User.IsInRole("Recruiter")) { *@
+    @if (User.IsInRole("Admin") || User.IsInRole("Recruiter")) {
         <a asp-controller="Tests"
                asp-action="Create"
                class="btn btn-success mb-4">
             + Create New Test
         </a>
-    @* } *@
+    }
 
     <div class="row g-4">
         @foreach (var test in Model.Tests)
@@ -62,23 +62,16 @@
                                 <span class="text-muted small">30 minutes</span>
                             </div>
 
-                          @*   <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-muted small">30 minutes</span>
-                                <span class="fw-semibold" style="color:#8494FF;">
-                                    Start Test ?
-                                </span>
-                            </div> *@
-
-                            @* @if (User.IsInRole("Candidate")) { *@
+                            @if (User.IsInRole("Candidate")) {
                                 <a asp-controller="Tests"
                                        asp-action="Start"
                                        asp-route-id="@test.TestId"
                                        class="btn btn-primary w-100 mb-2">
                                     Start Test
                                 </a>
-                            @* } *@
+                            }
 
-                            @* @if (User.IsInRole("Recruiter")) { *@
+                            @if (User.IsInRole("Admin") || User.IsInRole("Recruiter")) {
                                 <div class="d-flex gap-2">
                                     <a asp-controller="Tests"
                                            asp-action="Edit"
@@ -94,7 +87,7 @@
                                         Delete
                                     </a>
                                 </div>
-                            @* } *@
+                            }
 
                         </div>
                     </div>
