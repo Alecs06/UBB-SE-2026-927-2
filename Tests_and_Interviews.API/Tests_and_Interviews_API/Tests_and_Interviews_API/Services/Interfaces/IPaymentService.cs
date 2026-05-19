@@ -30,5 +30,14 @@
         /// <param name="newPaymentAmount">The new payment amount to compare against.</param>
         /// <returns>A list of email addresses of companies to notify.</returns>
         List<string> GetCompaniesToNotify(int currentJobId, int newPaymentAmount);
+
+        /// <summary>
+        /// Processes a payment for the specified job by updating the payment amount,
+        /// fetching companies to notify, and sending notification emails.
+        /// </summary>
+        /// <param name="jobId">The unique identifier of the job.</param>
+        /// <param name="paymentAmount">The new payment amount to apply.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task ProcessPaymentAsync(int jobId, int paymentAmount);
     }
 }

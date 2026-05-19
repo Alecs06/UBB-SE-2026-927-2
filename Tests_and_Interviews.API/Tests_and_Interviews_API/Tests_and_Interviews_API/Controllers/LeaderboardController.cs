@@ -69,5 +69,12 @@
 
             return Ok();
         }
+
+        [HttpPost("recalculate/{testId}")]
+        public async Task<ActionResult> Recalculate(int testId)
+        {
+            await this._service.RecalculateAsync(testId);
+            return Ok();
+        }
     }
 }

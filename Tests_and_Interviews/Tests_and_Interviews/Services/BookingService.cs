@@ -98,39 +98,8 @@ namespace Tests_and_Interviews.Services
         /// <exception cref="Exception"> Thrown when the slot is not found or is no longer available.</exception>
         public async Task ConfirmBooking(int candidateId, Slot slot)
         {
-            if (slot == null)
-            {
-                throw new Exception("Slot not found");
-            }
-            if (slot.Status != SlotStatus.Free)
-            {
-                throw new Exception("This slot is no longer available");
-            }
-
-            slot.Status = SlotStatus.Occupied;
-            slot.CandidateId = candidateId;
-            slot.InterviewType = string.Empty;
-
-            HttpResponseMessage slotResponse = await this.http.PutAsJsonAsync(
-                $"slots/{slot.Id}",
-                slot.ToDto());
-            slotResponse.EnsureSuccessStatusCode();
-
-            InterviewSession newInterviewSession = new InterviewSession
-            {
-                PositionId = MINIMUMPOSITIONID,
-                ExternalUserId = candidateId,
-                InterviewerId = slot.RecruiterId,
-                DateStart = slot.StartTime.ToUniversalTime(),
-                Video = string.Empty,
-                Status = "Scheduled",
-                Score = MINIMUMINTERVIEWSCORE,
-            };
-
-            HttpResponseMessage sessionResponse = await this.http.PostAsJsonAsync(
-                "interviewsessions",
-                newInterviewSession.ToDto());
-            sessionResponse.EnsureSuccessStatusCode();
+            HttpResponseMessage response = await this.http.PostAsJsonAsync($"bookings/{slot.Id}/confirm", candidateId);
+            response.EnsureSuccessStatusCode();
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Tests_and_Interviews.Services.Interfaces
     {
         (int percentage, List<string> remainingTasks) Calculate(Company company);
 
-        (List<string> skillNames, List<int> percents) GetSkillsTop3(int companyId);
+        //(List<string> skillNames, List<int> percents) GetSkillsTop3(int companyId);
 
         Task<(List<string> skillNames, List<int> percents)> GetSkillsTop3Async(int companyId);
 
