@@ -45,5 +45,13 @@
         /// <param name="entries">The list of leaderboard entries to save. Cannot be null.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
         Task SaveRangeAsync(List<LeaderboardEntry> entries);
+
+        /// <summary>
+        /// Recalculates the leaderboard for the specified test by fetching valid attempts,
+        /// clearing existing entries, and saving newly ranked entries.
+        /// </summary>
+        /// <param name="testId">The unique identifier of the test.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task RecalculateAsync(int testId);
     }
 }

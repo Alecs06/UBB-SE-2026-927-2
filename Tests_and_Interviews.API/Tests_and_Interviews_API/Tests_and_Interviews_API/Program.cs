@@ -54,6 +54,8 @@ builder.Services.AddScoped<ITestService, TestService>();
 builder.Services.AddScoped<ITimerService, TimerService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<ICompanyStatsService, CompanyStatsService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddControllers();

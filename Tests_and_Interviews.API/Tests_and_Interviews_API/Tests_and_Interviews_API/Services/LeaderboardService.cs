@@ -12,14 +12,17 @@
     public class LeaderboardService : ILeaderboardService
     {
         private readonly ILeaderboardRepository _repository;
+        private readonly ITestAttemptRepository _testAttemptRepository;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LeaderboardService"/> class.
         /// </summary>
         /// <param name="repository">The repository used to access leaderboard data. Cannot be null.</param>
-        public LeaderboardService(ILeaderboardRepository repository)
+        /// <param name="testAttemptRepository">The repository used to access test attempt data. Cannot be null.</param>
+        public LeaderboardService(ILeaderboardRepository repository, ITestAttemptRepository testAttemptRepository)
         {
             this._repository = repository;
+            this._testAttemptRepository = testAttemptRepository;
         }
 
         /// <summary>
@@ -72,6 +75,37 @@
         public async Task SaveRangeAsync(List<LeaderboardEntry> entries)
         {
             await this._repository.SaveRangeAsync(entries);
+        }
+
+        /// <summary>
+        /// Recalculates the leaderboard for the specified test by fetching valid attempts,
+        /// clearing existing entries, and saving newly ranked entries.
+        /// </summary>
+        /// <param name="testId">The unique identifier of the test.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public async Task RecalculateAsync(int testId)
+        {
+            List<TestAttempt> attempts = await this._testAttemptRepository.FindValidAttemptsByTestIdAsync(testId);
+
+            await this._repository.DeleteByTestIdAsync(testId);
+
+            var entries = new List<LeaderboardEntry>();
+            for (int i = 0; i < attempts.Count; i++)
+            {
+                var attempt = attempts[i];
+                entries.Add(new LeaderboardEntry
+                {
+                    TestId = attempt.TestId,
+                    UserId = attempt.ExternalUserId!.Value,
+                    NormalizedScore = attempt.PercentageScore!.Value,
+                    RankPosition = i + 1,
+                    TieBreakPriority = i + 1,
+                    LastRecalculationAt = DateTime.UtcNow,
+                });
+            }
+
+            if (entries.Count > 0)
+                await this._repository.SaveRangeAsync(entries);
         }
     }
 }

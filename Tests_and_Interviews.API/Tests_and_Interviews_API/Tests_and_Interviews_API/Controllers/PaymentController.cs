@@ -3,6 +3,7 @@
     using Microsoft.AspNetCore.Mvc;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using Tests_and_Interviews_API.Dtos;
     using Tests_and_Interviews_API.Mappers;
     using Tests_and_Interviews_API.Models;
@@ -19,11 +20,17 @@
             this._service = service;
         }
 
+        [HttpPost("process/{jobId}")]
+        public async Task<ActionResult> ProcessPayment(int jobId, [FromQuery] int paymentAmount)
+        {
+            await this._service.ProcessPaymentAsync(jobId, paymentAmount);
+            return Ok();
+        }
+
         [HttpPut("{jobId}")]
         public ActionResult UpdateJobPayment(int jobId, [FromQuery] int paymentAmount)
         {
             this._service.UpdateJobPayment(jobId, paymentAmount);
-
             return Ok();
         }
 
@@ -36,17 +43,6 @@
                 return NotFound($"No paid jobs found for type '{jobType}' and experience level '{experienceLevel}'.");
 
             return Ok(jobs.Select(j => j.ToDto()).ToList());
-        }
-
-        [HttpGet("notify/{currentJobId}")]
-        public ActionResult<List<string>> GetCompaniesToNotify(int currentJobId, [FromQuery] int newPaymentAmount)
-        {
-            List<string> emails = this._service.GetCompaniesToNotify(currentJobId, newPaymentAmount);
-
-            if (emails is null || !emails.Any())
-                return NotFound($"No companies to notify for job ID {currentJobId}.");
-
-            return Ok(emails);
         }
     }
 }

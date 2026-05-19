@@ -151,7 +151,6 @@ namespace Tests_and_Interviews.Services
             if (number < 0 || number >= game.Scenarios.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(number), "Scenario index is out of bounds.");
-                //return string.Empty();
             }
             return game.Scenarios[number].Description;
         }

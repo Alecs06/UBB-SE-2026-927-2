@@ -22,8 +22,8 @@ namespace Tests_and_Interviews_API.Services
         private const int MINIMUMPOSITIONID = 0;
         private const int MINIMUMINTERVIEWSCORE = 0;
 
-        private readonly ISlotRepository slotRepo;
-        private readonly IInterviewSessionRepository interviewRepo;
+        private readonly ISlotRepository _slotRepository;
+        private readonly IInterviewSessionRepository _interviewSessionRepository;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BookingService"/> class with the specified repositories.
@@ -32,62 +32,36 @@ namespace Tests_and_Interviews_API.Services
         /// <param name="interviewSessionRepository">The interview session repository to be used by the service.</param>
         public BookingService(ISlotRepository slotRepository, IInterviewSessionRepository interviewSessionRepository)
         {
-            this.slotRepo = slotRepository;
-            this.interviewRepo = interviewSessionRepository;
+            this._slotRepository = slotRepository;
+            this._interviewSessionRepository = interviewSessionRepository;
         }
 
         /// <summary>
-        /// Gets the available slots for a given recruiter at a given date.
+        /// Asynchronously confirms a booking for a candidate by updating the slot's status to occupied and creating a new interview session.
         /// </summary>
-        /// <param name="recruiterId"> Id of the recruiter.</param>
-        /// <param name="date"> The date for which to retrieve available slots.</param>
-        /// <returns> A list of available slots for the specified recruiter and date.</returns>
-        public List<Slot> GetAvailableSlots(int recruiterId, DateTime date)
+        /// <param name="slotId">The unique identifier of the slot to be booked.</param>
+        /// <param name="candidateId">The unique identifier of the candidate making the booking.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown when the slot is not found.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the slot is no longer available.</exception>
+        public async Task ConfirmBookingAsync(int slotId, int candidateId)
         {
-            return this.slotRepo
-                .GetSlots(recruiterId, date)
-                .Where(slot => slot.Status == SlotStatus.Free)
-                .OrderBy(slot => slot.StartTime)
-                .ToList();
-        }
-
-        /// <summary>
-        /// Gets all available slots for a given recruiter, regardless of the date.
-        /// </summary>
-        /// <param name="recruiterId"> Id of the recruiter.</param>
-        /// <returns> A list of all available slots for the specified recruiter.</returns>
-        public List<Slot> GetAvailableSlotsByRecruiterId(int recruiterId)
-        {
-            return this.slotRepo
-                .GetAllSlots(recruiterId)
-                .Where(slot => slot.Status == SlotStatus.Free)
-                .OrderBy(slot => slot.StartTime)
-                .ToList();
-        }
-
-        /// <summary>
-        /// Confirms a booking for a candidate by updating the slot's status to occupied and creating a new interview session.
-        /// </summary>
-        /// <param name="candidateId"> Id of the candidate.</param>
-        /// <param name="slot"> The slot to be booked.</param>
-        /// <exception cref="Exception"> Thrown when the slot is not found or is no longer available.</exception>
-        public void ConfirmBooking(int candidateId, Slot slot)
-        {
+            Slot? slot = await this._slotRepository.GetByIdAsync(slotId);
             if (slot == null)
             {
-                throw new Exception("Slot not found");
+                throw new KeyNotFoundException("Slot not found.");
             }
 
             if (slot.Status != SlotStatus.Free)
             {
-                throw new Exception("This slot is no longer available");
+                throw new InvalidOperationException("This slot is no longer available.");
             }
 
             slot.Status = SlotStatus.Occupied;
             slot.CandidateId = candidateId;
             slot.InterviewType = string.Empty;
 
-            this.slotRepo.Update(slot);
+            await this._slotRepository.UpdateAsync(slot);
 
             InterviewSession newInterviewSession = new InterviewSession
             {
@@ -100,7 +74,7 @@ namespace Tests_and_Interviews_API.Services
                 Score = MINIMUMINTERVIEWSCORE,
             };
 
-            this.interviewRepo.Add(newInterviewSession);
+            this._interviewSessionRepository.Add(newInterviewSession);
         }
     }
 }
