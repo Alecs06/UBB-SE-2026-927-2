@@ -16,7 +16,7 @@
         /// resource usage and avoid socket exhaustion. Do not dispose of this instance.</remarks>
         public static readonly HttpClient Http = new HttpClient
         {
-            BaseAddress = new Uri("http://localhost:5179/"),
+            BaseAddress = new Uri("http://localhost:5179/api/"),
         };
     }
 }
