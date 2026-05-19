@@ -3,6 +3,7 @@
     using System.Security.Claims;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Authentication.Cookies;
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Tests_and_Interviews.Web.Models;
     using Tests_and_Interviews.Web.Services;
@@ -11,6 +12,7 @@
     /// <summary>
     /// Handles login, registration and logout for the MVC web app.
     /// </summary>
+    [AllowAnonymous]
     public class AccountController : Controller
     {
         private readonly IAuthService authService;
