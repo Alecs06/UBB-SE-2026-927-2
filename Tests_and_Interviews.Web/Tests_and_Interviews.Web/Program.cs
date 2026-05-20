@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Tests_and_Interviews.Web.Services;
 
+using Tests_and_Interviews.Web.Clients;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -29,6 +31,11 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddHttpClient<IAuthService, AuthService>(client =>
 {
     client.BaseAddress = new Uri("http://localhost:5179/");
+});
+
+builder.Services.AddHttpClient<TestsApiClient>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5179");
 });
 
 var app = builder.Build();

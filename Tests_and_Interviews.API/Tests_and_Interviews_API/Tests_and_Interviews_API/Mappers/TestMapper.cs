@@ -25,6 +25,7 @@ namespace Tests_and_Interviews_API.Mappers
                 Title = entity.Title,
                 Category = entity.Category,
                 CreatedAt = entity.CreatedAt,
+                QuestionTypeLabel = entity.Questions?.FirstOrDefault()?.QuestionTypeString ?? "MIXED"
             };
         }
 
